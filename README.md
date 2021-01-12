@@ -14,7 +14,7 @@ pkg> test DescriptorSystems
 
 ## About
 
-`DescriptorSystems.jl` is a collection of Julia functions for numerical computations related to generalized state-space (descriptor) system representations of the continuous-time form
+`DescriptorSystems.jl` is a collection of Julia functions for numerical computations related to generalized state-space (descriptor) system representations in the continuous-time form
 
      Edx(t)/dt = Ax(t) + Bu(t) ,
      y(t)      = Cx(t) + Du(t) ,
@@ -30,7 +30,7 @@ This collection also allows the operation on and manipulation of rational and po
 descriptor system realizations.
 
 The functionality of many of the implemented functions parallel or even extend the functionality of the
-Control System Toolbox of MATLAB and is similar to that of [`DSTOLS`](https://bitbucket.org/DSVarga/dstools/src/master/) collection of tools. The underlying computational functions are based on the
+Control System Toolbox of MATLAB and is similar to that of the [`DSTOLS`](https://bitbucket.org/DSVarga/dstools/src/master/) collection of tools. The underlying computational functions are based on the
 [`MatrixPencils.jl`](https://github.com/andreasvarga/MatrixPencils.jl) and
 [`MatrixEquations.jl`](https://github.com/andreasvarga/MatrixEquations.jl) packages.
 
@@ -60,12 +60,12 @@ The current version of the package includes the following functions:
 * **gminreal**  Minimal realization of descriptor systems.
 * **gir**   Irreducible realization of descriptor systems.
 * **gbalmr**   Reduced-order approximations of descriptor systems using balancing related methods.
-* **gsreduce**   Order reduction of descriptor systems by state variable Horizontal concatenation of descriptor system models.
+* **gsreduce**   Order reduction of descriptor systems by selecting a set of state variables.
 
 **Basic operations on descriptor system models**
 
 * **inv**  Inversion of a descriptor system.
-* **ldiv**   Left division for two descriptor systems (also overloaded with **`\\`**).
+* **ldiv**   Left division for two descriptor systems (also overloaded with **`\`**).
 * **rdiv**   Right division for two descriptor systems (also overloaded with **`/`**).
 * **gdual**   Construction of the dual of a descriptor system (also overloaded with **`transpose`**)
 * **ctranspose**  Construction of the conjugate transpose of a descriptor system (also overloaded with **`'`**).
