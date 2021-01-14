@@ -22,7 +22,7 @@ pkg> test DescriptorSystems
 or in the discrete-time form
 
      Ex(t+1) = Ax(t) + Bu(t) ,
-     y(t)     = Cx(t) + Du(t) ,
+     y(t)    = Cx(t) + Du(t) ,
 
 where `x(t)`, `u(t)` and `y(t)` are the system state vector, system input vector and system output vector, respectively, and `t` is the continuous or discrete time variable.  
 
@@ -55,13 +55,6 @@ The current version of the package includes the following functions:
 * **horzcat**   Horizontal concatenation of descriptor system models (also overloaded with **`[ * * ]`**).
 * **vertcat**   Vertical concatenation of descriptor system models (also overloaded with **`[ *; * ]`**).
 
-**Simplification of descriptor system models**
-
-* **gminreal**  Minimal realization of descriptor systems.
-* **gir**   Irreducible realization of descriptor systems.
-* **gbalmr**   Reduced-order approximations of descriptor systems using balancing related methods.
-* **gsreduce**   Order reduction of descriptor systems by selecting a set of state variables.
-
 **Basic operations on descriptor system models**
 
 * **inv**  Inversion of a descriptor system.
@@ -70,10 +63,16 @@ The current version of the package includes the following functions:
 * **gdual**   Construction of the dual of a descriptor system (also overloaded with **`transpose`**)
 * **ctranspose**  Construction of the conjugate transpose of a descriptor system (also overloaded with **`'`**).
 
+**Simplification of descriptor system models**
+
+* **gminreal**  Minimal realization of descriptor systems.
+* **gir**      Irreducible realization of descriptor systems.
+* **gbalmr**   Reduced-order approximations of descriptor systems using balancing related methods.
+
 ## Future plans
 
 This is a rapidly evolving software project for which new functionality will be frequently added.
 
 ## Supplementary information
 
-Supplementary information on the existing and planned functionality is also available in the documentation of the `DSTOOLS` collection available on [arXiv](https://arxiv.org/abs/1707.07140)).
+Supplementary information on the existing and planned functionality is also available in the documentation of the [`DSTOLS`](https://bitbucket.org/DSVarga/dstools/src/master/) collection available on [arXiv](https://arxiv.org/abs/1707.07140).
