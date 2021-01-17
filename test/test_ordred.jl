@@ -1,0 +1,510 @@
+module Test_ordred
+
+using DescriptorSystems
+using MatrixEquations
+using MatrixPencils
+using LinearAlgebra
+using Polynomials
+using Test
+
+@testset "Order Reduction Tools" begin
+
+@testset "gminreal and gir" begin
+
+for fast in (true, false)
+
+A2 = zeros(0,0); E2 = zeros(0,0); C2 = zeros(0,0); B2 = zeros(0,0); D2 = zeros(0,0);
+sys = dss(A2,E2,B2,C2,D2);
+
+sys1 = gminreal(sys, fast = fast)
+@test iszero(sys-sys1) 
+
+sys1 = gir(sys, fast = fast)
+@test iszero(sys-sys1) 
+
+A2 = rand(3,3); E2 = zeros(3,3); C2 = zeros(0,3); B2 = zeros(3,0); D2 = zeros(0,0);
+sys = dss(A2,E2,B2,C2,D2);
+
+sys1 = gminreal(sys, fast = fast)
+@test iszero(sys-sys1) 
+
+sys1 = gminreal(sys, fast = fast, contr = false)
+@test iszero(sys-sys1) 
+
+sys1 = gir(sys, fast = fast)
+@test iszero(sys-sys1) 
+
+sys1 = gir(sys, fast = fast, contr = false)
+@test iszero(sys-sys1) 
+
+# B and D vectors
+A2 = rand(3,3); E2 = zeros(3,3); C2 = zeros(1,3); B2 = zeros(3,1); D2 = zeros(1);
+sys = dss(A2,E2,B2,C2,D2);
+
+sys1 = gminreal(sys, fast = fast)
+@test iszero(sys-sys1) 
+
+sys1 = gminreal(sys, fast = fast, contr = false)
+@test iszero(sys-sys1) 
+
+sys1 = gir(sys, fast = fast)
+@test iszero(sys-sys1) 
+
+sys1 = gir(sys, fast = fast, contr = false)
+@test iszero(sys-sys1) 
+
+# Example 1: DeTeran, Dopico, Mackey, ELA 2009
+
+A2 = [1.0  0.0  0.0  0.0  0.0  0.0
+0.0  1.0  0.0  0.0  0.0  0.0
+0.0  0.0  1.0  0.0  0.0  0.0
+0.0  0.0  0.0  1.0  0.0  0.0
+0.0  0.0  0.0  0.0  1.0  0.0
+0.0  0.0  0.0  0.0  0.0  1.0];
+
+E2 = [0.0  0.0  1.0  0.0  0.0  0.0
+0.0  0.0  0.0  1.0  0.0  0.0
+0.0  0.0  0.0  0.0  1.0  0.0
+0.0  0.0  0.0  0.0  0.0  1.0
+0.0  0.0  0.0  0.0  0.0  0.0
+0.0  0.0  0.0  0.0  0.0  0.0];
+
+B2 = [0.0  0.0
+0.0  0.0
+0.0  1.0
+1.0  0.0
+1.0  0.0
+0.0  0.0];
+
+C2 = [-1.0   0.0  0.0  0.0  0.0  0.0
+0.0  -1.0  0.0  0.0  0.0  0.0];
+
+D2 = [0.0  0.0
+0.0  1.0];
+
+sys = dss(A2,E2,B2,C2,D2);
+
+# compute minimal realization 
+sys1 = gminreal(sys, fast = fast)
+@test iszero(sys-sys1) && order(sys)-order(sys1) == 3 #&& nuo == 0 && nse == 1
+# an order reduction without enforcing controllability and observability may not be possible
+sys1 = gminreal(sys,contr=false,obs=false, fast = fast)
+@test iszero(sys-sys1)  && order(sys)-order(sys1) == 0 
+# compute an irreducible realization which still contains a non-dynamic mode
+sys1 = gminreal(sys,noseig=false, fast = fast)
+@test iszero(sys-sys1)  && order(sys)-order(sys1) == 2 
+
+sys = dss(E2,A2,B2,C2,D2); 
+# compute minimal realization for a standard system (i.e., irreducible realization)
+sys1 = gminreal(sys, fast = fast)
+@test iszero(sys-sys1) && order(sys)-order(sys1) == 2 
+
+sys = dss(A2,E2,B2,C2,D2);
+# compute irreducible realization which still contains a non-dynamic mode using only orthogonal transformations
+sys1 = gir(sys, fast = fast)
+@test iszero(sys-sys1)  && order(sys)-order(sys1) == 2
+# minimal realization requires elimination of non-dynamic modes
+sys1 = gir(sys, noseig=true, fast = fast)
+@test iszero(sys-sys1)  && order(sys)-order(sys1) == 3
+# order reduction may results even when applying the infinite controllability/observability algorithm
+sys1 = gir(sys, finite = false, fast = fast)
+@test iszero(sys-sys1)  && order(sys)-order(sys1) == 2
+# order reduction may results even when applying the finite controllability/observability algorithm
+sys1 = gir(sys,infinite = false, fast = fast)
+@test iszero(sys-sys1)   && order(sys)-order(sys1) == 1
+# an order reduction without enforcing controllability and observability may not be possible
+sys1 = gir(sys,contr=false,obs=false, noseig=true, fast = fast)
+@test iszero(sys-sys1)   && order(sys)-order(sys1) == 0
+
+
+sys = dss(E2,A2,B2,C2,D2); 
+# compute minimal realization for a standard system (i.e., irreducible realization)
+sys1 = gir(sys, fast = fast)
+@test iszero(sys-sys1)  && order(sys)-order(sys1) == 2
+# an order reduction without enforcing controllability is not be possible
+sys1 = gir(sys,contr=false,fast = fast)
+@test iszero(sys-sys1)  && order(sys)-order(sys1) == 0
+
+
+
+# Example Van Dooren & Dewilde, LAA 1983.
+# P = zeros(3,3,3)
+# P[:,:,1] = [1 2 -2; 0 -1 -2; 0 0 0]
+# P[:,:,2] = [1 3 0; 1 4 2; 0 -1 -2]
+# P[:,:,3] = [1 4 2; 0 0 0; 1 4 2]
+
+# observable realization with A2 = I
+A2 = [ 1.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0
+0.0  1.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0
+0.0  0.0  1.0  0.0  0.0  0.0  0.0  0.0  0.0
+0.0  0.0  0.0  1.0  0.0  0.0  0.0  0.0  0.0
+0.0  0.0  0.0  0.0  1.0  0.0  0.0  0.0  0.0
+0.0  0.0  0.0  0.0  0.0  1.0  0.0  0.0  0.0
+0.0  0.0  0.0  0.0  0.0  0.0  1.0  0.0  0.0
+0.0  0.0  0.0  0.0  0.0  0.0  0.0  1.0  0.0
+0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  1.0];
+
+E2 = [ 0.0  0.0  0.0  1.0  0.0  0.0  0.0  0.0  0.0
+0.0  0.0  0.0  0.0  1.0  0.0  0.0  0.0  0.0
+0.0  0.0  0.0  0.0  0.0  1.0  0.0  0.0  0.0
+0.0  0.0  0.0  0.0  0.0  0.0  1.0  0.0  0.0
+0.0  0.0  0.0  0.0  0.0  0.0  0.0  1.0  0.0
+0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  1.0
+0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0
+0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0
+0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0];
+
+B2 = [ 0.0   0.0   0.0
+0.0   0.0   0.0
+0.0   0.0   0.0
+1.0   3.0   0.0
+1.0   4.0   2.0
+0.0  -1.0  -2.0
+1.0   4.0   2.0
+0.0   0.0   0.0
+1.0   4.0   2.0];
+
+C2 = [ -1.0   0.0   0.0  0.0  0.0  0.0  0.0  0.0  0.0
+0.0  -1.0   0.0  0.0  0.0  0.0  0.0  0.0  0.0
+0.0   0.0  -1.0  0.0  0.0  0.0  0.0  0.0  0.0];
+
+D2 = [ 1.0   2.0  -2.0
+0.0  -1.0  -2.0
+0.0   0.0   0.0];
+
+sys = dss(A2,E2,B2,C2,D2);
+# build a strong (least order) minimal realization 
+@time sys1  = gminreal(sys, fast = fast);
+@test iszero(sys-sys1) && order(sys)-order(sys1) == 6
+
+# the system is observable
+@time sys1 = gminreal(sys,obs=false, fast = fast);
+@test iszero(sys-sys1) && order(sys)-order(sys1) == 6
+
+# irreducible realization is not minimal
+@time sys1 = gir(sys, fast = fast);
+@test iszero(sys-sys1) && order(sys)-order(sys1) == 5
+
+# minimal realization requires removing of non-dynamic modes
+@time sys1 = gir(sys, obs=false, finite = false, noseig = true, fast = fast);
+@test iszero(sys-sys1) && order(sys)-order(sys1) == 6
+
+# Example 1 - (Varga, Kybernetika, 1990) 
+A2 = [
+1 0 0 0 -1 0 0 0
+0 1 0 0 0 -1 0 0
+0 0 1 0 0 0 0 0      
+0 0 0 1 0 0 0 0
+0 0 0 0 -1 0 0 0
+0 0 0 0 0 -1 0 0
+0 0 0 0 3 0 1 0
+0 0 0 0 0 2 0 1
+]
+E2 = [
+0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0
+1 0 0 0 0 0 0 0
+0 1 0 0 0 0 0 0
+0 0 1 0 0 0 0 0
+0 0 0 1 0 0 0 0
+]
+B2 = [
+      -1 1
+      0 0
+      0 0
+      0 0
+      1 -2
+      -2 3
+      0 0
+      3 -3
+]
+C2 = [
+      0 0 0 0 0 0 -1 0
+      0 0 0 0 0 0 0 -1      
+]
+D2 = zeros(Int,2,2);  
+
+sys = dss(A2,E2,B2,C2,D2);
+# build a strong (least order) minimal realization 
+@time sys1  = gminreal(sys, fast = fast);
+@test iszero(sys-sys1) && order(sys)-order(sys1) == 7
+
+# irreducible realization is not minimal
+@time sys1 = gir(sys, fast = fast);
+@test iszero(sys-sys1) && order(sys)-order(sys1) == 6
+
+
+# SISO standard system, B and D vectors
+A2 = [
+      0 0 0 -24 0 0 0 0 0 0 0
+      1 0 0 -50 0 0 0 0 0 0 0
+      0 1 0 -35 0 0 0 0 0 0 0
+      0 0 1 -10 0 0 0 0 0 0 0
+      0 0 0 0 0 0 0 -30 0 0 0
+      0 0 0 0 1 0 0 -61 0 0 0
+      0 0 0 0 0 1 0 -41 0 0 0
+      0 0 0 0 0 0 1 -11 0 0 0
+      0 0 0 0 0 0 0 0 0 0 -15
+      0 0 0 0 0 0 0 0 1 0 -23
+      0 0 0 0 0 0 0 0 0 1 -9
+]
+E2 = I;
+B2 = [18; 42; 30; 6; 10;17;8;1;0;-10;-2;]
+C2 = [0 0 0 0 0 0 0 1 0 0 0]
+D2 = [0]
+
+
+sys = dss(A2,E2,B2,C2,D2);
+# build a strong (least order) minimal realization 
+@time sys1  = gminreal(sys, fast = fast);
+@test iszero(sys-sys1) && order(sys)-order(sys1) == 10
+
+# irreducible realization is also minimal
+@time sys1 = gir(sys, fast = fast);
+@test iszero(sys-sys1) && order(sys)-order(sys1) == 10
+
+for Ty in (Float64, Complex{Float64})
+
+#fast = true; Ty = Complex{Float64}    
+n = 10; m = 5; p = 6;
+nuc = 3; nuo = 4;
+sys = rss(n, p, m; T = Ty, nuc = 3, nuo = 4);
+
+@time sys1  = gminreal(sys, atol = 1.e-7, fast = fast);
+@test iszero(sys-sys1, atol = 1.e-7) && order(sys)-order(sys1) == nuc+nuo
+
+@time sys1  = gir(sys, atol = 1.e-7, fast = fast);
+@test iszero(sys-sys1, atol = 1.e-7) && order(sys)-order(sys1) == nuc+nuo
+
+@time sys1  = gminreal(sys, atol = 1.e-7, contr = false, fast = fast);
+@test iszero(sys-sys1, atol = 1.e-7) && order(sys)-order(sys1) == nuo
+
+@time sys1  = gir(sys, atol = 1.e-7, contr = false, fast = fast);
+@test iszero(sys-sys1, atol = 1.e-7) && order(sys)-order(sys1) == nuo
+
+@time sys1  = gminreal(sys, atol = 1.e-7, obs = false, fast = fast);
+@test iszero(sys-sys1, atol = 1.e-7) && order(sys)-order(sys1) == nuc
+
+@time sys1  = gir(sys, atol = 1.e-7, obs = false, fast = fast);
+@test iszero(sys-sys1, atol = 1.e-7) && order(sys)-order(sys1) == nuc
+
+n = 10; m = 5; p = 6;
+nfuc = 3; nfuo = 4;
+sys = rdss(n, p, m; T = Ty, nfuc = 3, nfuo = 4);
+
+@time sys1  = gminreal(sys, atol = 1.e-7, fast = fast);
+@test iszero(sys-sys1, atol = 1.e-7) && order(sys)-order(sys1) == nfuc+nfuo
+
+@time sys1  = gir(sys, atol = 1.e-7, fast = fast);
+@test iszero(sys-sys1, atol = 1.e-7) && order(sys)-order(sys1) == nfuc+nfuo
+
+@time sys1  = gminreal(sys, atol = 1.e-7, contr = false, fast = fast);
+@test iszero(sys-sys1, atol = 1.e-7) && order(sys)-order(sys1) == nfuo
+
+@time sys1  = gir(sys, atol = 1.e-7, contr = false, fast = fast);
+@test iszero(sys-sys1, atol = 1.e-7) && order(sys)-order(sys1) == nfuo
+
+@time sys1  = gminreal(sys, atol = 1.e-7, obs = false, fast = fast);
+@test iszero(sys-sys1, atol = 1.e-7) && order(sys)-order(sys1) == nfuc
+
+@time sys1  = gir(sys, atol = 1.e-7, obs = false, fast = fast);
+@test iszero(sys-sys1, atol = 1.e-7) && order(sys)-order(sys1) == nfuc
+
+
+
+end
+
+end
+end
+
+
+@testset "gbalmr" begin
+
+sys = rss(0,0,0);
+@time sysr, hsv = gbalmr(sys)
+@test iszero(sys-sysr) && hsv == Float64[]
+
+sys = rdss(0,0,0);
+@time sysr, hsv = gbalmr(sys)
+@test iszero(sys-sysr) && hsv == Float64[]
+
+
+n = 5; m = 3; p = 2;
+
+Ty = Float64; fast = true; 
+for Ty in (Float64, Complex{Float64})
+
+for fast in (true, false)
+
+# standard continuous-time
+sys = rss(n,p,m,stable = true, T = Ty); 
+
+@time sysr, hsv = gbalmr(sys,fast = fast, balance = true)
+@test iszero(sys-sysr)
+
+@time sysr, hsv = gbalmr(sys,fast = fast, balance = true, matchdc = true, ord = 3)
+@test dcgain(sys) ≈ dcgain(sysr)
+
+@time sysr, hsv = gbalmr(sys,fast = fast, matchdc = true, ord = 3)
+@test dcgain(sys) ≈ dcgain(sysr)
+
+try
+    @time sysr, hsv = gbalmr(sys',fast = fast)
+    @test false
+catch
+    @test true
+end
+
+@time sysr, hsv = gbalmr(sys-sys,fast = fast, atolhsv = 1.e-7)
+@test hsv[1] < 1.e-7 && order(sysr) == 0
+
+@time sysr, hsv = gbalmr(sys+sys,fast = fast, atolhsv = 1.e-7, balance = true)
+@test norm(hsv[n+1:end]) < 1.e-7 && order(sysr) == n && iszero(2*sys-sysr, atol=1.e-7)
+
+@time sysr, hsv = gbalmr(sys+sys,fast = fast, atolhsv = 1.e-7)
+@test norm(hsv[n+1:end]) < 1.e-7 && order(sysr) == n && iszero(2*sys-sysr, atol=1.e-7)
+
+@time sysr, hsv = gbalmr([sys sys],fast = fast, atolhsv = 1.e-7, balance = true)
+@test norm(hsv[n+1:end]) < 1.e-7 && order(sysr) == n && iszero([sys sys] - sysr, atol=1.e-7)
+
+@time sysr, hsv = gbalmr([sys sys],fast = fast, atolhsv = 1.e-7)
+@test norm(hsv[n+1:end]) < 1.e-7 && order(sysr) == n && iszero([sys sys] - sysr, atol=1.e-7)
+
+# standard discrete-time
+sys = rss(n,p,m,T = Ty, disc = true, stable = true); 
+@time sysr, hsv = gbalmr(sys,fast = fast, balance = true)
+@test iszero(sys-sysr)
+
+@time sysr, hsv = gbalmr(sys,fast = fast, balance = true, matchdc = true, ord = 3)
+@test dcgain(sys) ≈ dcgain(sysr)
+
+@time sysr, hsv = gbalmr(sys,fast = fast, matchdc = true, ord = 3)
+@test dcgain(sys) ≈ dcgain(sysr)
+
+
+try
+    @time sysr, hsv = gbalmr(sys',fast = fast)
+    @test false
+catch
+    @test true
+end
+
+@time sysr, hsv = gbalmr(sys-sys,fast = fast, atolhsv = 1.e-7)
+@test hsv[1]< 1.e-7 && order(sysr) == 0
+
+@time sysr, hsv = gbalmr(sys+sys,fast = fast, atolhsv = 1.e-7)
+@test norm(hsv[n+1:end]) < 1.e-7 && order(sysr) == n && iszero(2*sys-sysr)
+
+@time sysr, hsv = gbalmr([sys sys],fast = fast)
+@test norm(hsv[n+1:end]) < 1.e-7 && order(sysr) == n 
+  
+# descriptor continuous-time non-singular E
+sys = rdss(n,p,m,stable = true, T = Ty); 
+
+@time sysr, hsv = gbalmr(sys,fast = fast, balance = true)
+@test iszero(sys-sysr)
+
+@time sysr, hsv = gbalmr(sys,fast = fast, balance = true, matchdc = true, ord = 3)
+@test dcgain(sys) ≈ dcgain(sysr)
+
+@time sysr, hsv = gbalmr(sys,fast = fast, matchdc = true, ord = 3)
+@test dcgain(sys) ≈ dcgain(sysr)
+
+try
+    @time sysr, hsv = gbalmr(sys',fast = fast)
+    @test false
+catch
+    @test true
+end
+
+@time sysr, hsv = gbalmr(sys-sys,fast = fast, atolhsv = 1.e-7)
+@test hsv[1] < 1.e-7 && order(sysr) == 0
+
+@time sysr, hsv = gbalmr(sys+sys,fast = fast, atolhsv = 1.e-7)
+@test norm(hsv[n+1:end]) < 1.e-7 && order(sysr) == n && iszero(2*sys-sysr)
+
+@time sysr, hsv = gbalmr([sys sys],fast = fast, atolhsv = 1.e-7)
+@test norm(hsv[n+1:end]) < 1.e-7 && order(sysr) == n 
+
+# descriptor discrete-time non-singular E
+sys = rdss(n,p,m,T = Ty, disc = true, stable = true); 
+@time sysr, hsv = gbalmr(sys,fast = fast, balance = true)
+@test iszero(sys-sysr)
+
+@time sysr, hsv = gbalmr(sys,fast = fast, balance = true, matchdc = true, ord = 3)
+@test dcgain(sys) ≈ dcgain(sysr)
+
+@time sysr, hsv = gbalmr(sys,fast = fast, matchdc = true, ord = 3)
+@test dcgain(sys) ≈ dcgain(sysr)
+
+try
+    @time sysr, hsv = gbalmr(sys',fast = fast)
+    @test false
+catch
+    @test true
+end
+
+@time sysr, hsv = gbalmr(sys-sys,fast = fast, atolhsv = 1.e-7)
+@test hsv[1]< 1.e-7 && order(sysr) == 0
+
+@time sysr, hsv = gbalmr(sys+sys,fast = fast, atolhsv = 1.e-7)
+@test norm(hsv[n+1:end]) < 1.e-7 && order(sysr) == n && iszero(2*sys-sysr)
+
+@time sysr, hsv = gbalmr([sys sys],fast = fast)
+@test norm(hsv[n+1:end]) < 1.e-7 && order(sysr) == n 
+
+# proper descriptor continuous-time singular E
+sys = rdss(n,p,m,T = Ty, stable = true,id=ones(Int,3)); 
+
+@time sysr, hsv = gbalmr(sys,atol=1.e-7,balance = true)
+@test iszero(sys-sysr,atol=1.e-7)
+
+@time sysr, hsv = gbalmr(sys,fast = fast, balance = true, matchdc = true, ord = 3)
+@test dcgain(sys) ≈ dcgain(sysr)
+
+try
+    @time sysr, hsv = gbalmr(sys',fast = fast)
+    @test false
+catch
+    @test true
+end
+
+@time sysr, hsv = gbalmr(sys+sys,fast = fast, atolhsv = 1.e-7,atol = 1.e-7)
+@test norm(hsv[n+1:end]) < 1.e-7 && order(sysr) == n && iszero(2*sys-sysr)
+
+
+@time sysr, hsv = gbalmr([sys sys],fast = fast,atol = 1.e-7)
+@test norm(hsv[n+1:end]) < 1.e-7 && order(sysr) == n 
+
+
+# proper descriptor discrete-time singular E
+sys = rdss(n,p,m,T = Ty, stable = true, disc = true, id=ones(Int,3)); 
+
+@time sysr, hsv = gbalmr(sys,atol=1.e-7,balance = true)
+@test iszero(sys-sysr)
+
+@time sysr, hsv = gbalmr(sys,fast = fast, balance = true, matchdc = true, ord = 3)
+@test dcgain(sys) ≈ dcgain(sysr)
+
+try
+    @time sysr, hsv = gbalmr(sys',fast = fast)
+    @test false
+catch
+    @test true
+end
+
+
+@time sysr, hsv = gbalmr(sys+sys,fast = fast, atolhsv = 1.e-7,atol = 1.e-7)
+@test norm(hsv[n+1:end]) < 1.e-7 && order(sysr) == n && iszero(2*sys-sysr)
+
+@time sysr, hsv = gbalmr([sys sys],fast = fast,atol = 1.e-7)
+@test norm(hsv[n+1:end]) < 1.e-7 && order(sysr) == n 
+
+end # fast
+end # Ty
+end # gbalmr
+
+end
+end # module
