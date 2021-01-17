@@ -17,41 +17,41 @@ A2 = zeros(0,0); E2 = zeros(0,0); C2 = zeros(0,0); B2 = zeros(0,0); D2 = zeros(0
 sys = dss(A2,E2,B2,C2,D2);
 
 sys1 = gminreal(sys, fast = fast)
-@test iszero(sys-sys1) 
+@test iszero(sys-sys1,atol=1.e-7) 
 
 sys1 = gir(sys, fast = fast)
-@test iszero(sys-sys1) 
+@test iszero(sys-sys1,atol=1.e-7) 
 
 A2 = rand(3,3); E2 = zeros(3,3); C2 = zeros(0,3); B2 = zeros(3,0); D2 = zeros(0,0);
 sys = dss(A2,E2,B2,C2,D2);
 
 sys1 = gminreal(sys, fast = fast)
-@test iszero(sys-sys1) 
+@test iszero(sys-sys1,atol=1.e-7) 
 
 sys1 = gminreal(sys, fast = fast, contr = false)
-@test iszero(sys-sys1) 
+@test iszero(sys-sys1,atol=1.e-7) 
 
 sys1 = gir(sys, fast = fast)
-@test iszero(sys-sys1) 
+@test iszero(sys-sys1,atol=1.e-7) 
 
 sys1 = gir(sys, fast = fast, contr = false)
-@test iszero(sys-sys1) 
+@test iszero(sys-sys1,atol=1.e-7) 
 
 # B and D vectors
 A2 = rand(3,3); E2 = zeros(3,3); C2 = zeros(1,3); B2 = zeros(3,1); D2 = zeros(1);
 sys = dss(A2,E2,B2,C2,D2);
 
 sys1 = gminreal(sys, fast = fast)
-@test iszero(sys-sys1) 
+@test iszero(sys-sys1,atol=1.e-7) 
 
 sys1 = gminreal(sys, fast = fast, contr = false)
-@test iszero(sys-sys1) 
+@test iszero(sys-sys1,atol=1.e-7) 
 
 sys1 = gir(sys, fast = fast)
-@test iszero(sys-sys1) 
+@test iszero(sys-sys1,atol=1.e-7) 
 
 sys1 = gir(sys, fast = fast, contr = false)
-@test iszero(sys-sys1) 
+@test iszero(sys-sys1,atol=1.e-7) 
 
 # Example 1: DeTeran, Dopico, Mackey, ELA 2009
 
@@ -86,44 +86,44 @@ sys = dss(A2,E2,B2,C2,D2);
 
 # compute minimal realization 
 sys1 = gminreal(sys, fast = fast)
-@test iszero(sys-sys1) && order(sys)-order(sys1) == 3 #&& nuo == 0 && nse == 1
+@test iszero(sys-sys1,atol=1.e-7) && order(sys)-order(sys1) == 3 #&& nuo == 0 && nse == 1
 # an order reduction without enforcing controllability and observability may not be possible
 sys1 = gminreal(sys,contr=false,obs=false, fast = fast)
-@test iszero(sys-sys1)  && order(sys)-order(sys1) == 0 
+@test iszero(sys-sys1,atol=1.e-7)  && order(sys)-order(sys1) == 0 
 # compute an irreducible realization which still contains a non-dynamic mode
 sys1 = gminreal(sys,noseig=false, fast = fast)
-@test iszero(sys-sys1)  && order(sys)-order(sys1) == 2 
+@test iszero(sys-sys1,atol=1.e-7)  && order(sys)-order(sys1) == 2 
 
 sys = dss(E2,A2,B2,C2,D2); 
 # compute minimal realization for a standard system (i.e., irreducible realization)
 sys1 = gminreal(sys, fast = fast)
-@test iszero(sys-sys1) && order(sys)-order(sys1) == 2 
+@test iszero(sys-sys1,atol=1.e-7) && order(sys)-order(sys1) == 2 
 
 sys = dss(A2,E2,B2,C2,D2);
 # compute irreducible realization which still contains a non-dynamic mode using only orthogonal transformations
 sys1 = gir(sys, fast = fast)
-@test iszero(sys-sys1)  && order(sys)-order(sys1) == 2
+@test iszero(sys-sys1,atol=1.e-7)  && order(sys)-order(sys1) == 2
 # minimal realization requires elimination of non-dynamic modes
 sys1 = gir(sys, noseig=true, fast = fast)
-@test iszero(sys-sys1)  && order(sys)-order(sys1) == 3
+@test iszero(sys-sys1,atol=1.e-7)  && order(sys)-order(sys1) == 3
 # order reduction may results even when applying the infinite controllability/observability algorithm
 sys1 = gir(sys, finite = false, fast = fast)
-@test iszero(sys-sys1)  && order(sys)-order(sys1) == 2
+@test iszero(sys-sys1,atol=1.e-7)  && order(sys)-order(sys1) == 2
 # order reduction may results even when applying the finite controllability/observability algorithm
 sys1 = gir(sys,infinite = false, fast = fast)
-@test iszero(sys-sys1)   && order(sys)-order(sys1) == 1
+@test iszero(sys-sys1,atol=1.e-7)   && order(sys)-order(sys1) == 1
 # an order reduction without enforcing controllability and observability may not be possible
 sys1 = gir(sys,contr=false,obs=false, noseig=true, fast = fast)
-@test iszero(sys-sys1)   && order(sys)-order(sys1) == 0
+@test iszero(sys-sys1,atol=1.e-7)   && order(sys)-order(sys1) == 0
 
 
 sys = dss(E2,A2,B2,C2,D2); 
 # compute minimal realization for a standard system (i.e., irreducible realization)
 sys1 = gir(sys, fast = fast)
-@test iszero(sys-sys1)  && order(sys)-order(sys1) == 2
+@test iszero(sys-sys1,atol=1.e-7)  && order(sys)-order(sys1) == 2
 # an order reduction without enforcing controllability is not be possible
 sys1 = gir(sys,contr=false,fast = fast)
-@test iszero(sys-sys1)  && order(sys)-order(sys1) == 0
+@test iszero(sys-sys1,atol=1.e-7)  && order(sys)-order(sys1) == 0
 
 
 
@@ -175,19 +175,19 @@ D2 = [ 1.0   2.0  -2.0
 sys = dss(A2,E2,B2,C2,D2);
 # build a strong (least order) minimal realization 
 @time sys1  = gminreal(sys, fast = fast);
-@test iszero(sys-sys1) && order(sys)-order(sys1) == 6
+@test iszero(sys-sys1,atol=1.e-7) && order(sys)-order(sys1) == 6
 
 # the system is observable
 @time sys1 = gminreal(sys,obs=false, fast = fast);
-@test iszero(sys-sys1) && order(sys)-order(sys1) == 6
+@test iszero(sys-sys1,atol=1.e-7) && order(sys)-order(sys1) == 6
 
 # irreducible realization is not minimal
 @time sys1 = gir(sys, fast = fast);
-@test iszero(sys-sys1) && order(sys)-order(sys1) == 5
+@test iszero(sys-sys1,atol=1.e-7) && order(sys)-order(sys1) == 5
 
 # minimal realization requires removing of non-dynamic modes
 @time sys1 = gir(sys, obs=false, finite = false, noseig = true, fast = fast);
-@test iszero(sys-sys1) && order(sys)-order(sys1) == 6
+@test iszero(sys-sys1,atol=1.e-7) && order(sys)-order(sys1) == 6
 
 # Example 1 - (Varga, Kybernetika, 1990) 
 A2 = [
@@ -229,11 +229,11 @@ D2 = zeros(Int,2,2);
 sys = dss(A2,E2,B2,C2,D2);
 # build a strong (least order) minimal realization 
 @time sys1  = gminreal(sys, fast = fast);
-@test iszero(sys-sys1) && order(sys)-order(sys1) == 7
+@test iszero(sys-sys1,atol=1.e-7) && order(sys)-order(sys1) == 7
 
 # irreducible realization is not minimal
 @time sys1 = gir(sys, fast = fast);
-@test iszero(sys-sys1) && order(sys)-order(sys1) == 6
+@test iszero(sys-sys1,atol=1.e-7) && order(sys)-order(sys1) == 6
 
 
 # SISO standard system, B and D vectors
@@ -259,11 +259,11 @@ D2 = [0]
 sys = dss(A2,E2,B2,C2,D2);
 # build a strong (least order) minimal realization 
 @time sys1  = gminreal(sys, fast = fast);
-@test iszero(sys-sys1) && order(sys)-order(sys1) == 10
+@test iszero(sys-sys1,atol=1.e-7) && order(sys)-order(sys1) == 10
 
 # irreducible realization is also minimal
 @time sys1 = gir(sys, fast = fast);
-@test iszero(sys-sys1) && order(sys)-order(sys1) == 10
+@test iszero(sys-sys1,atol=1.e-7) && order(sys)-order(sys1) == 10
 
 for Ty in (Float64, Complex{Float64})
 

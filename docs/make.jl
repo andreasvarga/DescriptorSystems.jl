@@ -24,4 +24,5 @@ makedocs(
 deploydocs(
   repo = "github.com/andreasvarga/DescriptorSystems.jl.git",
   target = "build",
+  devbranch = "main"
 )
