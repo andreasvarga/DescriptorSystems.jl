@@ -1,5 +1,11 @@
 # DescriptorSystems.jl
-Manipulation of generalized state-space (descriptor) system representations
+<!-- [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3894504.svg)](https://doi.org/10.5281/zenodo.3894503) -->
+[![DocBuild](https://github.com/andreasvarga/DescriptorSystems.jl/workflows/CI/badge.svg)](https://github.com/andreasvarga/DescriptorSystems.jl/actions)
+[![codecov.io](https://codecov.io/gh/andreasvarga/DescriptorSystems.jl/coverage.svg?branch=master)](https://codecov.io/gh/andreasvarga/DescriptorSystems.jl?branch=master)
+[![Latest](https://img.shields.io/badge/docs-latest-blue.svg)](https://andreasvarga.github.io/DescriptorSystems.jl/dev/)
+[![The MIT License](https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat-square)](https://github.com/andreasvarga/DescriptorSystems.jl/blob/master/LICENSE.md)
+
+## Manipulation of generalized state-space (descriptor) system representations
 
 ## Compatibility
 
@@ -47,14 +53,6 @@ The current version of the package includes the following functions:
 * **dss**  Construction of descriptor state-space models.
 * **dssdata**   Extraction of matrix-data from a descriptor state-space model.
 
-**Interconnecting descriptor system models**
-
-* **append**  Building aggregate models by appending the inputs and outputs.
-* **parallel**   Connecting models in parallel (also overloaded with **`+`**).
-* **series**   Connecting models in series (also overloaded with **`*`**).
-* **horzcat**   Horizontal concatenation of descriptor system models (also overloaded with **`[ * * ]`**).
-* **vertcat**   Vertical concatenation of descriptor system models (also overloaded with **`[ *; * ]`**).
-
 **Basic operations on descriptor system models**
 
 * **inv**  Inversion of a descriptor system.
@@ -62,6 +60,14 @@ The current version of the package includes the following functions:
 * **rdiv**   Right division for two descriptor systems (also overloaded with **`/`**).
 * **gdual**   Construction of the dual of a descriptor system (also overloaded with **`transpose`**)
 * **ctranspose**  Construction of the conjugate transpose of a descriptor system (also overloaded with **`'`**).
+
+**Interconnecting descriptor system models**
+
+* **append**  Building aggregate models by appending the inputs and outputs.
+* **parallel**   Connecting models in parallel (also overloaded with **`+`**).
+* **series**   Connecting models in series (also overloaded with **`*`**).
+* **horzcat**   Horizontal concatenation of descriptor system models (also overloaded with **`[ * * ]`**).
+* **vertcat**   Vertical concatenation of descriptor system models (also overloaded with **`[ *; * ]`**).
 
 **Simplification of descriptor system models**
 
