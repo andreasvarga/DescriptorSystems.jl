@@ -324,11 +324,11 @@ end
 
 sys = rss(0,0,0);
 @time sysr, hsv = gbalmr(sys)
-@test iszero(sys-sysr) && hsv == Float64[]
+@test iszero(sys-sysr,atol=1.e-7) && hsv == Float64[]
 
 sys = rdss(0,0,0);
 @time sysr, hsv = gbalmr(sys)
-@test iszero(sys-sysr) && hsv == Float64[]
+@test iszero(sys-sysr,atol=1.e-7) && hsv == Float64[]
 
 
 n = 5; m = 3; p = 2;
@@ -342,7 +342,7 @@ for fast in (true, false)
 sys = rss(n,p,m,stable = true, T = Ty); 
 
 @time sysr, hsv = gbalmr(sys,fast = fast, balance = true)
-@test iszero(sys-sysr)
+@test iszero(sys-sysr,atol=1.e-7)
 
 @time sysr, hsv = gbalmr(sys,fast = fast, balance = true, matchdc = true, ord = 3)
 @test dcgain(sys) ≈ dcgain(sysr)
@@ -375,7 +375,7 @@ end
 # standard discrete-time
 sys = rss(n,p,m,T = Ty, disc = true, stable = true); 
 @time sysr, hsv = gbalmr(sys,fast = fast, balance = true)
-@test iszero(sys-sysr)
+@test iszero(sys-sysr,atol=1.e-7)
 
 @time sysr, hsv = gbalmr(sys,fast = fast, balance = true, matchdc = true, ord = 3)
 @test dcgain(sys) ≈ dcgain(sysr)
@@ -395,7 +395,7 @@ end
 @test hsv[1]< 1.e-7 && order(sysr) == 0
 
 @time sysr, hsv = gbalmr(sys+sys,fast = fast, atolhsv = 1.e-7)
-@test norm(hsv[n+1:end]) < 1.e-7 && order(sysr) == n && iszero(2*sys-sysr)
+@test norm(hsv[n+1:end]) < 1.e-7 && order(sysr) == n && iszero(2*sys-sysr,atol=1.e-7)
 
 @time sysr, hsv = gbalmr([sys sys],fast = fast)
 @test norm(hsv[n+1:end]) < 1.e-7 && order(sysr) == n 
@@ -404,7 +404,7 @@ end
 sys = rdss(n,p,m,stable = true, T = Ty); 
 
 @time sysr, hsv = gbalmr(sys,fast = fast, balance = true)
-@test iszero(sys-sysr)
+@test iszero(sys-sysr, atol = 1.e-7)
 
 @time sysr, hsv = gbalmr(sys,fast = fast, balance = true, matchdc = true, ord = 3)
 @test dcgain(sys) ≈ dcgain(sysr)
@@ -423,7 +423,7 @@ end
 @test hsv[1] < 1.e-7 && order(sysr) == 0
 
 @time sysr, hsv = gbalmr(sys+sys,fast = fast, atolhsv = 1.e-7)
-@test norm(hsv[n+1:end]) < 1.e-7 && order(sysr) == n && iszero(2*sys-sysr)
+@test norm(hsv[n+1:end]) < 1.e-7 && order(sysr) == n && iszero(2*sys-sysr,atol=1.e-7)
 
 @time sysr, hsv = gbalmr([sys sys],fast = fast, atolhsv = 1.e-7)
 @test norm(hsv[n+1:end]) < 1.e-7 && order(sysr) == n 
@@ -431,7 +431,7 @@ end
 # descriptor discrete-time non-singular E
 sys = rdss(n,p,m,T = Ty, disc = true, stable = true); 
 @time sysr, hsv = gbalmr(sys,fast = fast, balance = true)
-@test iszero(sys-sysr)
+@test iszero(sys-sysr,atol=1.e-7)
 
 @time sysr, hsv = gbalmr(sys,fast = fast, balance = true, matchdc = true, ord = 3)
 @test dcgain(sys) ≈ dcgain(sysr)
@@ -450,7 +450,7 @@ end
 @test hsv[1]< 1.e-7 && order(sysr) == 0
 
 @time sysr, hsv = gbalmr(sys+sys,fast = fast, atolhsv = 1.e-7)
-@test norm(hsv[n+1:end]) < 1.e-7 && order(sysr) == n && iszero(2*sys-sysr)
+@test norm(hsv[n+1:end]) < 1.e-7 && order(sysr) == n && iszero(2*sys-sysr,atol=1.e-7)
 
 @time sysr, hsv = gbalmr([sys sys],fast = fast)
 @test norm(hsv[n+1:end]) < 1.e-7 && order(sysr) == n 
@@ -472,7 +472,7 @@ catch
 end
 
 @time sysr, hsv = gbalmr(sys+sys,fast = fast, atolhsv = 1.e-7,atol = 1.e-7)
-@test norm(hsv[n+1:end]) < 1.e-7 && order(sysr) == n && iszero(2*sys-sysr)
+@test norm(hsv[n+1:end]) < 1.e-7 && order(sysr) == n && iszero(2*sys-sysr,atol=1.e-7)
 
 
 @time sysr, hsv = gbalmr([sys sys],fast = fast,atol = 1.e-7)
@@ -483,7 +483,7 @@ end
 sys = rdss(n,p,m,T = Ty, stable = true, disc = true, id=ones(Int,3)); 
 
 @time sysr, hsv = gbalmr(sys,atol=1.e-7,balance = true)
-@test iszero(sys-sysr)
+@test iszero(sys-sysr,atol=1.e-7)
 
 @time sysr, hsv = gbalmr(sys,fast = fast, balance = true, matchdc = true, ord = 3)
 @test dcgain(sys) ≈ dcgain(sysr)
@@ -497,7 +497,7 @@ end
 
 
 @time sysr, hsv = gbalmr(sys+sys,fast = fast, atolhsv = 1.e-7,atol = 1.e-7)
-@test norm(hsv[n+1:end]) < 1.e-7 && order(sysr) == n && iszero(2*sys-sysr)
+@test norm(hsv[n+1:end]) < 1.e-7 && order(sysr) == n && iszero(2*sys-sysr,atol=1.e-7)
 
 @time sysr, hsv = gbalmr([sys sys],fast = fast,atol = 1.e-7)
 @test norm(hsv[n+1:end]) < 1.e-7 && order(sysr) == n 
