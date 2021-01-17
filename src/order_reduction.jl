@@ -290,10 +290,17 @@ function gbalmr(sys::DescriptorStateSpace{T}; balance::Bool = false, matchdc::Bo
           ldiv!(LUF,view(amin,i2,i1))
           ldiv!(LUF,view(bmin,i2,:))
           # apply state residualization formulas
-          mul!(Dr,view(cmin,:,i2),view(bmin,i2,:),-ONE, ONE)
-          mul!(Br,view(amin,i1,i2),view(bmin,i2,:),-ONE, ONE)
-          mul!(Cr,view(cmin,:,i2),view(amin,i2,i1),-ONE, ONE)
-          mul!(Ar,view(amin,i1,i2),view(amin,i2,i1),-ONE, ONE)
+          if VERSION < v"1.3.0" && eltype(Ar) <: Complex
+             Dr -= view(cmin,:,i2)*view(bmin,i2,:)
+             Br -= view(amin,i1,i2)*view(bmin,i2,:)
+             Cr -= view(cmin,:,i2)*view(amin,i2,i1)
+             Ar -= view(amin,i1,i2)*view(amin,i2,i1)
+          else
+             mul!(Dr,view(cmin,:,i2),view(bmin,i2,:),-ONE, ONE)
+             mul!(Br,view(amin,i1,i2),view(bmin,i2,:),-ONE, ONE)
+             mul!(Cr,view(cmin,:,i2),view(amin,i2,i1),-ONE, ONE)
+             mul!(Ar,view(amin,i1,i2),view(amin,i2,i1),-ONE, ONE)
+          end
           # return the minimal balanced system
           return dss(Ar, I, Br, Cr, Dr, Ts = sys.Ts), hs
        else
@@ -324,10 +331,21 @@ function gbalmr(sys::DescriptorStateSpace{T}; balance::Bool = false, matchdc::Bo
                 ldiv!(LUF,view(amin,i2,i1))
                 ldiv!(LUF,view(bmin,i2,:))
                 # apply state residualization formulas
-                mul!(Dr,view(cmin,:,i2),view(bmin,i2,:),-ONE, ONE)
-                mul!(Br,view(amin,i1,i2),view(bmin,i2,:),-ONE, ONE)
-                mul!(Cr,view(cmin,:,i2),view(amin,i2,i1),-ONE, ONE)
-                mul!(Ar,view(amin,i1,i2),view(amin,i2,i1),-ONE, ONE)
+                if VERSION < v"1.3.0" && eltype(Ar) <: Complex
+                    Dr -= view(cmin,:,i2)*view(bmin,i2,:)
+                    Br -= view(amin,i1,i2)*view(bmin,i2,:)
+                    Cr -= view(cmin,:,i2)*view(amin,i2,i1)
+                    Ar -= view(amin,i1,i2)*view(amin,i2,i1)
+                else
+                    mul!(Dr,view(cmin,:,i2),view(bmin,i2,:),-ONE, ONE)
+                    mul!(Br,view(amin,i1,i2),view(bmin,i2,:),-ONE, ONE)
+                    mul!(Cr,view(cmin,:,i2),view(amin,i2,i1),-ONE, ONE)
+                    mul!(Ar,view(amin,i1,i2),view(amin,i2,i1),-ONE, ONE)
+                end
+                # mul!(Dr,view(cmin,:,i2),view(bmin,i2,:),-ONE, ONE)
+                # mul!(Br,view(amin,i1,i2),view(bmin,i2,:),-ONE, ONE)
+                # mul!(Cr,view(cmin,:,i2),view(amin,i2,i1),-ONE, ONE)
+                # mul!(Ar,view(amin,i1,i2),view(amin,i2,i1),-ONE, ONE)
                 standsys || (return dss(Ar, Er, Br, Cr, Dr, Ts = sys.Ts), hs)
                 # determine a standard reduced system if sys is a standard system 
                 SV = svd!(Er)

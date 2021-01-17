@@ -70,7 +70,7 @@ The available functions in the `DescriptorSystems.jl` package cover both standar
 
 This is a rapidly evolving software project for which new functionality will be frequently added.
 
-## [Release Notes](https://github.com/andreasvarga/DescriptorSystems.jl/blob/master/ReleaseNotes.md)
+## [Release Notes](https://github.com/andreasvarga/DescriptorSystems.jl/blob/main/ReleaseNotes.md)
 
 ## Main developer
 

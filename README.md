@@ -1,9 +1,9 @@
 # DescriptorSystems.jl
 <!-- [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3894504.svg)](https://doi.org/10.5281/zenodo.3894503) -->
 [![DocBuild](https://github.com/andreasvarga/DescriptorSystems.jl/workflows/CI/badge.svg)](https://github.com/andreasvarga/DescriptorSystems.jl/actions)
-[![codecov.io](https://codecov.io/gh/andreasvarga/DescriptorSystems.jl/coverage.svg?branch=master)](https://codecov.io/gh/andreasvarga/DescriptorSystems.jl?branch=master)
+[![codecov.io](https://codecov.io/gh/andreasvarga/DescriptorSystems.jl/coverage.svg?branch=main)](https://codecov.io/gh/andreasvarga/DescriptorSystems.jl?branch=main)
 [![Latest](https://img.shields.io/badge/docs-latest-blue.svg)](https://andreasvarga.github.io/DescriptorSystems.jl/dev/)
-[![The MIT License](https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat-square)](https://github.com/andreasvarga/DescriptorSystems.jl/blob/master/LICENSE.md)
+[![The MIT License](https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat-square)](https://github.com/andreasvarga/DescriptorSystems.jl/blob/main/LICENSE.md)
 
 ## Manipulation of generalized state-space (descriptor) system representations
 
