@@ -290,7 +290,7 @@ function gbalmr(sys::DescriptorStateSpace{T}; balance::Bool = false, matchdc::Bo
           ldiv!(LUF,view(amin,i2,i1))
           ldiv!(LUF,view(bmin,i2,:))
           # apply state residualization formulas
-          if VERSION < v"1.3.0" && eltype(Ar) <: Complex
+          if VERSION < v"1.3.0" 
              Dr -= view(cmin,:,i2)*view(bmin,i2,:)
              Br -= view(amin,i1,i2)*view(bmin,i2,:)
              Cr -= view(cmin,:,i2)*view(amin,i2,i1)
@@ -331,7 +331,7 @@ function gbalmr(sys::DescriptorStateSpace{T}; balance::Bool = false, matchdc::Bo
                 ldiv!(LUF,view(amin,i2,i1))
                 ldiv!(LUF,view(bmin,i2,:))
                 # apply state residualization formulas
-                if VERSION < v"1.3.0" && eltype(Ar) <: Complex
+                if VERSION < v"1.3.0" 
                     Dr -= view(cmin,:,i2)*view(bmin,i2,:)
                     Br -= view(amin,i1,i2)*view(bmin,i2,:)
                     Cr -= view(cmin,:,i2)*view(amin,i2,i1)
