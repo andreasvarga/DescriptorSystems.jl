@@ -343,6 +343,10 @@ promote_to_systems(Ts::Real, n, k, ::Type{T}, A, B, Cs...) where {T} =
 promote_to_system_type(A::Tuple{Vararg{Union{DescriptorStateSpace,AbstractNumOrArray,UniformScaling}}}) = DescriptorStateSpace
 function promote_to_system_SamplingTime(A::Union{DescriptorStateSpace,AbstractNumOrArray,UniformScaling}...)
     # pick the first available sampling time  
-    i = findfirst(typeof.(A) .<: DescriptorStateSpace)
-    i === nothing ? (return 0) : (return A[i].Ts)
+    for a in A
+        typeof(a) <: DescriptorStateSpace  && (return a.Ts)
+    end
+    return 0
+    # i = findfirst(typeof.(A) .<: DescriptorStateSpace)
+    # i === nothing ? (return 0) : (return A[i].Ts)
 end

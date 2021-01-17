@@ -259,7 +259,6 @@ D2 = [0]
 sys = dss(A2,B2,C2,D2);
 # build a strong (least order) minimal realization 
 @time sys1  = gminreal(sys, fast = fast, atol=1.e-7);
-println("dif = $(order(sys)-order(sys1))")
 @test iszero(sys-sys1,atol=1.e-7) && order(sys)-order(sys1) == 10
 
 # irreducible realization is also minimal
