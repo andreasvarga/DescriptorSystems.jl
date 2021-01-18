@@ -69,9 +69,8 @@ end
 Base.eltype(sys::AbstractDescriptorStateSpace) = eltype(sys.A)
 
 function Base.getindex(sys::DST, inds...) where DST <: AbstractDescriptorStateSpace
-    if size(inds, 1) != 2
+    size(inds, 1) != 2 &&
         error("Must specify 2 indices to index descriptor state-space model")
-    end
     rows, cols = index2range(inds...) 
     return DescriptorStateSpace{eltype(sys)}(copy(sys.A), copy(sys.E), sys.B[:, cols], sys.C[rows, :], sys.D[rows, cols], sys.Ts)
 end
@@ -224,7 +223,7 @@ end
 # sys*mat
 function *(sys::DescriptorStateSpace{T1}, mat::AbstractVecOrMat{T2}) where {T1,T2}
     p, m = typeof(mat) <: AbstractVector ? (length(mat),1) : size(mat)
-    sys1.nu == p || error("The input dimension of system does not match the number of rows of the matrix.")
+    sys.nu == p || error("The input dimension of system does not match the number of rows of the matrix.")
     T = promote_type(T1, T2)
     return DescriptorStateSpace{T}(copy_oftype(sys.A,T), 
                                    sys.E == I ? I : copy_oftype(sys.E,T),
@@ -234,7 +233,7 @@ end
 # mat*sys
 function *(mat::AbstractVecOrMat{T1}, sys::DescriptorStateSpace{T2}) where {T1,T2}
     p, m = typeof(mat) <: AbstractVector ? (length(mat),1) : size(mat)
-    sys1.ny == m || error("The output dimension of system does not match the number of columns of the matrix.")
+    sys.ny == m || error("The output dimension of system does not match the number of columns of the matrix.")
     T = promote_type(T1, T2)
     return DescriptorStateSpace{T}(copy_oftype(sys.A,T), 
                                    sys.E == I ? I : copy_oftype(sys.E,T),
@@ -244,14 +243,14 @@ end
 # sI*sys
 function *(s::Union{UniformScaling,Number}, sys::DescriptorStateSpace{T}) where T
     T1 = promote_type(eltype(s),T)
-    return DescriptorStateSpace{T}(copy_oftype(sys.A,T1), sys.E == I ? I : copy_oftype(sys.E,T1), copy_oftype(sys.B,T1), 
+    return DescriptorStateSpace{T1}(copy_oftype(sys.A,T1), sys.E == I ? I : copy_oftype(sys.E,T1), copy_oftype(sys.B,T1), 
                                    lmul!(s,copy_oftype(sys.C,T1)), lmul!(s,copy_oftype(sys.D,T1)), sys.Ts)
 
 end
 # sys*sI
 function *(sys::DescriptorStateSpace{T},s::Union{UniformScaling,Number}) where T
     T1 = promote_type(eltype(s),T)
-    return DescriptorStateSpace{T}(copy_oftype(sys.A,T1), sys.E == I ? I : copy_oftype(sys.E,T1), rmul!(copy_oftype(sys.B,T1),s), 
+    return DescriptorStateSpace{T1}(copy_oftype(sys.A,T1), sys.E == I ? I : copy_oftype(sys.E,T1), rmul!(copy_oftype(sys.B,T1),s), 
                                    copy_oftype(sys.C,T1), rmul!(copy_oftype(sys.D,T1),s), sys.Ts)
 
 end
@@ -267,7 +266,10 @@ end
 \(sys::AbstractDescriptorStateSpace, n::Union{UniformScaling,Number}) = inv(sys)*n
 
 # display sys
-function show(io::IO, mime::MIME{Symbol("text/plain")}, sys::DescriptorStateSpace)
+Base.print(io::IO, sys::AbstractDescriptorStateSpace) = show(io, sys)
+Base.show(io::IO, sys::AbstractDescriptorStateSpace) = show(io, MIME("text/plain"), sys)
+
+function Base.show(io::IO, mime::MIME{Symbol("text/plain")}, sys::DescriptorStateSpace)
     summary(io, sys); println(io)
     n = size(sys.A,1) 
     typeof(sys.D) <: Vector ? ((p,m) = (length(sys.D),1)) : ((p, m) = size(sys.D))

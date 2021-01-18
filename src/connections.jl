@@ -63,25 +63,6 @@ function append(systems::(DST where DST<:DescriptorStateSpace)...)
     return DescriptorStateSpace{T}(A, E, B, C, D, Ts)
 end
 
-function append(SYS1 :: AbstractDescriptorStateSpace, SYS2 :: AbstractDescriptorStateSpace)
-    T = promote_type(eltype(SYS1), eltype(SYS2))
-    Ts = promote_Ts(SYS1.Ts, SYS2.Ts) 
-
-    A = blockdiag(T.(SYS1.A), T.(SYS2.A))
-  
-    if SYS1.E == I && SYS2.E == I 
-        E = I 
-    elseif SYS1.E == I || SYS2.E == I 
-        blockdims = [size(SYS1.A,1), size(SYS2.A,1)]
-        E = sblockdiag(blockdims, SYS1.E == I ? SYS1.E : T.(SYS1.E), SYS2.E == I ? SYS2.E : T.(SYS2.E))
-    else
-        E = blockdiag(T.(SYS1.E), T.(SYS2.E))
-    end   
-    B = blockdiag(T.(SYS1.B), T.(SYS2.B))
-    C = blockdiag(T.(SYS1.C), T.(SYS2.C))
-    D = blockdiag(T.(SYS1.D), T.(SYS2.D))
-    return DescriptorStateSpace{T}(A, E, B, C, D, Ts)
-end
 
 function append(A::Union{AbstractDescriptorStateSpace,AbstractNumOrArray,UniformScaling}...)
     for a in A
@@ -144,13 +125,9 @@ function hcat(systems::DST...) where DST <: DescriptorStateSpace
     # Perform checks
     T = promote_type(eltype.(systems)...)
     Ts = systems[1].Ts
-    if !all(s.Ts == Ts for s in systems)
-        error("All systems must have same sampling time")
-    end
+    !all(s.Ts == Ts for s in systems) && error("All systems must have the same sampling time")
     ny = systems[1].ny
-    if !all(s.ny == ny for s in systems)
-        error("All systems must have same output dimension")
-    end
+    !all(s.ny == ny for s in systems) && error("All systems must have the same output dimension")
     A = blockdiag([s.A for s in systems]...)
     if all(s.E == I for s in systems) 
         E = I 
@@ -185,13 +162,9 @@ function vcat(systems::DST...) where DST <: DescriptorStateSpace
     # Perform checks
     T = promote_type(eltype.(systems)...)
     Ts = systems[1].Ts
-    if !all(s.Ts == Ts for s in systems)
-        error("All systems must have same sampling time")
-    end
+    !all(s.Ts == Ts for s in systems) && error("All systems must have the same sampling time")
     nu = systems[1].nu
-    if !all(s.nu == nu for s in systems)
-        error("All systems must have same input dimension")
-    end
+    !all(s.nu == nu for s in systems) && error("All systems must have the same input dimension")
     A = blockdiag([s.A for s in systems]...)
     if all(s.E == I for s in systems) 
         E = I 
