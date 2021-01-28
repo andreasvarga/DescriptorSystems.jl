@@ -127,13 +127,13 @@ See [`gh2norm`](@ref) and [`ghinfnorm`](@ref) for a description of the allowed k
 """
 function opnorm(SYS::DescriptorStateSpace{T}, p::Real=Inf; fast::Bool = true, offset::Real = sqrt(eps(float(real(T)))), 
     atol::Real = zero(real(T)), atol1::Real = atol, atol2::Real = atol, atolinf::Real = atol, rtolinf::Real = real(T)(0.001), 
-    rtol::Real = (size(sys.A,1)*eps(real(float(one(T)))))*iszero(min(atol1,atol2))) where T
+    rtol::Real = SYS.nx*eps(real(float(one(T))))*iszero(min(atol1,atol2))) where T
     if p == 2
         return gl2norm(SYS, fast = fast, offset = offset, atol1 = atol1, atol2 = atol2, atolinf = atolinf, rtol = rtol)
     elseif p == Inf
         return glinfnorm(SYS, rtolinf = rtolinf, fast = fast, offset = offset, atol1 = atol1, atol2 = atol2, rtol = rtol)
     else
-        throw(ArgumentError("invalid p-norm p=$p. Valid: 2 and Inf"))
+        throw(ArgumentError("invalid p-norm p=$p. Valid: p = 2 and p = Inf"))
     end
 end
 """

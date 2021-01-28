@@ -411,7 +411,8 @@ zer = gzero(gminreal(syso),atol1=1.e-7)
       count(t -> isinf(t), zer) == info.niuz &&
       count(t -> (real.(t) .<= 0 && isfinite(t)), zer) >= count(t -> (isfinite(t)), zeref) &&
       info.nrank == r && info.nfuz == 0 && info.niuz == 0
-
+      
+# fail
 # discrete, descriptor, proper, uncontrollable infinite eigenvalues
 sys = rdss(n,p,m,T = Ty,disc=true,iduc=[3*ones(Int,1);2*ones(Int,1)]);
 @time sysi, syso, info = giofac(sys, fast = fast, atol = 1.e-7) ; 
@@ -494,17 +495,17 @@ zer = gzero(gminreal(syso),atol=1.e-7)
       info.nrank == r && info.nfuz == 0 && info.niuz == 0
 
 # discrete, descriptor, infinite eigenvalues
-sys = rdss(n,p,m,T = Ty,disc=true,id=[3*ones(Int,1);ones(Int,1)],randlt=true,randrt=false);
+sys = rdss(n,p,m,T = Ty,disc=true,id=[ones(Int,3);2*ones(Int,2)],randlt=true,randrt=true);
 @time sysi, syso, info = goifac(sys, fast = fast, atol = 1.e-7) ; info
 zeref = gzero(sys,atol=1.e-7)
 r = size(syso,1);
 zer = gzero(gminreal(syso,atol=1.e-7),atol=1.e-7)
 @test gnrank(sys-syso*sysi[1:r,:],atol=1.e-7) == 0   &&   #  G(s) - Gi(s)*Go(s) = 0
       gnrank(sysi'*sysi-I,atol=1.e-7) == 0 &&
-      #iszero(sysi'*sysi-I,atol=1.e-7)  && # conj(Gi(s))*Gi(s)-I = 0
+      iszero(sysi'*sysi-I,atol=1.e-7)  && # conj(Gi(s))*Gi(s)-I = 0
       isproper(sysi) && (isproper(sys) ? isproper(syso) : true) && # checking properness of factors
       isstable(sysi) && (isstable(sys) ? isstable(syso) : true) &&
-      count(t -> isinf(t), zer) == info.niuz &&
+      count(isinf.(zer)) == info.niuz &&
       count(t -> (real.(t) .<= 0 && isfinite(t)), zer) >= count(t -> (isfinite(t)), zeref) &&
       info.nrank == r && info.nfuz == 0 && info.niuz == 0
 

@@ -6,6 +6,7 @@ using MatrixEquations
 using MatrixPencils
 using Polynomials
 using Random
+using Compat
 
 import LinearAlgebra: BlasFloat, BlasReal, BlasComplex, copy_oftype, transpose, adjoint, opnorm
 import Base: +, -, *, /, \, (==), (!=), isapprox, iszero, convert, promote_op, size, length, ndims, 

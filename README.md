@@ -11,7 +11,7 @@
 
 Julia 1.2 and higher.
 
-## How to Install (not yet operational)
+## How to install
 
 ````JULIA
 pkg> add DescriptorSystems
@@ -48,19 +48,19 @@ This book provides additional information on the mathematical background on rati
 
 The current version of the package includes the following categories of functions:
 
-* **Building descriptor system state-space models**
+* Building descriptor system state-space models
 
-* **Basic operations on descriptor system models**
+* Basic operations on descriptor system models
 
-* **Interconnecting descriptor system models**
+* Interconnecting descriptor system models
 
-* **Simplification of descriptor system models**
+* Simplification of descriptor system models
 
-* **Descriptor system analysis**
+* Descriptor system analysis
 
-* **Factorization of descriptor system transfer function matrices**
+* Factorization of descriptor system transfer function matrices
 
-* **Various escriptor system utilities**
+* Various descriptor system utilities
 
 ## Future plans
 

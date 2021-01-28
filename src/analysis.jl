@@ -328,7 +328,7 @@ function gpoleinfo(SYS::DescriptorStateSpace{T}; smarg::Real = SYS.Ts == 0 ? 0 :
         niev = sum(krinfo.id)
         nip = sum(mip)
         nfev = n-niev
-        return val, (nfev = nfev, niev = niev, nisev = krinfo.id[1], nip = nip, nfsev = nfsev, nfsbev = nfsbev, 
+        return val, (nfev = nfev, niev = niev, nisev = count(krinfo.id .== 1), nip = nip, nfsev = nfsev, nfsbev = nfsbev, 
                      nfuev = nfuev, nhev = nhev, nrank = krinfo.nrank, miev = krinfo.id, mip = mip, 
                      rki = krinfo.rki, lki = krinfo.lki, regular = (nhev == 0), proper = (nip == 0), 
                      stable = (nip == 0 && nfsev == nfev))
@@ -807,14 +807,24 @@ function norminfc(a, e, b, c, d, ft0, tol)
     testfrq = [[0]; w0[ikeep].*sqrt.(offset2)]
     gmin = opnorm(d)
     fpeak = Inf
-    
-    # Compute lower estimate GMIN as max. gain over the selected frequencies
-    for i = 1:length(testfrq)
-        w = testfrq[i];
-        bct = copy(bc)
-        desc ? ldiv!(UpperHessenberg(ac-(im*w)*ec),bct) : ldiv!(ac,bct,shift = -im*w)
-        gw = opnorm(dc-cc*bct)
-        gw > gmin && (gmin = gw;  fpeak = w)
+
+    if VERSION < v"1.3.0-DEV.349"
+       # Compute lower estimate GMIN as max. gain over the selected frequencies
+       ac = complex(ac)
+       for i = 1:length(testfrq)
+           w = testfrq[i];
+           desc ? gw = opnorm(dc+cc*(((im*w)*ec-ac)\bc)) : gw = opnorm(dc+cc*(((im*w)*I-ac)\bc)) 
+           gw > gmin && (gmin = gw;  fpeak = w)
+       end
+    else  
+       # Compute lower estimate GMIN as max. gain over the selected frequencies
+       for i = 1:length(testfrq)
+         w = testfrq[i];
+         bct = copy(bc)
+         desc ? ldiv!(UpperHessenberg(ac-(im*w)*ec),bct) : ldiv!(ac,bct,shift = -im*w)
+         gw = opnorm(dc-cc*bct)
+         gw > gmin && (gmin = gw;  fpeak = w)
+       end
     end
     gmin == 0 && (return TR(0), TR(0))
     
@@ -860,14 +870,24 @@ function norminfc(a, e, b, c, d, ft0, tol)
        # gain at new test frequencies
        gmin0 = gmin;   # save current lower bound
        ws = sqrt.(ws[1:lws-1].*ws[2:lws])
-       for i = 1:lws-1
-          w = ws[i];
-          bct = copy(bc)
-          desc ? ldiv!(UpperHessenberg(ac-(im*w)*ec),bct) : ldiv!(ac,bct,shift = -im*w)
-          gw = opnorm(dc-cc*bct)
-          gw > gmin && (gmin = gw;  fpeak = w)
+       if VERSION < v"1.3.0-DEV.349"
+         # Compute lower estimate GMIN as max. gain over the selected frequencies
+         for i = 1:lws-1
+            w = ws[i]
+            desc ? gw = opnorm(dc+cc*(((im*w)*ec-ac)\bc)) : gw = opnorm(dc+cc*(((im*w)*I-ac)\bc)) 
+            gw > gmin && (gmin = gw;  fpeak = w)
+         end
+       else  
+         # Compute lower estimate GMIN as max. gain over the selected frequencies
+         for i = 1:lws-1
+             w = ws[i]
+             bct = copy(bc)
+             desc ? ldiv!(UpperHessenberg(ac-(im*w)*ec),bct) : ldiv!(ac,bct,shift = -im*w)
+             gw = opnorm(dc-cc*bct)
+             gw > gmin && (gmin = gw;  fpeak = w)
+         end
        end
-    
+      
        # If lower bound has not improved, exit (safeguard against undetected
        # jw-axis modes of Hamiltonian matrix)
        (lws0 < 2 || gmin < gmin0*(1+tol/10)) && (return gmin, fpeak)
@@ -938,14 +958,25 @@ function norminfd(a, e, b, c, d, ft0, Ts, tol)
     fpeak = 0
     
     # Compute lower estimate GMIN as max. gain over test frequencies
-    for i = 1:length(testz)
-        z = testz[i];
-        bct = copy(bc)
-        desc ? ldiv!(UpperHessenberg(ac-z*ec),bct) : ldiv!(ac,bct,shift = -z)
-        gw = opnorm(dc-cc*bct)
-        gw > gmin && (gmin = gw;  fpeak = abs(angle(z)))
-    end
-    gmin == 0 && (return TR(0), TR(0))
+    if VERSION < v"1.3.0-DEV.349"
+       # Compute lower estimate GMIN as max. gain over the selected frequencies
+       ac = complex(ac)
+       for i = 1:length(testz)
+           z = testz[i]
+           desc ? gw = opnorm(dc+cc*((z*ec-ac)\bc)) : gw = opnorm(dc+cc*((z*I-ac)\bc)) 
+           gw > gmin && (gmin = gw;  fpeak = abs(angle(z)))
+       end
+    else  
+      # Compute lower estimate GMIN as max. gain over the selected frequencies
+      for i = 1:length(testz)
+          z = testz[i]
+          bct = copy(bc)
+          desc ? ldiv!(UpperHessenberg(ac-z*ec),bct) : ldiv!(ac,bct,shift = -z)
+          gw = opnorm(dc-cc*bct)
+          gw > gmin && (gmin = gw;  fpeak = abs(angle(z)))
+      end
+   end
+   gmin == 0 && (return TR(0), TR(0))
     
     # Modified gamma iterations (Bruinsma-Steinbuch algorithm) starts:
     iter = 1;
@@ -986,14 +1017,31 @@ function norminfd(a, e, b, c, d, ft0, Ts, tol)
        # gain at new test frequencies
        gmin0 = gmin;   # save current lower bound
        testz = exp.(im*((ang[1:lan-1]+ang[2:lan])/2))
-       for i = 1:lan-1
-           z = testz[i]
-           bct = copy(bc)
-           desc ? ldiv!(UpperHessenberg(ac-z*ec),bct) : ldiv!(ac,bct,shift = -z)
-           gw = opnorm(dc-cc*bct)
-           gw > gmin && (gmin = gw;  fpeak = abs(angle(z)))
+      #  for i = 1:lan-1
+      #      z = testz[i]
+      #      bct = copy(bc)
+      #      desc ? ldiv!(UpperHessenberg(ac-z*ec),bct) : ldiv!(ac,bct,shift = -z)
+      #      gw = opnorm(dc-cc*bct)
+      #      gw > gmin && (gmin = gw;  fpeak = abs(angle(z)))
+      #  end
+       if VERSION < v"1.3.0-DEV.349"
+         # Compute lower estimate GMIN as max. gain over the selected frequencies
+         for i = 1:lan-1
+             z = testz[i]
+             desc ? gw = opnorm(dc+cc*((z*ec-ac)\bc)) : gw = opnorm(dc+cc*((z*I-ac)\bc)) 
+             gw > gmin && (gmin = gw;  fpeak = abs(angle(z)))
+         end
+      else  
+         # Compute lower estimate GMIN as max. gain over the selected frequencies
+         for i = 1:lan-1
+            z = testz[i]
+            bct = copy(bc)
+            desc ? ldiv!(UpperHessenberg(ac-z*ec),bct) : ldiv!(ac,bct,shift = -z)
+            gw = opnorm(dc-cc*bct)
+            gw > gmin && (gmin = gw;  fpeak = abs(angle(z)))
+         end
        end
-    
+        
        # If lower bound has not improved, exit (safeguard against undetected
        # unit-circle eigenvalues).
        (lan0 < 2 || gmin < gmin0*(1+tol/10)) && (return gmin, fpeak/Ts)
