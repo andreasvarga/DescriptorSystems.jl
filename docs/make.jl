@@ -12,7 +12,9 @@ makedocs(
         "dss.md",
         "operations.md",
         "connections.md",
-        "order_reduction.md"
+        "order_reduction.md",
+        "analysis.md",
+        "factorizations.md"
      ],
      "Utilities" => [
         "dstools.md"

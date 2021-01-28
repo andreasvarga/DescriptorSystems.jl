@@ -1,10 +1,10 @@
 # Basic operations on descriptor system models
 
-* **inv**  Inversion of a descriptor system.
-* **ldiv**   Left division for two descriptor systems (also overloaded with **`\`**).
-* **rdiv**   Right division for two descriptor systems (also overloaded with **`/`**).
-* **gdual**   Building the dual of a descriptor system (also overloaded with **`transpose`**)
-* **ctranspose**  Building the conjugate transpose of a descriptor system (also overloaded with **`adjoint`** and **`'`**).
+* **[`inv`](@ref)**  Inversion of a descriptor system.
+* **[`ldiv`](@ref)**   Left division for two descriptor systems (also overloaded with **`\`**).
+* **[`rdiv`](@ref)**   Right division for two descriptor systems (also overloaded with **`/`**).
+* **[`gdual`](@ref)**   Building the dual of a descriptor system (also overloaded with **`transpose`**)
+* **[`ctranspose`](@ref)**  Building the conjugate transpose of a descriptor system (also overloaded with **`adjoint``](@ref)** and **`'`**).
 
 ```@docs
 DescriptorSystems.inv

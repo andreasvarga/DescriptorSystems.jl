@@ -46,34 +46,21 @@ Many of the functions implement the computational procedures described in Chapte
 
 This book provides additional information on the mathematical background on rational matrices and descriptor systems, and gives detailed descriptions of most of the underlying procedures.
 
-The current version of the package includes the following functions:
+The current version of the package includes the following categories of functions:
 
-**Building descriptor system state-space models**
+* **Building descriptor system state-space models**
 
-* **dss**  Construction of descriptor state-space models.
-* **dssdata**   Extraction of matrix-data from a descriptor state-space model.
+* **Basic operations on descriptor system models**
 
-**Basic operations on descriptor system models**
+* **Interconnecting descriptor system models**
 
-* **inv**  Inversion of a descriptor system.
-* **ldiv**   Left division for two descriptor systems (also overloaded with **`\`**).
-* **rdiv**   Right division for two descriptor systems (also overloaded with **`/`**).
-* **gdual**   Construction of the dual of a descriptor system (also overloaded with **`transpose`**)
-* **ctranspose**  Construction of the conjugate transpose of a descriptor system (also overloaded with **`'`**).
+* **Simplification of descriptor system models**
 
-**Interconnecting descriptor system models**
+* **Descriptor system analysis**
 
-* **append**  Building aggregate models by appending the inputs and outputs.
-* **parallel**   Connecting models in parallel (also overloaded with **`+`**).
-* **series**   Connecting models in series (also overloaded with **`*`**).
-* **horzcat**   Horizontal concatenation of descriptor system models (also overloaded with **`[ * * ]`**).
-* **vertcat**   Vertical concatenation of descriptor system models (also overloaded with **`[ *; * ]`**).
+* **Factorization of descriptor system transfer function matrices**
 
-**Simplification of descriptor system models**
-
-* **gminreal**  Minimal realization of descriptor systems.
-* **gir**      Irreducible realization of descriptor systems.
-* **gbalmr**   Reduced-order approximations of descriptor systems using balancing related methods.
+* **Various escriptor system utilities**
 
 ## Future plans
 

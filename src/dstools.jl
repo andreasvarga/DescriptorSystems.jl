@@ -114,7 +114,28 @@ function dcgain(SYS::AbstractDescriptorStateSpace; kwargs...)
     SYS.Ts == 0 ? (return lseval(dssdata(SYS)..., 0; kwargs...) ) : 
                   (return lseval(dssdata(SYS)..., 1; kwargs...) )
 end
+"""
+     opnorm(sys[, p = Inf]; kwargs...) 
+     opnorm(sys, 2; kwargs...) -> sysnorm
+     opnorm(sys, Inf; kwargs...) -> (sysnorm, fpeak)
+     opnorm(sys; kwargs...) -> (sysnorm, fpeak)
 
+Compute for a descriptor system `sys = (A-λE,B,C,D)` with the transfer function matrix `G(λ)`, 
+the `L2` or `L∞` system norm `sysnorm` induced by the vector `p`-norm, where valid values of `p` are `2` or `Inf`. 
+For the `L∞` norm, the frequency `fpeak` is also returned, where `G(λ)` achieves its peak gain. 
+See [`gh2norm`](@ref) and [`ghinfnorm`](@ref) for a description of the allowed keyword arguments.  
+"""
+function opnorm(SYS::DescriptorStateSpace{T}, p::Real=Inf; fast::Bool = true, offset::Real = sqrt(eps(float(real(T)))), 
+    atol::Real = zero(real(T)), atol1::Real = atol, atol2::Real = atol, atolinf::Real = atol, rtolinf::Real = real(T)(0.001), 
+    rtol::Real = (size(sys.A,1)*eps(real(float(one(T)))))*iszero(min(atol1,atol2))) where T
+    if p == 2
+        return gl2norm(SYS, fast = fast, offset = offset, atol1 = atol1, atol2 = atol2, atolinf = atolinf, rtol = rtol)
+    elseif p == Inf
+        return glinfnorm(SYS, rtolinf = rtolinf, fast = fast, offset = offset, atol1 = atol1, atol2 = atol2, rtol = rtol)
+    else
+        throw(ArgumentError("invalid p-norm p=$p. Valid: 2 and Inf"))
+    end
+end
 """
     sys = rss(n, p, m; disc = false, T = Float64, stable = false, nuc = 0, nuo = 0, randt = true) 
 

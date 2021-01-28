@@ -32,8 +32,7 @@ and `G(λ)` is the rational _transfer function matrix_ (TFM) of the system, defi
                     -1
     G(λ) = C(λE − A)  B + D.
 
-It is well known that the descriptor system representation is the most general description for a linear time-invariant system. Continuous-time descriptor systems arise frequently from modelling interconnected systems containing algebraic loops or constrained mechanical systems which describe contact phenomena. Discrete-time descriptor representations are frequently used to model economic processes. A main apeal of descriptor system models is that the manipulation of rational and polynomial matrices can be easily performed via their descriptor system representations, since each rational or polynomial matrix can be interpreted as the TFM of a descriptor
-system. For an introductory presentation of the main concepts, see [1].
+It is well known that the descriptor system representation is the most general description for a linear time-invariant system. Continuous-time descriptor systems arise frequently from modelling interconnected systems containing algebraic loops or constrained mechanical systems which describe contact phenomena. Discrete-time descriptor representations are frequently used to model economic processes. A main apeal of descriptor system models is that the manipulation of rational and polynomial matrices can be easily performed via their descriptor system representations, since each rational or polynomial matrix can be interpreted as the TFM of a descriptor system. For an introductory presentation of the main concepts, see [1].
 
 The theoretical background for the analysis of descriptor systems closely relies on investigating the properties of certain linear matrix pencils, as the regular _pole pencil_ `P(λ) = A-λE`, or the generally singular _system matrix pencil_ `S(λ) = [A-λE B; C D]`. Therefore, the main analysis tools of descriptor systems are pencil manipulation techniques (e.g., reductions to various Kronecker-like forms), as available in the [MatrixPencils](https://github.com/andreasvarga/MatrixPencils.jl) package [2]. Among the main applications of pencil manipulation algorithms, we mention  the computation of minimal nullspace bases, the computation of poles and zeros, the determination of the normal rank of polynomial and rational matrices, computation of various factorizations of rational matrices, as well as the solution of linear equations with polynomial or rational matrices. Important additional computational ingredients in these applications are tools for solving matrix equations, as various Lyapunov, Sylvester and Riccati equations. These tools are provided by the [MatrixEquations](https://github.com/andreasvarga/MatrixEquations.jl) package [3].
 
@@ -41,30 +40,55 @@ The available functions in the `DescriptorSystems.jl` package cover both standar
 
 **Building descriptor system state-space models**
 
-* **dss**  Construction of descriptor state-space models.
-* **dssdata**   Extraction of matrix-data from a descriptor state-space model.
+* **[`dss`](@ref)**  Construction of descriptor state-space models.
+* **[`dssdata`](@ref)**   Extraction of matrix-data from a descriptor state-space model.
 
 **Interconnecting descriptor system models**
 
-* **append**  Building aggregate models by appending the inputs and outputs.
-* **parallel**   Connecting models in parallel (also overloaded with **`+`**).
-* **series**   Connecting models in series (also overloaded with **`*`**).
-* **horzcat**   Horizontal concatenation of descriptor system models (also overloaded with **`[ * * ]`**).
-* **vertcat**   Vertical concatenation of descriptor system models (also overloaded with **`[ *; * ]`**).
+* **[`append`](@ref)**  Building aggregate models by appending the inputs and outputs.
+* **[`parallel`](@ref)**   Connecting models in parallel (also overloaded with **`+`**).
+* **[`series`](@ref)**   Connecting models in series (also overloaded with **`*`**).
+* **[`horzcat`](@ref)**   Horizontal concatenation of descriptor system models (also overloaded with **`[ * * ]`**).
+* **[`vertcat`](@ref)**   Vertical concatenation of descriptor system models (also overloaded with **`[ *; * ]`**).
 
 **Basic operations on descriptor system models**
 
-* **inv**  Inversion of a descriptor system.
-* **ldiv**   Left division for two descriptor systems (also overloaded with **`\`**).
-* **rdiv**   Right division for two descriptor systems (also overloaded with **`/`**).
-* **gdual**   Construction of the dual of a descriptor system (also overloaded with **`transpose`**)
-* **ctranspose**  Construction of the conjugate transpose of a descriptor system (also overloaded with **`'`**).
+* **[`inv`](@ref)**  Inversion of a descriptor system.
+* **[`ldiv`](@ref)**   Left division for two descriptor systems (also overloaded with **`\`**).
+* **[`rdiv`](@ref)**   Right division for two descriptor systems (also overloaded with **`/`**).
+* **[`gdual`](@ref)**   Construction of the dual of a descriptor system (also overloaded with **`transpose`**)
+* **[`ctranspose`](@ref)**  Construction of the conjugate transpose of a descriptor system (also overloaded with **`'`**).
 
 **Simplification of descriptor system models**
 
-* **gminreal**  Minimal realization of descriptor systems.
-* **gir**   Irreducible realization of descriptor systems.
-* **gbalmr**   Reduced-order approximations of descriptor systems using balancing related methods.
+* **[`gminreal`](@ref)**  Minimal realization of descriptor systems.
+* **[`gir`](@ref)**   Irreducible realization of descriptor systems.
+* **[`gbalmr`](@ref)**   Reduced-order approximations of descriptor systems using balancing related methods.
+
+**Descriptor system analysis**
+
+* **[`isregular`](@ref)** Test whether a descriptor system has a regular pole pencil.
+* **[`gpole`](@ref)**    Poles of a descriptor system.
+* **[`gpoleinfo`](@ref)**   Poles and pole structure information of a descriptor system.
+* **[`isproper`](@ref)**   Test whether a descriptor system is proper.
+* **[`isstable`](@ref)**   Test whether a descriptor system is stable.
+* **[`gzero`](@ref)**  Zeros of a descriptor system.
+* **[`gzeroinfo`](@ref)** Zeros and zero structure information of a descriptor system.
+* **[`gnrank`](@ref)**  Normal rank of the transfer function matrix of a descriptor system.
+* **[`ghanorm`](@ref)**  Hankel norm of a proper and stable descriptor system.
+* **[`gl2norm`](@ref)**  `L2` norm of a descriptor system.
+* **[`gh2norm`](@ref)**  `H2` norm of a descriptor system.
+* **[`glinfnorm`](@ref)**  `L∞` norm of a descriptor system.
+* **[`ghinfnorm`](@ref)**  `H∞` norm of a descriptor system.
+
+**Factorization of descriptor systems**
+
+* **[`grcf`](@ref)**  Right coprime factorization with proper and stable factors.
+* **[`glcf`](@ref)**   Left coprime factorization with proper and stable factors.
+* **[`grcfid`](@ref)**   Right coprime factorization with inner denominator.
+* **[`glcfid`](@ref)**   Left coprime factorization with inner denominator.
+* **[`giofac`](@ref)**   Inner-outer/QR-like factorization.
+* **[`goifac`](@ref)**   Co-outer-co-inner/RQ-like factorization.
 
 ## Future plans
 

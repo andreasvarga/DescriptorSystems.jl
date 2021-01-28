@@ -471,11 +471,11 @@ catch
     @test true
 end
 
-@time sysr, hsv = gbalmr(sys+sys,fast = fast, atolhsv = 1.e-7,atol = 1.e-7)
+@time sysr, hsv = gbalmr(sys+sys, fast = fast, atolhsv = 1.e-7, atol = 1.e-7)
 @test norm(hsv[n+1:end]) < 1.e-7 && order(sysr) == n && iszero(2*sys-sysr,atol=1.e-7)
 
 
-@time sysr, hsv = gbalmr([sys sys],fast = fast,atol = 1.e-7)
+@time sysr, hsv = gbalmr([sys sys], ord = n, fast = fast, atol = 1.e-7)
 @test norm(hsv[n+1:end]) < 1.e-7 && order(sysr) == n 
 
 
