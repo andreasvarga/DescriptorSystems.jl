@@ -95,11 +95,8 @@ function gpole(SYS::DescriptorStateSpace{T}; fast = false, atol::Real = 0, atol1
        rcond(E) >= SYS.nx*epsm && (return MatrixPencils.eigvalsnosort(A,E))
        # singular E
        poles, nip, krinfo = pzeros(A, E; fast = fast, atol1 = atol1, atol2 = atol2, rtol = rtol )
-       if check_reg
-          SYS.nx == krinfo.nrank || error("the system has a singular pole pencil")
-       else
-          return [poles;NaN*ones(SYS.nx-krinfo.nrank)]
-       end
+       check_reg && (SYS.nx == krinfo.nrank || error("the system has a singular pole pencil"))
+       return [poles;NaN*ones(SYS.nx-krinfo.nrank)]
     end
 end
 """
@@ -296,43 +293,40 @@ function gpoleinfo(SYS::DescriptorStateSpace{T}; smarg::Real = SYS.Ts == 0 ? 0 :
     T <: BlasFloat ? T1 = T : T1 = promote_type(Float64,T)
     A = copy_oftype(SYS.A,T1)
     if SYS.E == I
-        isschur(A) ? val = ordeigvals(A) : val = MatrixPencils.eigvalsnosort(A)
-        nfsev, nfsbev, nfuev = eigvals_info(val, smarg, disc, offset)
-        return val, (nfev = n, niev = 0, nisev = 0, nip = 0, nfsev = nfsev, nfsbev = nfsbev, 
+       isschur(A) ? val = ordeigvals(A) : val = MatrixPencils.eigvalsnosort(A)
+       nfsev, nfsbev, nfuev = eigvals_info(val, smarg, disc, offset)
+       return val, (nfev = n, niev = 0, nisev = 0, nip = 0, nfsev = nfsev, nfsbev = nfsbev, 
                      nfuev = nfuev, nhev = 0, nrank = n, miev = Int[], mip = Int[], 
                      rki = Int[], lki = Int[], regular = true, proper = true, stable = (nfsev == n))
     else
-      E = copy_oftype(SYS.E,T1)
-      epsm = eps(float(one(real(T))))
-        if isschur(A,E) && rcond(UpperTriangular(E)) >= n*epsm
-           val = ordeigvals(A,E)[1]
-        elseif istriu(E) && rcond(UpperTriangular(E)) >= n*epsm  
-           val = MatrixPencils.eigvalsnosort(A,E)
-        elseif rcond(E) >= n*epsm 
-           val = MatrixPencils.eigvalsnosort(A,E)
-        else
-           # singular E
-           val, mip, krinfo = pzeros(A, E; fast = fast, atol1 = atol1, atol2 = atol2, rtol = rtol )
-        end
-        nfsev, nfsbev, nfuev = eigvals_info(val[isfinite.(val)], smarg, disc, offset)
-        all(isfinite.(val)) && 
-            (return val, (nfev = n, niev = 0, nisev = 0, nip = 0, nfsev = nfsev, nfsbev = nfsbev, 
-                         nfuev = nfuev, nhev = 0, nrank = n, miev = Int[], mip = Int[], 
-                         rki = Int[], lki = Int[], regular = true, proper = true, stable = (nfsev == n)))
-        nhev = n - krinfo.nrank 
-        if nhev > 0 
-           @warn "The system has a singular pole pencil"
-        else
-           val = [val;NaN*ones(nhev)]
-        end
-        niev = sum(krinfo.id)
-        nip = sum(mip)
-        nfev = n-niev
-        return val, (nfev = nfev, niev = niev, nisev = count(krinfo.id .== 1), nip = nip, nfsev = nfsev, nfsbev = nfsbev, 
-                     nfuev = nfuev, nhev = nhev, nrank = krinfo.nrank, miev = krinfo.id, mip = mip, 
-                     rki = krinfo.rki, lki = krinfo.lki, regular = (nhev == 0), proper = (nip == 0), 
-                     stable = (nip == 0 && nfsev == nfev))
-     end
+       E = copy_oftype(SYS.E,T1)
+       epsm = eps(float(one(real(T))))
+       if isschur(A,E) && rcond(UpperTriangular(E)) >= n*epsm
+          val = ordeigvals(A,E)[1]
+       elseif istriu(E) && rcond(UpperTriangular(E)) >= n*epsm  
+          val = MatrixPencils.eigvalsnosort(A,E)
+       elseif rcond(E) >= n*epsm 
+          val = MatrixPencils.eigvalsnosort(A,E)
+       else
+          # singular E
+          val, mip, krinfo = pzeros(A, E; fast = fast, atol1 = atol1, atol2 = atol2, rtol = rtol )
+       end
+       nfsev, nfsbev, nfuev = eigvals_info(val[isfinite.(val)], smarg, disc, offset)
+       all(isfinite.(val)) && 
+           (return val, (nfev = n, niev = 0, nisev = 0, nip = 0, nfsev = nfsev, nfsbev = nfsbev, 
+                        nfuev = nfuev, nhev = 0, nrank = n, miev = Int[], mip = Int[], 
+                        rki = Int[], lki = Int[], regular = true, proper = true, stable = (nfsev == n)))
+       nhev = n - krinfo.nrank 
+       nhev > 0 && (@warn "The system has a singular pole pencil")
+       val = [val;NaN*ones(nhev)]
+       niev = sum(krinfo.id)
+       nip = sum(mip)
+       nfev = n-niev
+       return val, (nfev = nfev, niev = niev, nisev = count(krinfo.id .== 1), nip = nip, nfsev = nfsev, nfsbev = nfsbev, 
+                    nfuev = nfuev, nhev = nhev, nrank = krinfo.nrank, miev = krinfo.id, mip = mip, 
+                    rki = krinfo.rki, lki = krinfo.lki, regular = (nhev == 0), proper = (nip == 0), 
+                    stable = (nip == 0 && nfsev == nfev))
+    end
 end
 function eigvals_info(val::AbstractVector, smarg::Real, disc::Bool, offset::Real)
     if disc
@@ -851,7 +845,7 @@ function norminfc(a, e, b, c, d, ft0, tol)
        # perturbations of order sqrt(eps*rho(H)) on the real part
        # of poles of multiplicity two (typical as g->norm(sys,inf))
        #jweig = heigs(abs(real(heigs)) < toljw2*(1 .+ mag)+toljw1*max(mag));
-       jweig = heigs[abs.(real(heigs)) .< toljw2*(1 .+ mag) .+ toljw1*maximum(mag)];
+       jweig = heigs[abs.(real(heigs)) .< toljw2*(1 .+ mag) .+ toljw1*mag];
     
        # Compute frequencies where gain G is attained and
        # generate new test frequencies
@@ -902,8 +896,8 @@ function norminfd(a, e, b, c, d, ft0, Ts, tol)
     T = eltype(a)
     TR = real(T)
     epsm = eps(TR)
-    toluc1 = 100 * epsm;       # for simple roots
-    toluc2 = 10 * sqrt(epsm);  # for double root
+    toluc1 = 100 * epsm       # for simple roots
+    toluc2 = 10 * sqrt(epsm)  # for double root
     
     # Problem dimensions
     nx = size(a,1);
@@ -975,8 +969,8 @@ function norminfd(a, e, b, c, d, ft0, Ts, tol)
           gw = opnorm(dc-cc*bct)
           gw > gmin && (gmin = gw;  fpeak = abs(angle(z)))
       end
-   end
-   gmin == 0 && (return TR(0), TR(0))
+    end
+    gmin == 0 && (return TR(0), TR(0))
     
     # Modified gamma iterations (Bruinsma-Steinbuch algorithm) starts:
     iter = 1;
@@ -994,11 +988,11 @@ function norminfd(a, e, b, c, d, ft0, Ts, tol)
        LinearAlgebra.LAPACK.ormrq!('R',tran,h2,tau,j1)
        i1 = 1:(2*nx)
        heigs = eigvals!(view(h1,:,i1),view(j1,:,i1))
-       heigs = heigs[isfinite.(heigs)]
+       heigs =  heigs[abs.(heigs) .< 1/toluc2]
 
        # Detect unit-circle eigenvalues
-       mag = abs.(heigs);
-       uceig = heigs[abs.(1 .- mag) .< toluc2 .+ toluc1*maximum(mag)];
+       mag = abs.(heigs)
+       uceig = heigs[abs.(1 .- mag) .< toluc2 .+ toluc1*mag]
     
        # Compute frequencies where gain G is attained and
        # generate new test frequencies
@@ -1017,13 +1011,6 @@ function norminfd(a, e, b, c, d, ft0, Ts, tol)
        # gain at new test frequencies
        gmin0 = gmin;   # save current lower bound
        testz = exp.(im*((ang[1:lan-1]+ang[2:lan])/2))
-      #  for i = 1:lan-1
-      #      z = testz[i]
-      #      bct = copy(bc)
-      #      desc ? ldiv!(UpperHessenberg(ac-z*ec),bct) : ldiv!(ac,bct,shift = -z)
-      #      gw = opnorm(dc-cc*bct)
-      #      gw > gmin && (gmin = gw;  fpeak = abs(angle(z)))
-      #  end
        if VERSION < v"1.3.0-DEV.349"
          # Compute lower estimate GMIN as max. gain over the selected frequencies
          for i = 1:lan-1

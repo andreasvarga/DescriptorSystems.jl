@@ -148,7 +148,7 @@ sys = dss(A,E,B,C,D);
 
 
 # poles
-@time val  = gpole(sys)
+@time val  = gpole(sys,check_reg = true)
 @test val ≈ [Inf, Inf, Inf, Inf, Inf, Inf]
 
 @time val  = gzero(dss(A = sys.A, E = sys.E))
@@ -182,12 +182,36 @@ sys = dss(A,E,B,C,D);
 
 # infinite structure test
 n = 5; m = 2; p = 3; 
-sys = rdss(n,p,m,id=[ones(Int,3);2*ones(Int,2)],randlt=false,randrt=false);
+sys = rdss(n,p,m,id=[ones(Int,3);2*ones(Int,2)]);
 @time val, info  = gpoleinfo(sys,atol=1.e-7)
 @test count(isinf.(val)) == 2 && 
       info.nfev == n && info.niev == 7 && info.nisev == 3 && info.nfsev + info.nfuev == n &&
       info.nip == 2 && info.miev == [1, 1, 1, 2, 2] && info.mip == [1, 1] &&
-      info.regular && !info.proper  
+      info.regular && !info.proper && isregular(sys)
+
+
+A = rand(n,n); E = rand(n,n); 
+@time val, info  = gpoleinfo(dss(A=A,E=E))
+@test count(isinf.(val)) == 0 && 
+      info.nfev == n && info.niev == 0 && info.nisev == 0 && info.nfsev + info.nfuev == n &&
+      info.nip == 0 && info.miev == [] && info.mip == [] &&
+      info.regular && info.proper  
+
+As, Es, = schur(A,E)
+@time val, info  = gpoleinfo(dss(A=As,E=Es))
+@test count(isinf.(val)) == 0 && 
+      info.nfev == n && info.niev == 0 && info.nisev == 0 && info.nfsev + info.nfuev == n &&
+      info.nip == 0 && info.miev == [] && info.mip == [] &&
+      info.regular && info.proper  
+
+@time val, info  = gpoleinfo(dss(A=A,E=triu(E)))
+@test count(isinf.(val)) == 0 && 
+      info.nfev == n && info.niev == 0 && info.nisev == 0 && info.nfsev + info.nfuev == n &&
+      info.nip == 0 && info.miev == [] && info.mip == [] &&
+      info.regular && info.proper  
+
+
+
 
 
 end
@@ -270,6 +294,18 @@ e = rand(2,2)
 sys = dss(e*a,e,e*b,c,d,Ts = 1);
 @time l2norm = gl2norm(sys)
 @test l2norm ≈ 3.438689619923066e+01
+
+a = [-1 2;0 0]; b = [2 3 4; 1 2 3]; c = [1 4; 2 2; 1 3]; d = ones(3,3);
+sys = dss(a,b,c,d);
+@time l2norm = gl2norm(sys)
+@test l2norm ≈ Inf
+
+a = [-1 2;0 0]; e = [1 0; 0 2]; b = [2 3 4; 1 2 3]; c = [1 4; 2 2; 1 3]; d = ones(3,3);
+sys = dss(a,e,b,c,d);
+@time l2norm = gl2norm(sys)
+@test l2norm ≈ Inf
+
+
 
 a = [-1 2;-3 -2]/10; b = [2 3 4; 1 2 3]; c = [1 4; 2 2; 1 3]; d = ones(3,3);
 sys = dss(a,b,c,d,Ts = 1);
@@ -676,9 +712,10 @@ sys = rdss(n,p,m,T = Ty, stable = true);
 @test ghinfnorm(sys,fast = fast)[1] ≈ glinfnorm(sys',fast = fast)[1] && ghinfnorm(sys,fast = fast)[2] ≈ glinfnorm(sys',fast = fast)[2] 
 
 sys = rdss(n,p,m,T = Ty, stable = true, disc = true); 
-hinf = ghinfnorm(sys,fast = fast,rtolinf = 0.000001)[1]
-linf = glinfnorm(sys',fast = fast,rtolinf = 0.000001)[1]
-@test round(hinf,digits=3) ≈ round(linf,digits=3)
+rtolinf = 0.000001
+hinf, fpeak = ghinfnorm(sys,fast = fast,rtolinf = rtolinf)
+linf, fpeak = glinfnorm(sys',fast = fast,rtolinf = rtolinf)
+@test abs(hinf-linf)/hinf < 2*rtolinf
 
 sys = rdss(n,p,m,T = Ty, stable = true, id=ones(Int,3)); 
 @test ghinfnorm(sys,fast = fast)[1] ≈ glinfnorm(sys',fast = fast)[1] && ghinfnorm(sys,fast = fast)[2] ≈ glinfnorm(sys',fast = fast)[2] 
