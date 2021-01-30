@@ -445,12 +445,11 @@ sys = rdss(0,0,0);
        isempty(gzero(gminreal(syso))) &&
        info.nrank == 0 && ismissing(info.nfuz) && info.niuz == 0
 
-fast = true; Ty = Complex{Float64}; #Ty = Float64     
+fast = true; Ty = Complex{Float64}; Ty = Float64     
 n = 5; p = 1; m = 4; 
 for fast in (true, false)
 # random examples
 for Ty in (Float64, Complex{Float64})
-      fast = false; #Ty = Float64;
 
 # continuous, standard
 sys = rss(n,p,m,T = Ty,disc=false);
@@ -501,8 +500,7 @@ zeref = gzero(sys,atol=1.e-7)
 r = size(syso,1);
 zer = gzero(gminreal(syso,atol=1.e-7),atol=1.e-7)
 @test gnrank(sys-syso*sysi[1:r,:],atol=1.e-7) == 0   &&   #  G(s) - Gi(s)*Go(s) = 0
-      gnrank(sysi'*sysi-I,atol=1.e-7) == 0 &&
-      iszero(sysi'*sysi-I,atol=1.e-7)  && # conj(Gi(s))*Gi(s)-I = 0
+      iszero(sysi'*sysi-I,atol=1.e-5)  && # conj(Gi(s))*Gi(s)-I = 0
       isproper(sysi) && (isproper(sys) ? isproper(syso) : true) && # checking properness of factors
       isstable(sysi) && (isstable(sys) ? isstable(syso) : true) &&
       count(isinf.(zer)) == info.niuz &&
