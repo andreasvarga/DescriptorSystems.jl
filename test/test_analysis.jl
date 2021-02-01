@@ -701,8 +701,10 @@ sys = rss(n,p,m,T = Ty, stable = true);
 
 sys = rss(n,p,m,stable = true, disc = true); 
 #@test ghinfnorm(sys,fast = fast)[1] ≈ glinfnorm(sys',fast = fast)[1]
-@test round(ghinfnorm(sys,fast = fast,rtolinf = 0.000001)[1],digits=5) ≈ round(glinfnorm(sys',fast = fast,rtolinf = 0.000001)[1],digits=5)
-
+rtolinf = 0.000001
+hinf, fpeak = ghinfnorm(sys,fast = fast,rtolinf = rtolinf)
+linf, fpeak = glinfnorm(sys',fast = fast,rtolinf = rtolinf)
+@test abs(hinf-linf)/hinf < 2*rtolinf
 
 sys = rdss(n,p,m,T = Ty, stable = true); 
 sys.D[:,:] = zeros(Ty,p,m);
