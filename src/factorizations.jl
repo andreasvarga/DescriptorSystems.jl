@@ -21,19 +21,18 @@ while for a discrete-time system `sys`, `Cs` is the set of complex numbers with
 moduli at most `1-β` (i.e., the interior of a disc of radius `1-β` centered in the origin). 
 The boundary offset  `β` to be used to assess the stability of zeros and their number 
 on the boundary of `Cs` can be specified via the keyword parameter `offset = β`.
-to assess the zeros on the boundary of `Cs` is specified 
-by the keyword parameter `offset`. Accordingly, for a continuous-time system, 
+Accordingly, for a continuous-time system, 
 the boundary of `Cs` contains the complex numbers with real parts within the interval `[-β,β]`, 
-while for a discrete-time system, then the boundary of `Cs` contains
+while for a discrete-time system, the boundary of `Cs` contains
 the complex numbers with moduli within the interval `[1-β,1+β]`. 
 The default value used for `β` is `sqrt(ϵ)`, where `ϵ` is the working machine precision. 
 
 The resulting named triple `ìnfo` contains `(nrank, nfuz, niuz) `, where `ìnfo.nrank = r`, 
 the normal rank of `G(λ)`, `ìnfo.nfuz` is the number of finite zeros of `syso` on 
-the boundary of `Cs`, and `ìnfo.niuz` is the number of infinite zeros `syso`. 
+the boundary of `Cs`, and `ìnfo.niuz` is the number of infinite zeros of `syso`. 
 `ìnfo.nfuz` is set to `missing` if `minphase = false`. 
 
-Note: `syso` may generally contain a free inner factor, which can be eliminated by 
+_Note:_ `syso` may generally contain a _free inner factor_, which can be eliminated by 
 removing the finite unobservable eigenvalues. 
 
 The keyword arguments `atol1`, `atol2`, `atol3`, and `rtol`, specify, respectively, 
@@ -50,10 +49,10 @@ special Kronecker-like form (see [2]). In this reduction, the
 performed rank decisions are based on rank revealing QR-decompositions with column pivoting 
 if `fast = true` or the more reliable SVD-decompositions if `fast = false`.
 
-Method:  For a continuous-time system, the dual system is formed and the factorization algorithm 
+_Method:_  For a continuous-time system, the dual system is formed and the factorization algorithm 
 of [1] is used, while for a discrete-time system, the factorization algorithm of [1] is used.
 
-References:
+_References:_
 
 [1] C. Oara and A. Varga.
     Computation of the general inner-outer and spectral factorizations.
@@ -90,19 +89,18 @@ while for a discrete-time system `sys`, `Cs` is the set of complex numbers with
 moduli at most `1-β` (i.e., the interior of a disc of radius `1-β` centered in the origin). 
 The boundary offset  `β` to be used to assess the stability of zeros and their number 
 on the boundary of `Cs` can be specified via the keyword parameter `offset = β`.
-to assess the zeros on the boundary of `Cs` is specified 
-by the keyword parameter `offset`. Accordingly, for a continuous-time system, 
+Accordingly, for a continuous-time system, 
 the boundary of `Cs` contains the complex numbers with real parts within the interval `[-β,β]`, 
-while for a discrete-time system, then the boundary of `Cs` contains
+while for a discrete-time system, the boundary of `Cs` contains
 the complex numbers with moduli within the interval `[1-β,1+β]`. 
 The default value used for `β` is `sqrt(ϵ)`, where `ϵ` is the working machine precision. 
 
 The resulting named triple `ìnfo` contains `(nrank, nfuz, niuz) `, where `ìnfo.nrank = r`, 
 the normal rank of `G(λ)`, `ìnfo.nfuz` is the number of finite zeros of `syso` on 
-the boundary of `Cs`, and `ìnfo.niuz` is the number of infinite zeros `syso`. 
+the boundary of `Cs`, and `ìnfo.niuz` is the number of infinite zeros of `syso`. 
 `ìnfo.nfuz` is set to `missing` if `minphase = false`. 
 
-Note: `syso` may generally contain a free inner factor, which can be eliminated by 
+_Note:_ `syso` may generally contain a _free inner factor_, which can be eliminated by 
 removing the finite unobservable eigenvalues. 
 
 The keyword arguments `atol1`, `atol2`, `atol3`, and `rtol`, specify, respectively, 
@@ -119,10 +117,10 @@ special Kronecker-like form (see [2]). In this reduction, the
 performed rank decisions are based on rank revealing QR-decompositions with column pivoting 
 if `fast = true` or the more reliable SVD-decompositions if `fast = false`.
 
-Method:  For a continuous-time system, the factorization algorithm of [1] is used, while 
+_Method:_  For a continuous-time system, the factorization algorithm of [1] is used, while 
 for a discrete-time system, the factorization algorithm of [1] is used.
 
-References:
+_References:_
 
 [1] C. Oara and A. Varga.
     Computation of the general inner-outer and spectral factorizations.
@@ -134,13 +132,13 @@ References:
 """
 function giofac(sys::DescriptorStateSpace{T}; atol::Real = zero(real(T)), 
              atol1::Real = atol, atol2::Real = atol, atol3::Real = atol, 
-             rtol::Real = ((size(sys.A,1)+1)*eps(real(float(one(T)))))*iszero(max(atol1,atol2,atol3)), 
+             rtol::Real = sys.nx*eps(real(float(one(T))))*iszero(max(atol1,atol2,atol3)), 
              offset::Real = sqrt(eps(float(real(T)))), fast::Bool = true, minphase::Bool = true) where T 
 
    disc = !iszero(sys.Ts)
 
    # enforce controllability of sys
-   sys = gir(sys, atol1 = atol1, atol2 = atol2, contr = true) 
+   sys = gir(sys, atol1 = atol1, atol2 = atol2, obs = false) 
 
    #  Reduce the system matrix pencil to the special Kronecker-like form
    #
@@ -208,11 +206,7 @@ function giofac(sys::DescriptorStateSpace{T}; atol::Real = zero(real(T)),
    else
       FQR = qr(D); 
       H = FQR.R[1:mric,:]; W = FQR.Q[:,mric+1:p] 
-      if rank(X) < nric
-         Y = -pinv(X)*((E')\C'*W); 
-      else
-         Y = -(E'*X)\C'*W;
-      end
+      rank(X) < nric ? Y = -pinv(X)*((E')\C'*W) : Y = -(E'*X)\C'*W
    end
     
    # construct the square inner factor
@@ -223,7 +217,7 @@ function giofac(sys::DescriptorStateSpace{T}; atol::Real = zero(real(T)),
    sys.E == I ? (E = UpperTriangular(E); sysi = dss(rdiv!(agi,E), bgi, rdiv!(cgi,E), dgi, Ts = sys.Ts) ) : 
                  (sysi = dss(agi, copy(E), bgi, cgi, dgi, Ts = sys.Ts))
 
-      # construct the outer factor
+   # construct the outer factor
    CDt = [H*F H]*Z[:,nr+1:n+m-nsinf]' 
    syso = dss(sys.A, sys.E, sys.B, CDt[:,1:n], CDt[:,n+1:n+m], Ts = sys.Ts);
 
@@ -233,25 +227,27 @@ function giofac(sys::DescriptorStateSpace{T}; atol::Real = zero(real(T)),
 
 end
 """
-    glcf(sys; atol = 0, atol1 = atol, atol2 = atol, atol3 = atol, rtol, evals, sdeg, smarg
-         fast = true, mindeg = false, mininf = false) -> (sysn, sysm)
+    glcf(sys; smarg, sdeg, evals, mindeg = false, mininf = false, fast = true, 
+         atol = 0, atol1 = atol, atol2 = atol, atol3 = atol, rtol = n*ϵ) -> (sysn, sysm)
 
 Compute for the descriptor system `sys = (A-λE,B,C,D)`, the factors 
 `sysn = (An-λEn,Bn,Cn,Dn)` and `sysm = (Am-λEm,Bm,Cm,Dm)` of its stable and proper
 left coprime factorization. If `sys`, `sysn` and `sysm`  
 have the transfer function matrices `G(λ)`, `N(λ)` and `M(λ)`, respectively, then
 `G(λ) = inv(M(λ))*N(λ)`, with `N(λ)` and `M(λ)` proper and stable transfer 
-function matrices. The stability domain `Cs` of poles is defined by 
+function matrices. 
+The resulting matrix pairs `(An,En)` and `(Am,Em)` are in (generalized) Schur form. 
+The stability domain `Cs` of poles is defined by 
 the keyword argument `smarg` for the stability margin, as follows: 
 for a continuous-time system `sys`, `Cs` is the set of complex numbers 
 with real parts at most `smarg`, 
 while for a discrete-time system `sys`, `Cs` is the set of complex numbers with 
 moduli at most `smarg < 1` (i.e., the interior of a disc of radius `smarg` centered in the origin). 
-If `smarg = missing`, then the employed default values are `smarg = -sqrt(eps)` 
+If `smarg` is missing, then the employed default values are `smarg = -sqrt(eps)` 
 for a continuous-time system and `smarg = 1-sqrt(eps)` for a discrete-time system. 
 
 The keyword argument `sdeg` specifies the prescribed stability degree for the 
-assigned eigenvalues of the factors. If `sdeg = missing` and `smarg = missing`, 
+assigned eigenvalues of the factors. If both `sdeg` and `smarg` are missing, 
 then the employed  default values are `sdeg = -0.05` for a continuous-time system and 
 `sdeg = 0.95` for a discrete-time system, while if `smarg` is specified, 
 then `sdeg = smarg` is used. 
@@ -262,7 +258,7 @@ For a system with real data, `evals` must be a self-conjugated complex set
 to ensure that the resulting factors are also real. 
    
 If `mindeg = false`, both factors `sysn` and `sysm` have descriptor realizations
-with the same order and with `An = Am`, `En = Em` and `Bn = Bm`. If `mindeg = true`, 
+with the same order and with `An = Am`, `En = Em` and `Cn = Cm`. If `mindeg = true`, 
 the realization of `sysm` is minimal. The number of (finite) poles of `sysm` is 
 equal to the number of unstable finite poles of `sys`. 
 
@@ -284,14 +280,17 @@ The preliminary separation of finite and infinite eigenvalues of `A-λE` is perf
 using rank decisions based on rank revealing QR-decompositions with column pivoting 
 if `fast = true` or the more reliable SVD-decompositions if `fast = false`.
 
-Method:  The dual of Procedure GRCF from [2] is used, which represents
+_Method:_  The dual of Procedure GRCF from [2] is used, which represents
 an extension of the recursive factorization approach of [1] to cope with  
 infinite poles. All infinite eigenvalues are assigned to finite real values. 
-If `evals = missing` or does not contain a sufficient 
+If `evals` is missing or does not contain a sufficient 
 number of real values, then a part or all of infinite eigenvalues of `A-λE` are 
 assigned to the value specified by `sdeg`.  
+The pairs `(An,En)` and `(Am,Em)`  result in _generalized Schur form_ with 
+both `An` and `Am` quasi-upper triangular 
+and `En` and `Em` either both upper triangular or both UniformScalings.
 
-References:
+_References:_
 
 [1] A. Varga. Computation of coprime factorizations of rational matrices.
     Linear Algebra and Its Applications, vol. 271, pp.88-115, 1998.
@@ -300,29 +299,31 @@ References:
     arXiv:1703.07307, https://arxiv.org/abs/1703.07307, 2020. (to appear in Linear Algebra and Its Applications)
 """
 function glcf(sys::DescriptorStateSpace; kwargs...)  
-   sysn, sysm = grcf(gdual(sys,rev = true); kwargs...)
+              sysn, sysm = grcf(gdual(sys,rev = true); kwargs...)
    return gdual(sysn,rev = true), gdual(sysm,rev = true)
 end
 """
-    grcf(sys; atol = 0, atol1 = atol, atol2 = atol, atol3 = atol, rtol, evals, sdeg, smarg
-         fast = true, mindeg = false, mininf = false) -> (sysn, sysm)
+    grcf(sys; smarg, sdeg, evals, mindeg = false, mininf = false, fast = true, 
+         atol = 0, atol1 = atol, atol2 = atol, atol3 = atol, rtol = n*ϵ) -> (sysn, sysm)
 
 Compute for the descriptor system `sys = (A-λE,B,C,D)`, the factors 
 `sysn = (An-λEn,Bn,Cn,Dn)` and `sysm = (Am-λEm,Bm,Cm,Dm)` of its stable and proper
 right coprime factorization. If `sys`, `sysn` and `sysm`  
 have the transfer function matrices `G(λ)`, `N(λ)` and `M(λ)`, respectively, then
 `G(λ) = N(λ)*inv(M(λ))`, with `N(λ)` and `M(λ)` proper and stable transfer 
-function matrices. The stability domain `Cs` of poles is defined by 
+function matrices. 
+The resulting matrix pairs `(An,En)` and `(Am,Em)` are in (generalized) Schur form. 
+The stability domain `Cs` of poles is defined by 
 the keyword argument `smarg` for the stability margin, as follows: 
 for a continuous-time system `sys`, `Cs` is the set of complex numbers 
-with real parts at most `smarg`, 
+with real parts at most `smarg < 0`, 
 while for a discrete-time system `sys`, `Cs` is the set of complex numbers with 
 moduli at most `smarg < 1` (i.e., the interior of a disc of radius `smarg` centered in the origin). 
-If `smarg = missing`, then the employed default values are `smarg = -sqrt(eps)` 
+If `smarg` is missing, then the employed default values are `smarg = -sqrt(eps)` 
 for a continuous-time system and `smarg = 1-sqrt(eps)` for a discrete-time system. 
 
 The keyword argument `sdeg` specifies the prescribed stability degree for the 
-assigned eigenvalues of the factors. If `sdeg = missing` and `smarg = missing`, 
+assigned eigenvalues of the factors. If both `sdeg` and `smarg` are missing, 
 then the employed  default values are `sdeg = -0.05` for a continuous-time system and 
 `sdeg = 0.95` for a discrete-time system, while if `smarg` is specified, 
 then `sdeg = smarg` is used. 
@@ -351,17 +352,20 @@ and `n` is the order of the system `sys`.
 The keyword argument `atol` can be used 
 to simultaneously set `atol1 = atol`, `atol2 = atol`, `atol3 = atol`.
 
-The preliminary separation of finite and infinite eigenvalues of `A-λE` is performed using rank decisions based on rank revealing QR-decompositions with column pivoting 
+The preliminary separation of finite and infinite eigenvalues of `A-λE` is performed 
+using rank decisions based on rank revealing QR-decompositions with column pivoting 
 if `fast = true` or the more reliable SVD-decompositions if `fast = false`.
 
-Method:  The Procedure GRCF from [2] is implemented, which represents
+_Method:_  The Procedure GRCF from [2] is implemented, which represents
 an extension of the recursive factorization approach of [1] to cope with  
 infinite eigenvalues. All infinite poles are assigned to finite real values. 
-If `evals = missing` or does not contain a sufficient 
+If `evals` is missing or does not contain a sufficient 
  number of real values, then a part or all of infinite eigenvalues of `A-λE` are 
- assigned to the value specified by `sdeg`.  
+ assigned to the value specified by `sdeg`. The pairs `(An,En)` and `(Am,Em)`
+ result in _generalized Schur form_ with both `An` and `Am` quasi-upper triangular 
+ and `En` and `Em` either both upper triangular or both UniformScalings. 
 
-References:
+_References:_
 
 [1] A. Varga. Computation of coprime factorizations of rational matrices.
     Linear Algebra and Its Applications, vol. 271, pp.88-115, 1998.
@@ -370,10 +374,10 @@ References:
     arXiv:1703.07307, https://arxiv.org/abs/1703.07307, 2020. (to appear in Linear Algebra and Its Applications)
 """
 function grcf(sys::DescriptorStateSpace{T}; 
-             evals::Union{AbstractVector,Missing} = missing, sdeg::Union{Real,Missing} = missing, smarg::Union{Real,Missing} = missing, 
-             atol::Real = zero(real(T)), atol1::Real = atol, atol2::Real = atol, atol3::Real = atol, 
-             rtol::Real = ((size(sys.A,1)+1)*eps(real(float(one(T)))))*iszero(max(atol1,atol2,atol3)), 
-             fast::Bool = true, mindeg::Bool = false, mininf::Bool = false) where T 
+              evals::Union{AbstractVector,Missing} = missing, sdeg::Union{Real,Missing} = missing, smarg::Union{Real,Missing} = missing, 
+              atol::Real = zero(real(T)), atol1::Real = atol, atol2::Real = atol, atol3::Real = atol, 
+              rtol::Real = sys.nx*eps(real(float(one(T))))*iszero(max(atol1,atol2,atol3)), 
+              fast::Bool = true, mindeg::Bool = false, mininf::Bool = false) where T 
 
    T1 = T <: BlasFloat ? T : promote_type(Float64,T) 
    disc = !iszero(sys.Ts)
@@ -412,7 +416,7 @@ function grcf(sys::DescriptorStateSpace{T};
    # quick exit for n = 0 or B = 0
    DM = Matrix{T1}(I,m,m)
 
-   n == 0 && (return sys, dss(DM,Ts = sys.Ts) ) 
+   n == 0 && (return sys, dss(DM,Ts = sys.Ts)) 
 
    ZERO = zero(T1)
    ZEROR = zero(real(T1))
@@ -439,7 +443,7 @@ function grcf(sys::DescriptorStateSpace{T};
 
    nrmB = opnorm(Bt,1)
    # return if B = 0
-   iszero(nrmB) && (return sreduce(sysc,Int[]), dss(DM,Ts = sys.Ts) ) 
+   iszero(nrmB) && (return gsvselect(sys,Int[]), dss(DM,Ts = sys.Ts) ) 
  
      
    complx = (T1 <: Complex)
@@ -493,7 +497,7 @@ function grcf(sys::DescriptorStateSpace{T};
          select = Int.(real.(α) .<= smarg)
       end
       nsinf = 0; nb = length(select[select .== 0]); ng = n-nb; nb = n-ng; nbi = 0;
-      nb == 0 && (return dss(At,I,Z'*Bt,CN*Z,DN,Ts=sys.Ts), dss(DM,Ts = sys.Ts) )      
+      nb == 0 && (Bt = Z'*Bt; return dss(At,I,Bt,CN*Z,DN,Ts=sys.Ts), mindeg ? dss(DM,Ts = sys.Ts) : dss(At,I,Bt,zeros(T1,m,n),DM,Ts=sys.Ts)  )      
    
        _, _, α = LAPACK.trsen!(select, At, Z) 
        Bt = Z'*Bt; CN = CN*Z 
@@ -518,7 +522,7 @@ function grcf(sys::DescriptorStateSpace{T};
       # finish if SYS is stable and Et is invertible or
       # SYS is stable and simple infinite eigenvalues have not to be removed 
       Bt = Q'*Bt; CN = CN*Z; 
-      (nbf+nsinf == 0 || (nbf+nbi == 0 && !mininf)) && (return dss(At,Et,Bt,CN,DN,Ts=sys.Ts), dss(DM,Ts = sys.Ts) ) 
+      (nbf+nsinf == 0 || (nbf+nbi == 0 && !mininf)) && (return dss(At,Et,Bt,CN,DN,Ts=sys.Ts), mindeg ? dss(DM,Ts = sys.Ts) : dss(At,Et,Bt,zeros(T1,m,n),DM,Ts=sys.Ts) )
       nb = nbf+nbi
    end
    #return dss(At,Et,Bt,CN,DN,Ts=sys.Ts), dss(DM,Ts = sys.Ts)
@@ -556,12 +560,8 @@ function grcf(sys::DescriptorStateSpace{T};
             mul!(view(At,i1,kk),view(Bt,i1,:),f2,ONE,ONE); At[n,n] = γ; Et[n,n] = ONE;
             mul!(view(CN,:,kk),DN,f2,ONE,ONE)
             mul!(view(CM,:,kk),DM,f2,ONE,ONE)
-            # At(i1,kk) = At(i1,kk)+Bt(i1,:)*f2; At(n,n) = gamma; Et(n,n)=1;
-            # CN(:,kk) = CN(:,kk)+DN*f2; CM(:,kk) = CM(:,kk)+DM*f2; 
             Bt[i1,:] = view(Bt,i1,:)*W; DN = DN*W; DM = DM*W;
             i2 = n-nb+1:n; i1 = 1:n-nb;
-            # [At(i2,i2),Et(i2,i2),Q3,Z3] = ...
-            #         ordqz(At(i2,i2),Et(i2,i2),eye(nb),eye(nb),select);
             if nb > 1
                Q3 = Matrix{T1}(I,nb,nb); Z3 = Matrix{T1}(I,nb,nb)
                MatrixPencils.tgexc!(true, true, nb, 1, view(At,i2,i2), view(Et,i2,i2), Q3, Z3) 
@@ -572,9 +572,12 @@ function grcf(sys::DescriptorStateSpace{T};
             nb -= 1; nbi -= 1;
          else
             if k == 1 
-               # assign a single eigenvalue 
-               #[gamma,poles] = eigselect1(poles,sdeg,evb[end]);
-               γ, evalsr = eigselect1(evalsr, sdeg, complx ? evb[1] : real(evb[1]), disc; cflag = complx);
+               if !(nb > 1 && ismissing(evalsr) && !ismissing(evalsc))
+                   # assign a single eigenvalue 
+                   γ, evalsr = eigselect1(evalsr, sdeg, complx ? evb[1] : real(evb[1]), disc; cflag = complx);
+               else
+                  γ = nothing
+               end
                if γ === nothing
                   # no real pole available, adjoin a new 1x1 block if possible
                   if nb == 1
@@ -590,13 +593,12 @@ function grcf(sys::DescriptorStateSpace{T};
                         if standsys
                            evb = ordeigvals(view(At,kk,kk));
                         else
-                           evb = ordeigvals(view(At,kk,kk),view(Et,kk,kk));
+                           evb = ordeigvals(view(At,kk,kk),view(Et,kk,kk))[1];
                         end
                      else
                         # interchange last two blocks
                         i1 = 1:n-3; i2 = n-2:n; i3 = n-1:n
                         if standsys
-                           #[Q3,At(i2,i2)] = ordschur(eye(3),At(i2,i2),[false,false,true]);
                            Z3 = Matrix{T1}(I,3,3)
                            ac = view(At,i3,i3)
                            if nb > 2 && At[n-1,n-2] != ZERO
@@ -606,37 +608,25 @@ function grcf(sys::DescriptorStateSpace{T};
                            else
                               evb = disc ? maximum(abs.(ordeigvals(ac))) : maximum(real(ordeigvals(ac)))
                            end
-                           # _, _, α = LAPACK.trsen!([0,0,1], view(At,i2,i2), Z3) 
                            At[i1,i2] = view(At,i1,i2)*Z3; Bt[i2,:] = Z3'*view(Bt,i2,:); 
-                           # Z[:,i2] = view(Z,:,i2)*Z3; 
-                           CN[:,i2] = view(C,:,i2)*Z3; CM[:,i2] = view(CM,:,i2)*Z3;
-                           #evb = α[2:3]
+                           CN[:,i2] = view(CN,:,i2)*Z3; CM[:,i2] = view(CM,:,i2)*Z3;
                         else
-                           #[At(i2,i2),Et(i2,i2),Q3,Z3] = ordqz(At(i2,i2),Et(i2,i2),eye(3),eye(3),[false,false,true]);
                            Q3 = Matrix{T1}(I,3,3); Z3 = Matrix{T1}(I,3,3)
                            ac = view(At,i3,i3); ec = view(Et,i3,i3); 
                            if nb > 2 && At[n-1,n-2] != ZERO
                               # interchange last two blocks
-                              tgexc!(true, true, 3, 1, view(At,i2,i2), view(Et,i2,i2), Q3, Z3) 
-                              evb = ordeigvals(ac,ec)
+                              MatrixPencils.tgexc!(true, true, 3, 1, view(At,i2,i2), view(Et,i2,i2), Q3, Z3) 
+                              evb = ordeigvals(ac,ec)[1]
                            else
                               evb = disc ? maximum(abs.(ordeigvals(ac,ec)[1])) : maximum(real(ordeigvals(ac,ec)[1]))
                            end
-                           #_, _, α, β, _, _ = LAPACK.tgsen!([0,0,1], view(At,i2,i2), view(At,i2,i2), Q3, Z3) 
                            At[i1,i2] = view(At,i1,i2)*Z3; Et[i1,i2] = view(Et,i1,i2)*Z3; 
                            Bt[i2,:] = Q3'*view(Bt,i2,:); 
-                           # Q[:,i2] = view(Q,:,i2)*Q3; Z[:,i2] = view(Z,:,i2)*Z3; 
-                           CN[:,i2] = view(C,:,i2)*Z3; CM[:,i2] = view(CM,:,i2)*Z3;
-                           #evb = α[2:3] ./ β[2:3]
+                           CN[:,i2] = view(CN,:,i2)*Z3; CM[:,i2] = view(CM,:,i2)*Z3;
                         end
-                        # if standsys
-                        #    evb = ordeigvals(view(At,kk,kk));
-                        # else
-                        #    evb = ordeigvals(view(At,kk,kk),view(Et,kk,kk));
-                        # end
                      end
                      a2 = At[kk,kk]; b2 = Bt[kk,:]; 
-                     e2 = standsys ? Matrix{T1}{I,k,k} : Et[kk,kk]
+                     e2 = standsys ? Matrix{T1}(I,k,k) : Et[kk,kk]
                   end
                else
                   f2 = -b2\(a2-e2*γ);
@@ -653,9 +643,7 @@ function grcf(sys::DescriptorStateSpace{T};
                   if !standsys 
                      Et[kk,kk] = u'*view(Et,kk,kk); Et[i1,kk] = view(Et,i1,kk)*v; 
                      Et[n,n-1] = ZERO
-                     # Q[:,kk] = view(Q,:,kk)*u;
                   end
-                  # Z[:,kk] = view(Z,:,kk)*v;
                   nb -= 1; n -= 1; 
                   # recover the failed selection 
                   imag(γ[1]) == 0 ? (ismissing(evalsr) ? evalsr = γ : evalsr = [γ; evalsr]) : (ismissing(evalsc) ? evalsc = γ : evalsc = [γ; evalsc])
@@ -665,10 +653,6 @@ function grcf(sys::DescriptorStateSpace{T};
             end
             if f2 !== nothing
                norm(f2,Inf) > fnrmtol && (fwarn += 1)
-               # update matrices
-               # At(:,kk) = At(:,kk)+Bt*f2; 
-               # CN(:,kk) = CN(:,kk)+DN*f2; 
-               # CM(:,kk) = CM(:,kk)+DM*f2; 
                i1 = 1:n
                mul!(view(At,i1,kk),view(Bt,i1,:),f2,ONE,ONE)
                mul!(view(CN,:,kk),DN,f2,ONE,ONE)
@@ -715,7 +699,7 @@ function grcf(sys::DescriptorStateSpace{T};
                   if nb > k
                      Q3 = Matrix{T1}(I,nb,nb); Z3 = Matrix{T1}(I,nb,nb)
                      MatrixPencils.tgexc!(true, true, nb-k+1, 1, view(At,i2,i2), view(Et,i2,i2), Q3, Z3) 
-                     tworeals && tgexc!(true, true, nb, ia+1, view(At,i2,i2), view(Et,i2,i2), Q3, Z3) 
+                     tworeals && MatrixPencils.tgexc!(true, true, nb, ia+1, view(At,i2,i2), view(Et,i2,i2), Q3, Z3) 
                      At[i1,i2] = view(At,i1,i2)*Z3; Et[i1,i2] = view(Et,i1,i2)*Z3;
                      Bt[i2,:] = Q3'*view(Bt,i2,:); 
                      CN[:,i2] = view(CN,:,i2)*Z3; CM[:,i2] = view(CM,:,i2)*Z3;
@@ -744,10 +728,8 @@ function grcf(sys::DescriptorStateSpace{T};
       sysm = dss(At[i1,i1],I,Bt[i1,:],CM[:,i1],DM,Ts=sys.Ts);
    else
       i1 = 1:n
-      #sysn = dss(view(At,i1,i1),view(Et,i1,i1),view(Bt,i1,:),view(CN,:,i1),DN,Ts=sys.Ts);
       sysn = dss(At[i1,i1],Et[i1,i1],Bt[i1,:],CN[:,i1],DN,Ts=sys.Ts);
       mindeg && (i1 = ng+1:n)
-      #sysm = dss(view(At,i1,i1),view(Et,i1,i1),view(Bt,i1,:),view(CM,:,i1),DM,Ts=sys.Ts);
       sysm = dss(At[i1,i1],Et[i1,i1],Bt[i1,:],CM[:,i1],DM,Ts=sys.Ts);
    end
     
@@ -757,8 +739,8 @@ function grcf(sys::DescriptorStateSpace{T};
 # end GRCF
 end
 """
-    glcfid(sys; offset = sqrt(ϵ), atol = 0, atol1 = atol, atol2 = atol, atol3 = atol, rtol, 
-           fast = true, mindeg = false, mininf = false) -> (sysni, sysmi)
+    glcfid(sys; mindeg = false, mininf = false, fast = true, offset = sqrt(ϵ), 
+           atol = 0, atol1 = atol, atol2 = atol, atol3 = atol, rtol = n*ϵ) -> (sysni, sysmi)
 
 Compute for the descriptor system `sys = (A-λE,B,C,D)`, the factors 
 `sysni = (Ani-λEni,Bni,Cni,Dni)` and `sysmi = (Ami-λEmi,Bmi,Cmi,Dmi)` of its 
@@ -783,7 +765,7 @@ the complex numbers with moduli within the interval `[1-β,1+β]`.
 The default value used for `β` is `sqrt(ϵ)`, where `ϵ` is the working machine precision. 
 
 If `mindeg = false`, both factors `sysni` and `sysmi` have descriptor realizations
-with the same order and with `Ani = Ami`, `Eni = Emi` and `Bni = Bmi`. If `mindeg = true`, 
+with the same order and with `Ani = Ami`, `Eni = Emi` and `Cni = Cmi`. If `mindeg = true`, 
 the realization of `sysmi` is minimal. The number of (finite) poles of `sysmi` is 
 equal to the number of unstable finite poles of `sys`. 
 
@@ -795,17 +777,21 @@ The keyword arguments `atol1`, `atol2`, `atol3`, and `rtol`, specify, respective
 the absolute tolerance for the nonzero elements of `A`, 
 the absolute tolerance for the nonzero elements of `E`, 
 the absolute tolerance for the nonzero elements of `C`,  
-and the relative tolerance for the nonzero elements of `A`, `E` and `B`.  
+and the relative tolerance for the nonzero elements of `A`, `E` and `C`.  
 The default relative tolerance is `n*ϵ`, where `ϵ` is the working machine epsilon. 
 The keyword argument `atol` can be used 
 to simultaneously set `atol1 = atol`, `atol2 = atol`, `atol3 = atol`.
 
-The preliminary separation of finite and infinite eigenvalues of `A-λE`is performed using rank decisions based on rank revealing QR-decompositions with column pivoting 
+The preliminary separation of finite and infinite eigenvalues of `A-λE`is performed 
+using rank decisions based on rank revealing QR-decompositions with column pivoting 
 if `fast = true` or the more reliable SVD-decompositions if `fast = false`.
 
-Method: An extension of the recursive factorization approach of [1] is used to the dual system (see [2] for details). 
+_Method:_ An extension of the recursive factorization approach of [1] is used 
+to the dual system (see [2] for details). The pairs `(Ani,Eni)` and `(Ami,Emi)`
+result in _generalized Schur form_ with both `Ani` and `Ami` quasi-upper triangular 
+and `Eni` and `Emi` either both upper triangular or both UniformScalings. 
 
-References:
+_References:_
 
 [1] A. Varga. Computation of coprime factorizations of rational matrices.
     Linear Algebra and Its Applications, vol. 271, pp.88-115, 1998.
@@ -818,8 +804,8 @@ function glcfid(sys::DescriptorStateSpace; kwargs...)
    return gdual(sysn,rev = true), gdual(sysm,rev = true)
 end
 """
-    grcfid(sys; offset = sqrt(ϵ), atol = 0, atol1 = atol, atol2 = atol, atol3 = atol, rtol, 
-           fast = true, mindeg = false, mininf = false) -> (sysni, sysmi)
+    grcfid(sys; mindeg = false, mininf = false, fast = true, offset = sqrt(ϵ), 
+           atol = 0, atol1 = atol, atol2 = atol, atol3 = atol, rtol = n*ϵ) -> (sysni, sysmi)
 
 Compute for the descriptor system `sys = (A-λE,B,C,D)`, the factors 
 `sysni = (Ani-λEni,Bni,Cni,Dni)` and `sysmi = (Ami-λEmi,Bmi,Cmi,Dmi)` of its 
@@ -827,7 +813,7 @@ right coprime factorization with inner denominator. If `sys`, `sysni` and `sysmi
 have the transfer function matrices `G(λ)`, `N(λ)` and `M(λ)`, respectively, then
 `G(λ) = N(λ)*inv(M(λ))`, with `N(λ)` and `M(λ)` proper and stable transfer 
 function matrices and the denominator factor `M(λ)` inner. 
-The resulting matrix pairs `(Ani,Eni)` and `(Ami,Emi)` are in Schur forms. 
+The resulting matrix pairs `(Ani,Eni)` and `(Ami,Emi)` are in (generalized) Schur form. 
 The system `sys` must not have poles on the boundary of the stability domain `Cs`.
 In terms of eigenvalues, this requires for a continuous-time system, that 
 `A-λE` must not have controllable eigenvalues on the imaginary axis 
@@ -858,13 +844,19 @@ the absolute tolerance for the nonzero elements of `E`,
 the absolute tolerance for the nonzero elements of `B`,  
 and the relative tolerance for the nonzero elements of `A`, `E` and `B`.  
 The default relative tolerance is `n*ϵ`, where `ϵ` is the working machine epsilon. 
+The keyword argument `atol` can be used 
+to simultaneously set `atol1 = atol`, `atol2 = atol`, `atol3 = atol`.
 
-The preliminary separation of finite and infinite eigenvalues of `A-λE`is performed using rank decisions based on rank revealing QR-decompositions with column pivoting 
+The preliminary separation of finite and infinite eigenvalues of `A-λE`is performed 
+using rank decisions based on rank revealing QR-decompositions with column pivoting 
 if `fast = true` or the more reliable SVD-decompositions if `fast = false`.
 
-Method: An extension of the recursive factorization approach of [1] is used (see [2] for details). 
+_Method:_ An extension of the recursive factorization approach of [1] 
+is used (see [2] for details). The pairs `(Ani,Eni)` and `(Ami,Emi)`
+result in _generalized Schur form_ with both `Ani` and `Ami` quasi-upper triangular 
+and `Eni` and `Emi` either both upper triangular or both UniformScalings. 
 
-References:
+_References:_
 
 [1] A. Varga. Computation of coprime factorizations of rational matrices.
     Linear Algebra and Its Applications, vol. 271, pp.88-115, 1998.
@@ -874,7 +866,7 @@ References:
 """
 function grcfid(sys::DescriptorStateSpace{T}; offset::Real = sqrt(eps(float(real(T)))), 
              atol::Real = zero(real(T)), atol1::Real = atol, atol2::Real = atol, atol3::Real = atol, 
-             rtol::Real = ((size(sys.A,1)+1)*eps(real(float(one(T)))))*iszero(max(atol1,atol2,atol3)), 
+             rtol::Real = sys.nx*eps(real(float(one(T))))*iszero(max(atol1,atol2,atol3)), 
              fast::Bool = true, mindeg::Bool = false, mininf::Bool = false) where T 
 
    T1 = T <: BlasFloat ? T : promote_type(Float64,T) 
@@ -915,9 +907,8 @@ function grcfid(sys::DescriptorStateSpace{T}; offset::Real = sqrt(eps(float(real
 
    nrmB = opnorm(Bt,1)
    # return if B = 0
-   iszero(nrmB) && (return sreduce(sys,Int[]), dss(DM,Ts = sys.Ts) ) 
+   iszero(nrmB) && (return gsvselect(sys,Int[]), dss(DM,Ts = sys.Ts) ) 
  
-     
    complx = (T1 <: Complex)
     
       
@@ -942,7 +933,7 @@ function grcfid(sys::DescriptorStateSpace{T}; offset::Real = sqrt(eps(float(real
          select = Int.(real.(α) .<= smarg)
       end
       nsinf = 0; nb = length(select[select .== 0]); ng = n-nb; nb = n-ng; nbi = 0;
-      nb == 0 && (return dss(At,I,Z'*Bt,CN*Z,DN,Ts=sys.Ts), dss(DM,Ts = sys.Ts) )      
+      nb == 0 && (Bt = Z'*Bt; return dss(At,I,Bt,CN*Z,DN,Ts=sys.Ts), mindeg ? dss(DM,Ts = sys.Ts) : dss(At,I,Bt,zeros(T1,m,n),DM,Ts=sys.Ts)  )      
    
        _, _, α = LAPACK.trsen!(select, At, Z) 
        Bt = Z'*Bt; CN = CN*Z 
@@ -968,7 +959,7 @@ function grcfid(sys::DescriptorStateSpace{T}; offset::Real = sqrt(eps(float(real
       # finish if SYS is stable and Et is invertible or
       # SYS is stable and simple infinite eigenvalues have not to be removed 
       Bt = Q'*Bt; CN = CN*Z; 
-      (nbf+nsinf == 0 || (nbf+nbi == 0 && !mininf)) && (return dss(At,Et,Bt,CN,DN,Ts=sys.Ts), dss(DM,Ts = sys.Ts) )
+      (nbf+nsinf == 0 || (nbf+nbi == 0 && !mininf)) && (return dss(At,Et,Bt,CN,DN,Ts=sys.Ts), mindeg ? dss(DM,Ts = sys.Ts) : dss(At,Et,Bt,zeros(T1,m,n),DM,Ts=sys.Ts) )
       nb = nbf+nbi
    end
 
@@ -994,8 +985,6 @@ function grcfid(sys::DescriptorStateSpace{T}; offset::Real = sqrt(eps(float(real
       else
          a2 = At[kk,kk]; b2 = Bt[kk,:]; 
          e2 = standsys ? Matrix{T1}(I,k,k) : Et[kk,kk]
-         # a2 = view(At,kk,kk); b2 = view(Bt,kk,:); 
-         # e2 = standsys ? Matrix{T1}(I,k,k) : view(Et,kk,kk)
          if !standsys && k == 1 && nbi > 0
             !disc && error("The continuous-time system SYS is improper")
             # reflect infinite eigenvalue to the origin
@@ -1006,7 +995,6 @@ function grcfid(sys::DescriptorStateSpace{T}; offset::Real = sqrt(eps(float(real
             i1 = 1:n-1;
             mul!(view(At,i1,kk),view(Bt,i1,:),f2,ONE,ONE); At[n,n] = ZERO; 
             Bt[i1,:] = view(Bt,i1,:)*W; 
-            #a2[1,1] > 0 ? (e2 = a2; b2 = -b2) : e2 = -a2
             if complx
                en = -a2[1,1]               
                (iszero(imag(en)) && real(en) > ZEROR) ? Et[n,n] = en : 
@@ -1016,12 +1004,8 @@ function grcfid(sys::DescriptorStateSpace{T}; offset::Real = sqrt(eps(float(real
             end
             mul!(view(CN,:,kk),DN,f2,ONE,ONE)
             mul!(view(CM,:,kk),DM,f2,ONE,ONE)
-            # At(i1,kk) = At(i1,kk)+Bt(i1,:)*f2; At(n,n) = gamma; Et(n,n)=1;
-            # CN(:,kk) = CN(:,kk)+DN*f2; CM(:,kk) = CM(:,kk)+DM*f2; 
             DN = DN*W; DM = DM*W;
             i2 = n-nb+1:n; i1 = 1:n-nb;
-            # [At(i2,i2),Et(i2,i2),Q3,Z3] = ...
-            #         ordqz(At(i2,i2),Et(i2,i2),eye(nb),eye(nb),select);
             if nb > 1
                Q3 = Matrix{T1}(I,nb,nb); Z3 = Matrix{T1}(I,nb,nb)
                MatrixPencils.tgexc!(true, true, nb, 1, view(At,i2,i2), view(Et,i2,i2), Q3, Z3) 
@@ -1038,10 +1022,8 @@ function grcfid(sys::DescriptorStateSpace{T}; offset::Real = sqrt(eps(float(real
             end
             if disc
                # solve a2*y*a2'-e2*y*e2'-b2*b2' = 0 for y=S*S'
-               #S = plyapd(e2, a2, b2)  # alternative computation
                S = plyapas2!(a2,e2,copy(b2),disc = true) 
                y = S*S'  
-               #println("res = $(a2*y*a2'-e2*y*e2'-b2*b2')")         
                f2 = -(S'\(S\(a2\b2)))' # f2 = -b2.'/(y*a2.');
                # update At <- At + Bt*[0 f2]
                mul!(view(At,kk,kk),view(Bt,kk,:),f2,ONE,ONE) 
@@ -1049,27 +1031,19 @@ function grcfid(sys::DescriptorStateSpace{T}; offset::Real = sqrt(eps(float(real
                W = inv(UpperTriangular(qrupdate!(Matrix{T1}(I,m,m),x)))
             else
                # solve a2*y*e2'+e2*y*a2'-b2*b2' = 0 for y=S*S'
-               #S = plyaps(-a2, e2, b2, disc = false)  # alternative computation            
                S = plyapas2!(a2, e2, copy(b2), disc = false) 
                y = S*S'  
-               #println("res = $(a2*y*e2'+e2*y*a2'-b2*b2')")         
                f2 = -(S'\(S\(e2\b2)))'; # f2 = -b2.'/(y*e2.');
-               # println("res = $(a2+b2*f2+a2')  ee = $(Et[kk,kk])")
-               #k == 1 ? At[kk,kk] = -a2' : mul!(view(At,kk,kk),view(Bt,kk,:),f2,ONE,ONE) 
                mul!(view(At,kk,kk),view(Bt,kk,:),f2,ONE,ONE) 
             end
             norm(f2,Inf) > fnrmtol && (fwarn += 1)
             # update the rest of (sub)matrices
-            # At[1:n-k,kk] = At[1:n-k,kk]+Bt[1:n-k,:]*f2; 
-            # CN[:,kk] = CN[:,kk]+DN*f2; 
-            # CM[:,kk] = CM[:,kk]+DM*f2; 
             i1 = 1:n-k
             mul!(view(At,i1,kk),view(Bt,i1,:),f2,ONE,ONE)
             mul!(view(CN,:,kk),DN,f2,ONE,ONE)
             mul!(view(CM,:,kk),DM,f2,ONE,ONE)
             # update DN, DM and Bt: exploit W upper triangular
             disc && (rmul!(DN,W); rmul!(DM,W); rmul!(view(Bt,1:n,:),W)) 
-            # select = [zeros(Int,nb-k); ones(Int,k)]; 
             i2 = n-nb+1:n; i1 = 1:n-nb;
             if standsys
                if k == 2 
@@ -1083,13 +1057,6 @@ function grcfid(sys::DescriptorStateSpace{T}; offset::Real = sqrt(eps(float(real
                   rmul!(view(CN,:,kk),Z2)
                   rmul!(view(CM,:,kk),Z2)
                   lmul!(Z2',view(Bt,kk,:))
-                  # iszero(RT1I) && (At[k2,k1] = ZERO) #  not necessary since there are no real eigenvalues
-                  # alternative computation
-                  # it = 1:n-2; 
-                  # _, Z2, _ = LAPACK.gees!('V', view(At,kk,kk))
-                  # At[it,kk] = view(At,it,kk)*Z2
-                  # Bt[kk,:] = Z2'*view(Bt,kk,:) 
-                  # CN[:,kk] = view(CN,:,kk)*Z2; CM[:,kk] = view(CM,:,kk)*Z2;
                end
                if nb > k
                   Z3 = view(Z,i2,i2)

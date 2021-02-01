@@ -229,6 +229,7 @@ If `ind` is a permutation vector of length `n`, then `sysr` has the same transfe
 and permuted state variables. 
 """
 function gsvselect(SYS::DescriptorStateSpace{T},ind::Union{UnitRange{Int64},Array{Int64,1}}) where T
+    isempty(ind) &&  (return DescriptorStateSpace{T}(zeros(T,0,0),I,zeros(T,0,SYS.nu),zeros(T,SYS.ny,0),SYS.D,SYS.Ts))
     (minimum(ind) < 1 || maximum(ind) > SYS.nx) && error("BoundsError: selected indices $ind out of range $(1:SYS.nx)")
     return DescriptorStateSpace{T}(SYS.A[ind,ind], SYS.E == I ? I : SYS.E[ind,ind], SYS.B[ind,:], SYS.C[:,ind], SYS.D, SYS.Ts)
 end

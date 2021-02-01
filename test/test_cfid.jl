@@ -68,7 +68,7 @@ gd = [(s+2) (s+2) (s+2);
     (s+2) (s+1)*(s+2) (s+1)*(s+2)]; 
 
 sys = dss(gn,gd,minimal = true, atol = 1.e-7); 
-sysni, sysmi = grcfid(sys);
+sysni, sysmi = grcfid(sys,mindeg=true);
 @test gnrank(sys*sysmi-sysni,atol=1.e-7) == 0  &&    #  Gd(z)*M(z)-N(z) = 0
       iszero(sysmi'-inv(sysmi),atol=1.e-7)  && # conj(M(z))*M(z)-I = 0
       isproper(sysmi) & isproper(sysni)  &&  

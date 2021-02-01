@@ -50,8 +50,73 @@ sysn, sysm = grcf(sysc, evals = [-2,-3,-4], sdeg = -0.99, mindeg = true, mininf 
       isproper(sysm) && isproper(sysn) && 
       isstable(sysm,atol=1.e-7) && 
       isstable(sysn,atol=1.e-7)  &&
-      isempty(gzero(gminreal([sysn;sysm],atol=1.e-7)))
+      isempty(gzero(gminreal([sysn;sysm],atol=1.e-7))) &&
+      sort(gpole(sysm)) ≈ sort([-2,-3,-4])
 
+#test pole assignment feature
+sysc = dss(A = diagm(rand(3)),B = rand(3,2), C = rand(2,3));  
+sysn, sysm = grcf(sysc, evals = [-2+im,-4,-2-im], mindeg = true, mininf = true);
+@test gnrank(sysc*sysm-sysn,atol=1.e-7) == 0 &&   
+      isproper(sysm) && isproper(sysn) && 
+      isstable(sysm,atol=1.e-7) && 
+      isstable(sysn,atol=1.e-7)  &&
+      isempty(gzero(gminreal([sysn;sysm],atol=1.e-7))) &&
+      sort(real(gpole(sysm))) ≈ sort([-2,-2,-4]) &&
+      sort(imag(gpole(sysm))) ≈ sort([1,-1,0]) 
+
+
+sysc = sysn'; gpole(sysc)   
+sysn, sysm = grcf(sysc, evals = [-2+im,-4,-2-im], mindeg = true, mininf = true);
+@test gnrank(sysc*sysm-sysn,atol=1.e-7) == 0 &&   
+      isproper(sysm) && isproper(sysn) && 
+      isstable(sysm,atol=1.e-7) && 
+      isstable(sysn,atol=1.e-7)  &&
+      isempty(gzero(gminreal([sysn;sysm],atol=1.e-7))) &&
+      sort(real(gpole(sysm))) ≈ sort([-2,-2,-4]) &&
+      sort(imag(gpole(sysm))) ≈ sort([1,-1,0]) 
+
+e = rand(3,3)
+sysc = dss(A = e*diagm(rand(3)), E = e, B = rand(3,2), C = rand(2,3));   
+
+sysn, sysm = grcf(sysc, evals = [-2+im,-4,-2-im], mindeg = true, mininf = true);
+@test gnrank(sysc*sysm-sysn,atol=1.e-7) == 0 &&   
+      isproper(sysm) && isproper(sysn) && 
+      isstable(sysm,atol=1.e-7) && 
+      isstable(sysn,atol=1.e-7)  &&
+      isempty(gzero(gminreal([sysn;sysm],atol=1.e-7))) &&
+      sort(real(gpole(sysm))) ≈ sort([-2,-2,-4]) &&
+      sort(imag(gpole(sysm))) ≈ sort([1,-1,0]) 
+
+sysc = sysn';   
+sysn, sysm = grcf(sysc, evals = [-2+im,-4,-2-im], mindeg = true, mininf = true);
+@test gnrank(sysc*sysm-sysn,atol=1.e-7) == 0 &&   
+      isproper(sysm) && isproper(sysn) && 
+      isstable(sysm,atol=1.e-7) && 
+      isstable(sysn,atol=1.e-7)  &&
+      isempty(gzero(gminreal([sysn;sysm],atol=1.e-7))) &&
+      sort(real(gpole(sysm))) ≈ sort([-2,-2,-4]) &&
+      sort(imag(gpole(sysm))) ≈ sort([1,-1,0]) 
+
+# enforce interchange of 1x1 and 2x2 blocks
+sysc = dss(A = [1 100 0 1;0 2 3 1; 0 -3 2 0; 0 0 0 3], B = rand(4,2), C = rand(2,4) );  
+sysn, sysm = grcf(sysc, evals = [-2+im,-4+2im,-4-2im,-2-im], mindeg = true, mininf = true);
+@test gnrank(sysc*sysm-sysn,atol=1.e-7) == 0 &&   
+      isproper(sysm) && isproper(sysn) && 
+      isstable(sysm,atol=1.e-7) && 
+      isstable(sysn,atol=1.e-7)  &&
+      isempty(gzero(gminreal([sysn;sysm],atol=1.e-7))) &&
+      sort(real(gpole(sysm))) ≈ sort([-2,-2,-4,-4]) &&
+      sort(imag(gpole(sysm))) ≈ sort([1,-1,2,-2]) 
+
+sysc = dss(A = [1 100 0 1;0 2 3 1; 0 -3 2 0; 0 0 0 3], E = 2*eye(4),  B = rand(4,2), C = rand(2,4) );  
+sysn, sysm = grcf(sysc, evals = [-2+im,-4+2im,-4-2im,-2-im], mindeg = true, mininf = true);
+@test gnrank(sysc*sysm-sysn,atol=1.e-7) == 0 &&   
+      isproper(sysm) && isproper(sysn) && 
+      isstable(sysm,atol=1.e-7) && 
+      isstable(sysn,atol=1.e-7)  &&
+      isempty(gzero(gminreal([sysn;sysm],atol=1.e-7))) &&
+      sort(real(gpole(sysm))) ≈ sort([-2,-2,-4,-4]) &&
+      sort(imag(gpole(sysm))) ≈ sort([1,-1,2,-2]) 
 
 
 # Gd = [z^2 z/(z-2); 0 1/z]     # define the 2-by-2 improper Gd(z)
@@ -75,7 +140,7 @@ gd = [(s+2) (s+2) (s+2);
     (s+2) (s+1)*(s+2) (s+1)*(s+2)]; 
 sys = dss(gn,gd,minimal = true, atol = 1.e-7); 
 
-sysn, sysm = grcf(sys);
+sysn, sysm = grcf(sys,mindeg=true);
 @test gnrank(sys*sysm-sysn,atol=1.e-7) == 0  &&    
       isproper(sysm) & isproper(sysn)  &&  
       isstable(sysm,atol=1.e-7) && 
