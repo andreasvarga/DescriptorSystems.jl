@@ -28,7 +28,7 @@ function inv(sys::DescriptorStateSpace{T}; checkinv::Bool = true,
    return DescriptorStateSpace{T}(Ai, Ei, Bi, Ci, Di, sys.Ts) 
 end
 """
-    sysldiv = ldiv(sys1, sys2; atol = 0, atol1 = atol, atol2 = atol, rtol, checkinv = true)
+    sysldiv = ldiv(sys1, sys2; atol = 0, atol1 = atol, atol2 = atol, rtol = n*ϵ, checkinv = true)
     sysldiv = sys1 \\ sys2
 
 Compute for the descriptor systems `sys1 = (A1-λE1,B1,C1,D1)` with the transfer function matrix `G1(λ)` and 
@@ -70,7 +70,7 @@ function (\)(sys1::AbstractDescriptorStateSpace, sys2::AbstractDescriptorStateSp
    ldiv(sys1,sys2; kwargs...)
 end
 """
-    sysrdiv = rdiv(sys1, sys2; atol = 0, atol1 = atol, atol2 = atol, rtol, checkinv = true)  
+    sysrdiv = rdiv(sys1, sys2; atol = 0, atol1 = atol, atol2 = atol, rtol = n*ϵ, checkinv = true)  
     sysrdiv = sys1 / sys2  
 
 Compute for the descriptor systems `sys1 = (A1-λE1,B1,C1,D1)` with the transfer function matrix `G1(λ)` and 
@@ -89,7 +89,7 @@ and  `ϵ` is the working machine epsilon.
 The keyword argument `atol` can be used to simultaneously set `atol1 = atol` and `atol2 = atol`. 
 """
 function rdiv(sys1::DescriptorStateSpace{T1}, sys2::DescriptorStateSpace{T2}; 
-              atol1::Real = zero(real(T1)), atol2::Real = zero(real(T1)), 
+              atol::Real = zero(real(T1)), atol1::Real = atol, atol2::Real = atol, 
               rtol::Real = max(size(sys1.A,1),size(sys2.A,1))*eps(real(float(one(T1))))*iszero(min(atol1,atol2))) where {T1,T2}
    p2, m2 = sys2.ny, sys2.nu
    m2 == p2  || error("The system SYS2 must be square")
@@ -144,12 +144,7 @@ end
     sysconj = ctranspose(sys) 
     sysconj = sys' 
 
-Compute for a descriptor system `sys = (A-λE,B,C,D)` with the transfer function matrix `G(λ)`, 
-the descriptor system realization of its conjugate transpose system 
-`sysconj = (Ac-λEc,Bc,Cc,Dc)`, such that the transfer function matrix `Gconj(λ)` of `sysconj` 
-is the appropriate conjugate transpose (also adjoint) of `G(λ)`. 
-For a continuous-time system with `λ = s`, `Gconj(s) := transpose(G(-s))`, while 
-for a discrete-time system with `λ = z`, `Gconj(z) := transpose(G(1/z))`.
+Compute the conjugate transpose (or adjoint) of a descriptor system (see [`adjoint`](@ref)). 
 """
 function ctranspose(sys::DescriptorStateSpace{T}) where T
    if sys.Ts == 0
@@ -165,5 +160,136 @@ function ctranspose(sys::DescriptorStateSpace{T}) where T
                                      [sys.B' zeros(T,nu,ny)], copy(sys.D'), sys.Ts) 
    end
 end
-adjoint(sys::AbstractDescriptorStateSpace) = ctranspose(sys)
-   
+"""
+    sysconj = adjoint(sys) 
+    sysconj = sys' 
+
+Compute for a descriptor system `sys = (A-λE,B,C,D)` with the transfer function matrix `G(λ)`, 
+the descriptor system realization of its adjoint (also called _conjugate transpose_) system 
+`sysconj = (Ac-λEc,Bc,Cc,Dc)`, such that the transfer function matrix `Gconj(λ)` of `sysconj` 
+is the appropriate conjugate transpose of `G(λ)`, as follows: 
+for a continuous-time system with `λ = s`, `Gconj(s) := transpose(G(-s))`, while 
+for a discrete-time system with `λ = z`, `Gconj(z) := transpose(G(1/z))`.
+"""
+function adjoint(sys::AbstractDescriptorStateSpace)
+    ctranspose(sys)
+end
+"""
+    gbilin(sys, g, compact = true, minimal = false, ss = true, atol = 0, atol1 = atol, atol2 = atol, rtol = n*ϵ) -> (syst, ginv)
+
+Compute for the descriptor system `sys = (A-λE,B,C,D)` with the transfer function matrix `G(λ)` and 
+a first degree real rational transfer function `g = g(δ)`, 
+the descriptor system realization `syst = (At-δEt,Bt,Ct,Dt)` of `G(g(δ))` corresponding to the bilinear transformation 
+`λ = g(δ) = (aδ+b)/(cδ+d)`. For a continuous-time transfer function `g(δ)`, `δ = s`, the complex variable in 
+the Laplace transform, while for a discrete-time transfer function,  
+`δ = z`, the complex variable in the `Z`-transform. `syst` inherits the sampling-time of `sys1`. 
+`sysi1` is the transfer function `ginv(λ) = (d*λ-b)/(-c*λ+a)` representing the inverse of the bilinear transformation `g(δ)` 
+(i.e., `g(ginv(λ)) = 1`).
+
+The keyword argument `compact` can be used to specify the option to compute a compact descriptor realization
+without non-dynamic modes, if `compact = true` (the default option) or to disable the ellimination of non-dynamic modes if `compact = false`. 
+
+The keyword argument `minimal` specifies the option to compute minimal descriptor realization, if  `minimal = true`, or
+a nonminimal realization if `minimal = false` (the default option).
+
+The keyword argument `ss` specifies the  option to compute a standard state-space (if possible)
+realizations of `syst`, if `ss = true` (default), or a descriptor system realization if `ss = false`.  
+
+The keyword arguments `atol1`, `atol2` and `rtol` specify, respectively, 
+the absolute tolerance for the nonzero elements of `A`, `B`, `C`, `D`, the absolute tolerance for the nonzero elements of `E`, 
+and the relative tolerance for the nonzero elements of `A`, `B`, `C`, `D` and `E`.  
+The default relative tolerance is `n*ϵ`, where `n` is the order of the square matrices `A` and `E`, and  `ϵ` is the working machine epsilon. 
+The keyword argument `atol` can be used to simultaneously set `atol1 = atol` and `atol2 = atol`. 
+"""
+function gbilin(sys::DescriptorStateSpace{T},g::RationalTransferFunction{T1}; compact = true, minimal = false, standard = true, 
+                atol::Real = zero(real(T)), atol1::Real = atol, atol2::Real = atol, 
+                rtol::Real = sys.nx*eps(real(float(one(T))))*iszero(min(atol1,atol2))) where {T,T1}
+    
+  
+    if compact
+       if standard
+           opt_ss = "ident"
+       else
+           opt_ss = "triu"
+       end
+    end
+    
+    # check g is first order 
+    num = g.num; degn = degree(num) 
+    den = g.den; degd = degree(den)
+      
+    (degn > 1 || degd > 1 || max(degn,degd) == 0) && 
+        error("The McMillan degree of g must be one")
+    
+    iszero(num) && error("g must be nonzero")
+    
+    Ts = sys.Ts;
+    Ts1 = g.Ts;   
+    if Ts > 0 && Ts1 > 0 && Ts != Ts1
+        error("sys and g must have the same sampling periods")
+    end
+    
+    # assume g(delta) = (a*delta+b)/(c*delta+d)
+    if degn > 0
+       a = num[1]; b = num[0];
+    else
+       a = 0; b = num[0];
+    end
+    if degd > 0
+       c = den[1]; d = den[0];
+    else
+       a = a/den[0]; b = b/den[0]; c = 0; d = 1;
+    end
+    
+    A, E, B, C, D = dssdata(sys);
+    n, m = size(B); p = size(C,1);
+    
+    if degd > 0
+       # rational case
+       At = [-b*E+d*A d*B; zeros(m,n) -eye(m)];
+       Et = [a*E-c*A -c*B; zeros(m,n+m)];
+       Bt = [zeros(n,m); eye(m)];
+       Ct = [C D]; Dt = zeros(p,m);
+       syst = dss(At,Et,Bt,Ct,Dt, Ts = Ts1);
+       if minimal 
+          if standard
+             syst, = gss2ss(gir(syst,atol1 = atol1, atol2 = atol2, rtol = rtol),atol1 = atol1, atol2 = atol2, rtol = rtol);
+          else
+             syst = gminreal(syst,atol1 = atol1, atol2 = atol2, rtol = rtol);
+          end
+       else
+          syst, = gss2ss(syst, atol1 = atol1, atol2 = atol2, rtol = rtol, Eshape = opt_ss);
+       end
+    else
+       # polynomial case
+       if E == I
+          # preserve standard system form
+          syst = dss((A-b*E)/a,B/a,C,D,Ts=Ts1);
+       else
+          syst = dss(A-b*E,a*E,B,C,D,Ts=Ts1);
+          if standard
+              syst, = gss2ss(syst,atol1 = atol1, atol2 = atol2, rtol = rtol);
+          end
+       end
+    end
+
+    if Ts == 0 
+       Tsi = 0
+    elseif Ts != 0 && Ts1 == 0
+       Tsi = Ts
+    else # Ts != 0 && Ts1 != 0
+       if Ts1 < 0
+           Tsi = Ts;
+       else
+           Tsi = Ts1;
+       end
+    end
+    #ginv = (d*s-b)/(-c*s+a)
+     
+    ginv = rtf(Polynomial([-b, d]), Polynomial([a, -c]), Ts=Tsi, var = Tsi == 0 ? :s : :z)
+
+    return syst, ginv
+    # end GBILIN
+end
+    
+    

@@ -1,6 +1,117 @@
 """
-    sysr = gir(sys; fast = true, atol = 0, atol1 = atol, atol2 = atol, rtol, 
-               finite = true, infinite = true, contr = true, obs = true, noseig = false) 
+    gss2ss(sys; Eshape = "ident", atol = 0, atol1 = atol, atol2 = atol, rtol = nϵ) -> (sysr, r)
+
+Convert the descriptor system `sys = (A-λE,B,C,D)` to an input-output equivalent descriptor system realization 
+`sysr = (Ar-λEr,Br,Cr,Dr)` without non-dynamic modes and having the same transfer function matrix.
+The resulting `Er` is in the SVD-like form `Er = blockdiag(E1,0)`, with `E1` an `r × r` nonsingular matrix, 
+where `r` is the rank of `E`.
+
+The keyword argument `Eshape` specifies the shape of `E1` as follows:
+
+if `Eshape = "ident"` (the default option), `E1` is an identity matrix of order `r` and if `E` is nonsingular, 
+then the resulting system `sysr` is a standard state-space system;
+
+if `Eshape = "diag"`, `E1` is a diagonal matrix of order `r`, where the diagonal elements are the 
+decreasingly ordered nonzero singular values of `E`;
+
+if `Eshape = "triu"`, `E1` is an upper triangular nonsingular matrix of order `r`. 
+
+The keyword arguments `atol1`, `atol2`, and `rtol`, specify, respectively, the absolute tolerance for the 
+nonzero elements of `A`, the absolute tolerance for the nonzero elements of `E`,  and the relative tolerance 
+for the nonzero elements of `A` and `E`. 
+The keyword argument `atol` can be used to simultaneously set `atol1 = atol` and `atol2 = atol`. 
+
+If `Eshape = "triu"`, the reductions of `E` and `A` are performed using rank decisions based on rank revealing 
+QR-decompositions with column pivoting.  If `Eshape = "ident"` or `Eshape = "diag"` the reductions are performed
+using the more reliable SVD-decompositions.
+"""
+function gss2ss(sys::DescriptorStateSpace{T}; Eshape = "ident", atol::Real = zero(real(T)), atol1::Real = atol,  
+                atol2::Real = atol, rtol::Real =  sys.nx*eps(real(float(one(real(T)))))*iszero(max(atol1,atol2))) where T
+
+    # finish for a standard state space system or pure gain
+    n = sys.nx
+    (n == 0 || sys.E == I) && (return sys, n) 
+
+    T <: BlasFloat ? T1 = T : T1 = promote_type(Float64,T)
+
+    Ar, Er, Br, Cr, Dr = dssdata(T1,sys) 
+        
+    # exploit the upper triangular form of a nonsingular E
+    epsm = eps(real(T1))
+    if  istriu(Er) && rcond(UpperTriangular(Er),atol2) > n*epsm
+        Eshape == "triu" && (return sys, n) 
+        if Eshape == "ident"
+            # make diagonal elements of E positive
+            indneg = (diag(Ar) .< 0)
+            if any(indneg)
+                Ar[indneg,:] = -Ar[indneg,:]
+                Er[indneg,:] = -Er[indneg,:]
+                Br[indneg,:] = -Br[indneg,:]
+            end
+            e2 = UpperTriangular(sqrt(Er)) 
+            ldiv!(e2,Ar)
+            rdiv!(Ar,e2)
+            ldiv!(e2,Br)
+            return dss(Ar, Br, Cr, Dr, Ts = sys.Ts), n
+        end
+    end
+        
+    # Using orthogonal/unitary transformation matrices Q and Z, reduce the 
+    # matrices A, E, B and C to the forms
+    # 
+    #               [ At11  At12 At13 ]                  [ Et11  0  0 ]   
+    # Ar = Q'*A*Z = [ At21  At22  0   ] ,  Er = Q'*E*Z = [  0    0  0 ] , 
+    #               [ At31   0    0   ]                  [  0    0  0 ]
+    #
+    #             [ Bt1 ] 
+    # Br = Q'*B = [ Bt2 ] ,  Cr = C*Z = [ Ct1  Ct2  Ct3 ]
+    #             [ Bt3 ]
+    #
+    fast = (Eshape == "triu")
+    rE, rA22  = _svdlikeAE!(Ar, Er, nothing, nothing, Br, Cr, 
+                     fast = fast, atol1 = atol1, atol2 = atol2, rtol = rtol, withQ = false, withZ = false)
+    # employ state residualzation formulas to remove non-dynamic modes
+    if rA22 > 0
+        i1 = 1:rE
+        i2 = rE+1:rE+rA22
+        # make At22 = I
+        fast ? (A22 = UpperTriangular(Ar[i2,i2])) : (A22 = Diagonal(Ar[i2,i2]))
+        ldiv!(A22,view(Ar,i2,i1))
+        ldiv!(A22,view(Br,i2,:))
+        # apply simplified residualization formulas
+        Dr -= Cr[:,i2]*Br[i2,:]
+        Br[i1,:] -= Ar[i1,i2]*Br[i2,:]
+        Cr[:,i1] -= Cr[:,i2]*Ar[i2,i1]
+        Ar[i1,i1] -= Ar[i1,i2]*Ar[i2,i1]
+        ir = [i1; rE+rA22+1:n]
+    else
+        i1 = 1:rE
+        ir = 1:n
+    end
+    # bring E to the required shape
+    if fast || Eshape == "diag"
+       # Eshape == "triu" or Eshape == "diag": we are already done
+       return dss(view(Ar,ir,ir),view(Er,ir,ir),view(Br,ir,:),view(Cr,:,ir),Dr, Ts = sys.Ts), rE
+    elseif Eshape == "ident" 
+        tid = Diagonal(1 ./sqrt.(diag(Er[i1,i1]))) 
+        Er[i1,i1] = eye(T1,rE)
+        lmul!(tid,view(Ar,i1,ir))
+        rmul!(view(Ar,ir,i1),tid)
+        lmul!(tid,view(Br,i1,:))
+        rmul!(view(Cr,:,i1),tid)
+        return rE+rA22 == n ?  (dss(view(Ar,ir,ir),view(Br,ir,:),view(Cr,:,ir),Dr, Ts = sys.Ts), rE) : 
+                               (dss(view(Ar,ir,ir),view(Er,ir,ir),view(Br,ir,:),view(Cr,:,ir),Dr, Ts = sys.Ts), rE)
+    else
+        error("improper shape option for E")
+    end
+    
+    # end GSS2SS
+end
+    
+    
+"""
+    sysr = gir(sys; finite = true, infinite = true, contr = true, obs = true, noseig = false,
+               fast = true, atol = 0, atol1 = atol, atol2 = atol, rtol = nϵ) 
 
 Compute for a descriptor system `sys = (A-λE,B,C,D)` of order `n` a reduced order descriptor system  
 `sysr = (Ar-λEr,Br,Cr,Dr)` of order `nr ≤ n` such that `sys` and `sysr` have the same transfer function matrix, i.e., 
@@ -53,12 +164,14 @@ The rank decision based on the SVD-decomposition is generally more reliable, but
 The keyword arguments `atol1`, `atol2`, and `rtol`, specify, respectively, the absolute tolerance for the 
 nonzero elements of matrices `A`, `B`, `C`, `D`, the absolute tolerance for the nonzero elements of `E`,  
 and the relative tolerance for the nonzero elements of `A`, `B`, `C`, `D` and `E`. 
+The default relative tolerance is `nϵ`, where `ϵ` is the working _machine epsilon_ 
+and `n` is the order of the system `sys`.  
 The keyword argument `atol` can be used to simultaneously set `atol1 = atol` and `atol2 = atol`. 
 
 [1] A. Varga, Solving Fault Diagnosis Problems - Linear Synthesis Techniques, Springer Verlag, 2017. 
 """
 function gir(SYS::DescriptorStateSpace{T}; atol::Real = zero(real(T)), atol1::Real = atol, atol2::Real = atol, 
-             rtol::Real =  (size(SYS.A,1)+1)*eps(real(float(one(real(T)))))*iszero(max(atol1,atol2)), 
+             rtol::Real =  SYS.nx*eps(real(float(one(real(T)))))*iszero(max(atol1,atol2)), 
              fast::Bool = true, finite::Bool = true, infinite::Bool = true, 
              contr::Bool = true, obs::Bool = true, noseig::Bool = false) where T
     if SYS.E == I
@@ -73,7 +186,8 @@ function gir(SYS::DescriptorStateSpace{T}; atol::Real = zero(real(T)), atol1::Re
     end
 end
 """
-    sysr = gminreal(sys; fast = true, atol1 = 0, atol2, rtol, contr = true, obs = true, noseig = true) 
+    sysr = gminreal(sys; contr = true, obs = true, noseig = true, fast = true, 
+                    atol = 0, atol1 = atol, atol2 = atol, rtol = nϵ) 
 
 Compute for a descriptor system `sys = (A-λE,B,C,D)` of order `n` a reduced order descriptor system  
 `sysr = (Ar-λEr,Br,Cr,Dr)` of order `nr ≤ n` such that `sys` and `sysr` have the same transfer function matrix, i.e., 
@@ -118,7 +232,9 @@ The rank decision based on the SVD-decomposition is generally more reliable, but
 
 The keyword arguments `atol1`, `atol2`, and `rtol`, specify, respectively, the absolute tolerance for the 
 nonzero elements of matrices `A`, `B`, `C`, `D`, the absolute tolerance for the nonzero elements of `E`,  
-and the relative tolerance for the nonzero elements of `A`, `B`, `C`, `D` and `E`. 
+and the relative tolerance for the nonzero elements of `A`, `B`, `C`, `D` and `E`.
+The default relative tolerance is `nϵ`, where `ϵ` is the working _machine epsilon_ 
+and `n` is the order of the system `sys`.  
 The keyword argument `atol` can be used to simultaneously set `atol1 = atol` and `atol2 = atol`. 
 
 [1] P. Van Dooreen, The generalized eigenstructure problem in linear system theory, 
@@ -127,7 +243,7 @@ IEEE Transactions on Automatic Control, vol. AC-26, pp. 111-129, 1981.
 [2] A. Varga, Solving Fault Diagnosis Problems - Linear Synthesis Techniques, Springer Verlag, 2017. 
 """
 function gminreal(SYS::DescriptorStateSpace{T}; atol::Real = zero(real(T)), atol1::Real = atol, atol2::Real = atol, 
-    rtol::Real =  (size(SYS.A,1)+1)*eps(real(float(one(real(T)))))*iszero(max(atol1,atol2)), 
+    rtol::Real =  SYS.nx*eps(real(float(one(real(T)))))*iszero(max(atol1,atol2)), 
     fast::Bool = true, contr::Bool = true, obs::Bool = true, noseig::Bool = true) where T
     if SYS.E == I
         A, B, C = lsminreal(SYS.A, SYS.B, SYS.C; fast = fast, atol = atol1, rtol = rtol, contr = contr, obs = obs) 

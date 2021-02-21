@@ -249,14 +249,15 @@ having real parts or moduli greater than `smarg+β` for a continuous- or discret
 `info.nrank` is the normal rank of the pencil `A-λE`;
 
 `info.miev` is an integer vector, which contains the multiplicities 
-          of the infinite eigenvalues of the pencil `A-λE`  
-           (also the dimensions of the elementary infinite blocks in the
-          Kronecker form of `A-λE`);
+          of the infinite eigenvalues of the pencil `A-λE` as follows:
+          the `i`-th element `info.miev[i]` is the order of an infinite elementary divisor 
+          (i.e., the multiplicity of an infinite eigenvalue) and 
+          the number of infinite poles is the sum of the components of `info.miev`;  
 
 `info.mip` is an integer vector, which contains the information on the  
            multiplicities of the infinite zeros of `A-λE` as follows: 
-           `A-λE` has `info.mip[i]` infinite zeros of multiplicity `i`, and 
-             is empty if `A-λE` has no infinite zeros;
+           the `i`-th element `info.mip[i]` is equal to `k-1`, where `k` is the order of an infinite elementary 
+             divisor with `k > 0` and the number of infinite poles is the sum of the components of `info.mip`; 
 
 `info.rki` is an integer vector, which contains the _right Kronecker indices_ 
            of the pencil `A-λE` (empty for a regular pencil);

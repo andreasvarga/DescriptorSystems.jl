@@ -8,13 +8,16 @@ using Polynomials
 using Random
 using Compat
 
-import LinearAlgebra: BlasFloat, BlasReal, BlasComplex, copy_oftype, transpose, adjoint, opnorm
-import Base: +, -, *, /, \, (==), (!=), isapprox, iszero, convert, promote_op, size, length, ndims, 
-             hcat, vcat, hvcat, inv, show, lastindex, require_one_based_indexing, print, show
-import MatrixPencils: isregular
+import LinearAlgebra: BlasFloat, BlasReal, BlasComplex, copy_oftype, transpose, adjoint, opnorm, normalize
+import Base: +, -, *, /, \, (==), (!=), ^, isapprox, iszero, convert, promote_op, size, length, ndims, 
+             hcat, vcat, hvcat, inv, show, lastindex, require_one_based_indexing, print, show, one, zero, eltype
+import MatrixPencils: isregular, rmeval
+import Polynomials: variable, degree
 
 export DescriptorStateSpace, AbstractDescriptorStateSpace, dss, dssdata, rdss, rss, iszero, order
-export gminreal, gir, gbalmr, gsvselect
+export AbstractRationalTransferFunction, RationalTransferFunction, rtf
+export gminreal, gir, gbalmr, gsvselect, gss2ss, gbilin
+export confmap, rmconfmap, simplify, normalize, poles, gain, zpk, rtfbilin, numpoly, denpoly
 export blockdiag, eye, rcond
 export gdual, ctranspose, inv, ldiv, rdiv
 export append, series, parallel, horzcat, vertcat
@@ -33,11 +36,15 @@ abstract type AbstractLTISystem <: AbstractDynamicalSystem end
 abstract type AbstractGeneralizedLTIStateSpace <: AbstractLTISystem end
 abstract type AbstractDescriptorStateSpace <: AbstractLTISystem end
 abstract type AbstractPencilStateSpace <: AbstractLTISystem end
+abstract type AbstractRationalTransferFunction <: AbstractLTISystem end
 
 include("types/DescriptorStateSpace.jl")
+include("types/RationalFunction.jl")
 #include("types/PencilStateSpace.jl")
 include("dss.jl")
 include("connections.jl")
+#include("polynomial_concatenations.jl")
+include("rational_concatenations.jl")
 include("operations.jl")
 include("order_reduction.jl")
 include("analysis.jl")

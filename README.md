@@ -50,6 +50,8 @@ The current version of the package includes the following categories of function
 
 * Building descriptor system state-space models
 
+* Building rational transfer function input-output models
+
 * Basic operations on descriptor system models
 
 * Interconnecting descriptor system models

@@ -58,12 +58,14 @@ The available functions in the `DescriptorSystems.jl` package cover both standar
 * **[`rdiv`](@ref)**   Right division for two descriptor systems (also overloaded with **`/`**).
 * **[`gdual`](@ref)**   Construction of the dual of a descriptor system (also overloaded with **`transpose`**)
 * **[`ctranspose`](@ref)**  Construction of the conjugate transpose of a descriptor system (also overloaded with **`'`**).
+* **[`gbilin`](@ref)**  Generalized bilinear transformation.
 
 **Simplification of descriptor system models**
 
 * **[`gminreal`](@ref)**  Minimal realization of descriptor systems.
 * **[`gir`](@ref)**   Irreducible realization of descriptor systems.
 * **[`gbalmr`](@ref)**   Reduced-order approximations of descriptor systems using balancing related methods.
+* **[`gss2ss`](@ref)**   Conversion to SVD-like forms without non-dynamic modes.
 
 **Descriptor system analysis**
 

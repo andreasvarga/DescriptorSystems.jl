@@ -10,8 +10,10 @@ makedocs(
      "Home"   => "index.md",
      "Library" => [ 
         "dss.md",
+        "rtf.md",
         "operations.md",
-        "connections.md",
+        "operations_rtf.md",
+        #"connections_rtf.md",
         "order_reduction.md",
         "analysis.md",
         "factorizations.md"

@@ -16,7 +16,7 @@ function rcond(A::DenseMatrix, tola::Real = 0)
     T = eltype(A)
     T1 = T <: BlasFloat ? T : T1 = promote_type(T,Float64)
     nrmA = opnorm(A,1)
-    nrmA <= tola && return zero(real(T1))
+    nrmA <= tola && (return zero(real(T1)))
     istriu(A) ? (return LinearAlgebra.LAPACK.trcon!('1','U','N',copy_oftype(A,T1))) : 
         (return LinearAlgebra.LAPACK.gecon!('1', LinearAlgebra.LAPACK.getrf!(copy_oftype(A,T1))[1],real(T1)(nrmA)) ) 
 end
@@ -24,7 +24,7 @@ function rcond(A::UpperTriangular, tola::Real = 0)
     T = eltype(A)
     T1 = T <: BlasFloat ? T : T1 = promote_type(T,Float64)
     nrmA = opnorm(A,1)
-    nrmA <= tola && return zero(real(T1))
+    nrmA <= tola && (return zero(real(T1)))
     return LinearAlgebra.LAPACK.trcon!('1','U','N', Matrix(copy_oftype(A,T1))) 
 end
 function jordanblockdiag(lambda::T, ed::Vector{Int}) where T

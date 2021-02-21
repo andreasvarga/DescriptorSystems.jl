@@ -152,6 +152,9 @@ num = Polynomial([4:-1:1...],:s)
 den = Polynomial([7:-1:4...,1],:s)
 sys = dss(num,den)
 @test rmeval(num,den,0) ≈ dcgain(sys)
+@test dcgain(sys)  == dcgain([num/den]) == evalfr(sys)
+@test dcgain(sys)[1]  == dcgain(num/den) == evalfr(sys)[1]
+
 
 sys = dss(num,den,contr=true); 
 @test rmeval(num,den,0) ≈ dcgain(sys)
@@ -177,6 +180,9 @@ num = rand(2,3,4);
 den = rand(2,3,2) .+ 0.5;
 sys = dss(num,den,minimal = true,atol = 1.e-7);
 @test rmeval(num,den,0) ≈ dcgain(sys)
+@test dcgain(sys) == evalfr(sys)
+
+
 
 num1, den1 = ls2rm(dssdata(sys)..., atol1 = 1.e-7, atol2 = 1.e-7);
 @test all(pm2poly(num) .* pm2poly(den1) .≈ pm2poly(num1) .* pm2poly(den))
@@ -194,21 +200,26 @@ num1, den1 = ls2rm(dssdata(sys)..., atol1 = 1.e-7, atol2 = 1.e-7);
 s = Polynomial([0, 1],:s)
 num = [s 2; 1 s]
 den = [s+1 (s+1)*(s+3); s+4 (s+2)*(s+4)]
+G = num./den
 
 sys = dss(num,den,contr=true)
 @test rmeval(num,den,1) ≈ evalfr(sys,1)
 
-sys = dss(num,den,obs=true)  
-@test rmeval(num,den,1) ≈ evalfr(sys,1)
+sys1 = dss(G,contr=true)
+@test iszero(sys-sys1)
+@test evalfr.(G,1) ≈ evalfr(sys1,1)
 
-sys = dss(num,den,minimal = true, atol = 1.e-7);
-@test rmeval(num,den,1) ≈ evalfr(sys,1)
+sys = dss(G,obs=true)  
+@test evalfr(G,1) ≈ evalfr(sys,1)
 
-sys = dss(num,den,minimal = true, contr = true, atol = 1.e-7);
-@test rmeval(num,den,1) ≈ evalfr(sys,1)
+sys = dss(G,minimal = true, atol = 1.e-7);
+@test evalfr(G,1) ≈ evalfr(sys,1)
 
-sys = dss(num,den,minimal = true, obs = true, atol = 1.e-7);
-@test rmeval(num,den,1) ≈ evalfr(sys,1)
+sys = dss(G,minimal = true, contr = true, atol = 1.e-7);
+@test evalfr(G,1) ≈ evalfr(sys,1)
+
+sys = dss(G,minimal = true, obs = true, atol = 1.e-7);
+@test evalfr(G,1) ≈ evalfr(sys,1)
 
 num1, den1 = ls2rm(dssdata(sys)..., atol1 = 1.e-7, atol2 = 1.e-7);
 @test all(num .* pm2poly(den1,:s) .≈ pm2poly(num1,:s) .* den)
@@ -217,52 +228,70 @@ num1, den1 = ls2rm(dssdata(sys)..., atol1 = 1.e-7, atol2 = 1.e-7);
 s = Polynomial([0, 1],:s)
 num = [s^2+1 s+1]
 den = [s^2 s^3]
+G = num./den
 
 sys = dss(num,den,contr=true)
 @test rmeval(num,den,1) ≈ evalfr(sys,1)
 
-sys = dss(num,den,obs=true)
-@test rmeval(num,den,1) ≈ evalfr(sys,1)
+sys = dss(G,contr=true)
+@test evalfr(G,1) ≈ evalfr(sys,1)
+
+sys = dss(G,obs=true)
+@test evalfr(G,1) ≈ evalfr(sys,1)
 
 # Example 4.3 (modified) Antsaklis, Michel 2006
 s = Polynomial([0, 1],:s)
 num = [s^3+1 s+1]
 den = [s^2 s^3]
+G = num./den
 
 sys = dss(num,den,contr=true)
 @test rmeval(num,den,1) ≈ evalfr(sys,1)
 
-sys = dss(num,den,obs=true)
+sys = dss(G,contr=true)
 @test rmeval(num,den,1) ≈ evalfr(sys,1)
+
+sys = dss(num,den,obs=true)
+@test evalfr(G,1) ≈ evalfr(sys,1)
 
 
 # Example 4.4 Antsaklis, Michel 2006
 s = Polynomial([0, 1],:s)
 num = [2 1; 1 0];
 den = [s+1 1; s 1];
+G = num./den
 
 sys = dss(num,den)
 @test rmeval(num,den,1) ≈ evalfr(sys,1)
 
-sys = dss(num,den,contr=true)
-@test rmeval(num,den,1) ≈ evalfr(sys,1)
+sys = dss(G)
+@test evalfr(G,1) ≈ evalfr(sys,1)
 
-sys = dss(num,den,obs=true)
-@test rmeval(num,den,1) ≈ evalfr(sys,1)
+
+sys = dss(G,contr=true)
+@test evalfr(G,1) ≈ evalfr(sys,1)
+
+sys = dss(G,obs=true)
+@test evalfr(G,1) ≈ evalfr(sys,1)
 
 
 s = Polynomial([0, 1],:s)
 num = [2+s 1; 1 0];
 den = [0.5 1; 0.5 1];
+G = rtf.(num./den)
 
 sys = dss(num,den)
 @test rmeval(num,den,1) ≈ evalfr(sys,1)
 
-sys = dss(num,den,contr=true)
-@test rmeval(num,den,1) ≈ evalfr(sys,1)
+sys = dss(G)
+@test evalfr(G,1) ≈ evalfr(sys,1)
 
-sys = dss(num,den,obs=true)
-@test rmeval(num,den,1) ≈ evalfr(sys,1)
+
+sys = dss(G,contr=true)
+@test evalfr(G,1) ≈ evalfr(sys,1)
+
+sys = dss(G,obs=true)
+@test evalfr(G,1) ≈ evalfr(sys,1)
 
 sys = dss(num,obs=true)  
 @test pmeval(num,1) ≈ evalfr(sys,1)  
@@ -272,15 +301,19 @@ sys = dss(num,obs=true)
 s = Polynomial([0, 1],:s)*im
 num = [2 1; 1 0]
 den = [s+1 s; 1 1]
+G = num./den
 
 sys = dss(num,den)
 @test rmeval(num,den,1) ≈ evalfr(sys,1)
 
-sys = dss(num,den,contr=true)
-@test rmeval(num,den,1) ≈ evalfr(sys,1)
+sys = dss(G)
+@test evalfr(G,1) ≈ evalfr(sys,1)
 
-sys = dss(num,den,obs=true)
-@test rmeval(num,den,1) ≈ evalfr(sys,1)
+sys = dss(G,contr=true)
+@test evalfr(G,1) ≈ evalfr(sys,1)
+
+sys = dss(G,obs=true)
+@test evalfr(G,1) ≈ evalfr(sys,1)
 
 
 

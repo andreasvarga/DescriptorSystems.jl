@@ -1,5 +1,7 @@
 const AbstractNumOrArray = Union{AbstractVecOrMat,Number}
 """ 
+    DescriptorStateSpace <: AbstractDescriptorStateSpace
+
 Descriptor state-space model definition
 
 If `SYS::DescriptorStateSpace{T}` is a descriptor system model object 
@@ -32,7 +34,7 @@ struct DescriptorStateSpace{T} <: AbstractDescriptorStateSpace
     B::AbstractVecOrMat{T}
     C::AbstractMatrix{T}
     D::AbstractVecOrMat{T}
-    Ts::Float64
+    Ts::Real
     nx::Int
     nu::Int
     ny::Int

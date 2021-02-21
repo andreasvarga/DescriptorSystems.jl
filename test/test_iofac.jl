@@ -9,7 +9,7 @@ using Test
 #using JLD 
 
 # two examples which fails for unknown reasons#
-#load("test.jld","sys")
+#sys = load("test.jld","sys")
 #load("test1.jld","sysl")
 
 

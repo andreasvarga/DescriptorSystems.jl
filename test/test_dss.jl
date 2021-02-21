@@ -5,8 +5,6 @@ using LinearAlgebra
 using MatrixPencils
 using Test
 
-eye(n) = Matrix{Bool}(I, n, n)
-
 
 @testset "test_dss" begin
 # SCALARS

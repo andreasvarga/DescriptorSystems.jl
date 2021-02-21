@@ -1,7 +1,9 @@
-function promote_Ts(Ts1::Real, Ts2::Real)
+function promote_Ts(Ts1::Union{Real,Nothing}, Ts2::Union{Real,Nothing})
+    isnothing(Ts1) && (return Ts2)
+    isnothing(Ts2) && (return Ts1)
     Ts1 == Ts2 && (return Ts1)  
-    Ts1 == -1 && (return Ts2) 
-    Ts2 == -1 && (return Ts1)
+    Ts1 == -1 && (Ts2 > 0 ? (return Ts2) : error("Sampling time mismatch"))
+    Ts2 == -1 && (Ts1 > 0 ? (return Ts1) : error("Sampling time mismatch"))
     error("Sampling time mismatch")
  end
  """
@@ -69,7 +71,7 @@ function append(A::Union{AbstractDescriptorStateSpace,AbstractNumOrArray,Uniform
         isa(a, UniformScaling) && @warn "All UniformScaling objects in append are set to scalars"
         require_one_based_indexing(a)
     end
-    Ts = promote_to_system_SamplingTime(A...)
+    Ts = promote_system_SamplingTime(A...)
     return append(promote_to_systems(Ts, fill(1,length(A)), 1, promote_type(eltype.(A)...), A...)...)
 end
 
@@ -121,7 +123,7 @@ Concatenation of systems with constant matrices, vectors, or scalars having the 
 or with UniformScalings is also supported.  
 """
 horzcat(systems::Union{DST,AbstractNumOrArray,UniformScaling}...) where DST <: AbstractDescriptorStateSpace = hcat(systems...)
-function hcat(systems::DST...) where DST <: DescriptorStateSpace
+function Base.hcat(systems::DST...) where DST <: DescriptorStateSpace
     # Perform checks
     T = promote_type(eltype.(systems)...)
     Ts = systems[1].Ts
@@ -143,7 +145,6 @@ function hcat(systems::DST...) where DST <: DescriptorStateSpace
 
     return DescriptorStateSpace{T}(A, E, B, C, D, Ts)
 end
-  
 
 """
     sys = vertcat(sys1,sys2)
@@ -158,7 +159,7 @@ or with UniformScalings is also supported.
 """
 vertcat(systems::Union{DST,AbstractNumOrArray,UniformScaling}...) where DST <: AbstractDescriptorStateSpace = vcat(systems...)
 
-function vcat(systems::DST...) where DST <: DescriptorStateSpace
+function Base.vcat(systems::DST...) where DST <: DescriptorStateSpace
     # Perform checks
     T = promote_type(eltype.(systems)...)
     Ts = systems[1].Ts
@@ -179,7 +180,6 @@ function vcat(systems::DST...) where DST <: DescriptorStateSpace
     D = vcat([s.D for s in systems]...)
     return DescriptorStateSpace{T}(A, E, B, C, D, Ts)
 end
-
 
 function vcat(SYS1 :: DescriptorStateSpace, SYS2 :: DescriptorStateSpace)
     nu = SYS1.nu
@@ -213,7 +213,6 @@ for (f,dim,name) in ((:hcat,1,"rows"), (:vcat,2,"cols"))
         function $f(A::Union{AbstractDescriptorStateSpace,AbstractNumOrArray,UniformScaling}...)
             n = -1
             for a in A
-                #println("a = $a")
                 if !isa(a, UniformScaling)
                     require_one_based_indexing(a)
                     isa(a,Number) ? na = 1 : na = size(a,$dim)
@@ -224,14 +223,13 @@ for (f,dim,name) in ((:hcat,1,"rows"), (:vcat,2,"cols"))
                 end
             end
             n == -1 && throw(ArgumentError($("$f of only UniformScaling objects cannot determine the matrix size")))
-            Ts = promote_to_system_SamplingTime(A...)
+            Ts = promote_system_SamplingTime(A...)
             return $f(promote_to_systems(Ts, fill(n,length(A)), 1, promote_type(eltype.(A)...), A...)...)
         end
     end
 end
 
-
-function hvcat(rows :: Tuple{Vararg{Int}}, DST :: AbstractDescriptorStateSpace...)
+function Base.hvcat(rows :: Tuple{Vararg{Int}}, DST :: AbstractDescriptorStateSpace...)
     j2 = rows[1]
     sys = hcat(DST[1:j2]...)
     for i = 2:length(rows)
@@ -242,7 +240,8 @@ function hvcat(rows :: Tuple{Vararg{Int}}, DST :: AbstractDescriptorStateSpace..
     return sys
 end
 
-function hvcat(rows::Tuple{Vararg{Int}}, A::Union{AbstractDescriptorStateSpace,AbstractNumOrArray,UniformScaling}...)
+
+function Base.hvcat(rows::Tuple{Vararg{Int}}, A::Union{AbstractDescriptorStateSpace,AbstractNumOrArray,UniformScaling}...)
     require_one_based_indexing(A...)
     nr = length(rows)
     sum(rows) == length(A) || throw(ArgumentError("mismatch between row sizes and number of arguments"))
@@ -297,10 +296,11 @@ function hvcat(rows::Tuple{Vararg{Int}}, A::Union{AbstractDescriptorStateSpace,A
     if isadss(A...) == 0
         return hvcat(rows, promote_to_systems(0, n, 1, promote_type(eltype.(A)...), A...)...).D
     else
-        Ts = promote_to_system_SamplingTime(A...)
+        Ts = promote_system_SamplingTime(A...)
         return hvcat(rows, promote_to_systems(Ts, n, 1, promote_type(eltype.(A)...), A...)...)
     end
 end
+
 # promotion to systems of constant matrices, vectors, scalars and UniformScalings
 promote_to_system_(n::Int, ::Type{T}, J::UniformScaling, Ts::Real) where {T} = dss(copyto!(Matrix{T}(undef, n,n), J), Ts = Ts)
 promote_to_system_(n::Int, ::Type{T}, A::AbstractNumOrArray, Ts::Real) where {T} = dss(to_matrix(T,A), Ts = Ts)
@@ -314,12 +314,14 @@ promote_to_systems(Ts::Real, n, k, ::Type{T}, A, B, C) where {T} =
 promote_to_systems(Ts::Real, n, k, ::Type{T}, A, B, Cs...) where {T} =
     (promote_to_system_(n[k], T, A, Ts), promote_to_system_(n[k+1], T, B, Ts), promote_to_systems(Ts, n, k+2, T, Cs...)...)
 promote_to_system_type(A::Tuple{Vararg{Union{DescriptorStateSpace,AbstractNumOrArray,UniformScaling}}}) = DescriptorStateSpace
-function promote_to_system_SamplingTime(A::Union{DescriptorStateSpace,AbstractNumOrArray,UniformScaling}...)
-    # pick the first available sampling time  
+promote_to_systems(Ts::Union{Real,Nothing}, var::Symbol, n, k, ::Type) = ()
+
+function promote_system_SamplingTime(A::Union{DescriptorStateSpace,AbstractNumOrArray,UniformScaling}...)
+    # pick and check the common sampling time  
+    Ts = nothing
     for a in A
-        typeof(a) <: DescriptorStateSpace  && (return a.Ts)
+        typeof(a) <: DescriptorStateSpace  && (Ts = promote_Ts(Ts,a.Ts))
     end
-    return 0
-    # i = findfirst(typeof.(A) .<: DescriptorStateSpace)
-    # i === nothing ? (return 0) : (return A[i].Ts)
+    return isnothing(Ts) ? (return 0) : (return Ts) # for systems use Ts = 0 as defualt
 end
+       

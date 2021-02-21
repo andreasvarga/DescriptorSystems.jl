@@ -1,10 +1,10 @@
-# Descriptor system utilities
+# System utilities
 
-* **[`order`](@ref)**   Order (also the number of state variables) of a descriptor system.
-* **[`size`](@ref)**   Number of outputs and inputs of a descriptor system .
+* **[`order`](@ref)**   Order of a system.
+* **[`size`](@ref)**    Number of outputs and inputs of a descriptor system .
 * **[`iszero`](@ref)**   Checking whether the transfer function matrix of a descriptor system is zero.
-* **[`evalfr`](@ref)**   Gain of the transfer function matrix of a descriptor system at a single frequency value.
-* **[`dcgain`](@ref)**   DC gain of a descriptor system.
+* **[`evalfr`](@ref)**   Gain of the transfer function matrix at a single frequency value.
+* **[`dcgain`](@ref)**   DC gain of a system.
 * **[`opnorm`](@ref)**   `L2`- and `L∞`-norms of a descriptor system.
 * **[`rss`](@ref)**   Generation of randomized standard state-space systems.
 * **[`rdss`](@ref)**   Generation of randomized descriptor state-space systems.

@@ -9,6 +9,78 @@ using Test
 
 @testset "Order Reduction Tools" begin
 
+@testset "gss2ss" begin
+
+
+sys = rdss(0,0,0);
+sys1, r = gss2ss(sys);
+@test iszero(sys-sys1) && r == 0
+
+a = [8.872223171059933e-01     1.082089117437485e-01    -1.536042862271242e+00
+                         0    -5.047254200920694e-01    -5.841082955835114e-02
+                         0                         0     1.966838801162540e-01];
+b = [ 1.688311161078364e-02     1.129239736565561e+00
+     -9.928988024046033e-01     5.713290486116640e-02
+      5.766407371577509e-02     8.543665825437958e-01];
+c = [ -1.092400401898314e-01     1.061567864551283e+00    -1.535723490367775e+00
+       3.312197206498771e-01     4.039678086153220e-02     3.924365487077013e+00];
+
+d = [0     0
+     0     0];
+e = [4.992358310049688e-01     6.088864643615568e-02    -8.643241045903737e-01
+                         0                         0                         0
+                         0                         0                         0];
+
+sys = dss(a,e,b,c,d); 
+sys1, r = gss2ss(sys)
+@test iszero(sys-sys1,atol=1.e-7) && r == 1
+
+Ty = Float64
+for Ty in (Float64,Complex{Float64})
+sys = rdss(T = Ty,3,2,3);
+sys1, r = gss2ss(sys);
+@test iszero(sys-sys1,atol=1.e-7) && r == 3 && sys1.E == I
+
+sys1, r = gss2ss(sys,Eshape="triu");
+@test iszero(sys-sys1,atol=1.e-7) && r == 3 && istriu(sys1.E)
+
+sys1, r = gss2ss(sys,Eshape="diag");
+@test iszero(sys-sys1,atol=1.e-7) && r == 3 && isdiag(sys1.E)
+
+sys = rdss(T = Ty,3,2,3,id=ones(Int,2));
+sys1, r = gss2ss(sys);
+@test iszero(sys-sys1,atol=1.e-7) && r == 3 && sys1.E == I
+
+sys1, r = gss2ss(sys,Eshape="triu");
+@test iszero(sys-sys1,atol=1.e-7) && r == 3 && istriu(sys1.E)
+
+sys1, r = gss2ss(sys,Eshape="diag");
+@test iszero(sys-sys1,atol=1.e-7) && r == 3 && isdiag(sys1.E)
+
+sys = rdss(T = Ty,3,2,3,id=[ones(Int,2); 2*ones(Int,1)]);
+sys1, r = gss2ss(sys);
+@test iszero(sys-sys1,atol=1.e-7) && r == 4 && sys1.E[1:r,1:r] == I
+
+sys1, r = gss2ss(sys,Eshape="triu");
+@test iszero(sys-sys1,atol=1.e-7) && r == 4 && istriu(sys1.E)
+
+sys1, r = gss2ss(sys,Eshape="diag");
+@test iszero(sys-sys1,atol=1.e-7) && r == 4 && isdiag(sys1.E)
+
+sys = rdss(T = Ty,disc=true,3,2,3,id=[ones(Int,2); 2*ones(Int,1)])';
+sys1, r = gss2ss(sys,Eshape="diag");
+@test iszero(sys1-sys,atol=1.e-7) && r == 7 && isdiag(sys1.E)
+
+sys = rdss(T = Ty,3,2,2,id=[ones(Int,2); 2*ones(Int,1)],disc=true);
+sys1  = gminreal(gss2ss(sys/sys)[1],atol=1.e-7)
+@test iszero(sys1-I,atol=1.e-7)
+
+end #Ty
+
+
+
+end #gss2ss
+
 @testset "gminreal and gir" begin
 
 for fast in (true, false)

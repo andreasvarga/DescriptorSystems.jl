@@ -1,5 +1,9 @@
 # Release Notes
 
+## Version 0.3.0
+
+This minor release defines a new system theoretical object, the _rational transfer function_, and includes new functions which support the operations involving rational functions. Full support is also provided to build matrices with rational transfer function elements and constructors are provided to compute descriptor system realizations of rational matrices. Additionally, a function to convert a descriptor system description to a standard one and a second function to perform general bilinear transformation of descriptor systems have been implemented. A function for the generation of the transfer functions of some commonly used bilinear transformations (Cayley, Tustin, Moebius, etc.) is also provided.
+
 ## Version 0.2.0
 
 This minor release includes new functions for the analysis of descriptor systems, such as for computation of poles and zeros,

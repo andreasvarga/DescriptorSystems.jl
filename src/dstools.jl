@@ -1,7 +1,8 @@
 """
-    order(sys)
+    nx = order(sys)
 
-Return the order (also the number of state variables) of the descriptor system `sys`. 
+Return the order `nx` of the descriptor system `sys` as the dimension of the state variable vector. 
+For improper or non-minimal systems, `nx` is less than the McMillan degree of the system.   
 """
 function order(sys::AbstractDescriptorStateSpace)
     return sys.nx
@@ -71,7 +72,7 @@ function iszero(sys::DescriptorStateSpace{T}; atol::Real = zero(real(T)), atol1:
     return (sprank(dssdata(sys)..., atol1 = atol1, atol2 = atol2, rtol = rtol, fastrank = fastrank) == sys.nx)
 end
 """
-    Gval = evalfr(sys, val; atol1, atol2, rtol, fast = true) 
+    Gval = evalfr(sys, val; atol1 = 0, atol2 = 0, rtol, fast = true) 
 
 Evaluate for a descriptor system `sys = (A-λE,B,C,D)` with the transfer function matrix `G(λ)`,
 `Gval`, the value of the rational matrix `G(λ) = C*inv(λE-A)*B+D` for `λ = val`. 
@@ -90,6 +91,31 @@ The rank decision based on the SVD-decomposition is generally more reliable, but
 """
 function evalfr(SYS::AbstractDescriptorStateSpace, val::Number; kwargs...) 
     return lseval(dssdata(SYS)..., val; kwargs...)
+end
+"""
+    Gval = evalfr(sys; fval = 0, atol = 0, atol1 = atol, atol2 = atol, rtol, fast = true) 
+
+Evaluate for a descriptor system `sys = (A-λE,B,C,D)` with the transfer function matrix `G(λ)`,
+`Gval`, the value of the rational matrix `G(λ) = C*inv(λE-A)*B+D` for `λ = val`, where `val = im*fval` 
+for a continuous-time system or `val = exp(im*fval*sys.Ts)` for a discrete-time system. 
+The computed `Gval` has infinite entries if `val` is a pole (finite or infinite) of `G(λ)`.
+If `val` is finite and `val*E-A` is singular or if `val = Inf` and `E` is singular, 
+then the entries of `Gval` are evaluated separately for minimal realizations of each input-output channel.
+
+The keyword arguments `atol1`, `atol2`, and `rtol`, specify, respectively, the absolute tolerance for the 
+nonzero elements of matrices `A`, `B`, `C`, `D`, the absolute tolerance for the nonzero elements of `E`,  
+and the relative tolerance for the nonzero elements of `A`, `B`, `C`, `D` and `E`.
+The keyword argument `atol` can be used to simultaneously set `atol1 = atol` and `atol2 = atol`. 
+
+The computation of minimal realizations of individual input-output channels relies on pencil manipulation algorithms,
+which employ rank determinations based on either the use of 
+rank revealing QR-decomposition with column pivoting, if `fast = true`, or the SVD-decomposition.
+The rank decision based on the SVD-decomposition is generally more reliable, but the involved computational effort is higher.
+"""
+function evalfr(SYS::DescriptorStateSpace{T}; fval::Real = 0, atol::Real = zero(real(T)), atol1::Real = atol, atol2::Real = atol, 
+    rtol::Real =  ((max(size(SYS.A)...))+1)*eps(real(float(one(real(T)))))*iszero(max(atol1,atol2)), fast::Bool = true) where T
+    val = SYS.Ts == 0 ? im*abs(fval) : exp(im*abs(fval*SYS.Ts)) 
+    return lseval(dssdata(SYS)..., val; fast = fast, atol1 = atol1, atol2 = atol2, rtol = rtol)
 end
 """
     Gval = dcgain(sys; atol1, atol2, rtol, fast = true) 
@@ -232,4 +258,100 @@ function gsvselect(SYS::DescriptorStateSpace{T},ind::Union{UnitRange{Int64},Arra
     isempty(ind) &&  (return DescriptorStateSpace{T}(zeros(T,0,0),I,zeros(T,0,SYS.nu),zeros(T,SYS.ny,0),SYS.D,SYS.Ts))
     (minimum(ind) < 1 || maximum(ind) > SYS.nx) && error("BoundsError: selected indices $ind out of range $(1:SYS.nx)")
     return DescriptorStateSpace{T}(SYS.A[ind,ind], SYS.E == I ? I : SYS.E[ind,ind], SYS.B[ind,:], SYS.C[:,ind], SYS.D, SYS.Ts)
+end
+
+"""
+     rtfbilin(type = "c2d"; Ts = T, Tis = Ti, a = val1, b = val2, c = val3, d = val4) -> (g, ginv)
+
+Build the rational transfer functions of several commonly used bilinear transformations and their inverses. 
+The resulting `g` describes the rational transfer function `g(δ)` in the bilinear transformation `λ = g(δ)` and 
+`ginv` describes its inverse transformation `ginv(λ)` in the bilinear transformation `δ = ginv(λ)`.
+In accordance with the values of `type` and the keyword argument values `Ts`, `Tis`, `a`, `b`, `c`, and `d`, 
+the resulting `g` and `ginv` contain first order rational transfer functions of the form `g(δ) = (a*δ+b)/(c*δ+d)` 
+and `ginv(λ) = (d*λ-b)/(-c*λ+a)`, respectively, which satisfy `g(ginv(λ)) = λ` and `ginv(g(δ)) = δ`. 
+
+Depending on the value of `type`, the following types of transformations can be generated 
+in conjunction with parameters specified in `Ts`, `Tis`, `a`, `b`, `c`, and `d`:
+
+    "Cayley" - Cayley transformation: `s = g(z) = (z-1)/(z+1)` and `z = ginv(s) = (s+1)/(-s+1)`; 
+               the sampling time `g.Ts` is set to the value `T ≠ 0` (default `T = -1`), while `ginv.Ts = 0`;
+               g(z) and ginv(s) are also known as the continuous-to-discrete and discrete-to-continuous transformations, respectively; 
+
+    "c2d"    - is alias to "Cayley"
+
+    "Tustin" - Tustin transformation (also known as trapezoidal integration): `s = g(z) = (2*z-2)/(T*z+T)` and `z = ginv(s) = (T*s+2)/(-T*s+2)`; 
+               the sampling time `g.Ts` is set to the value `T ≠ 0` (default `T = -1`), while `ginv.Ts = 0`;
+
+    "Euler"  - Euler integration (or forward Euler integration): `s = g(z) = s = (z-1)/T` and `z = ginv(s) = T*s+1`; 
+               the sampling time `g.Ts` is set to the value `T ≠ 0` (default `T = -1`), while `ginv.Ts = 0`;
+
+    "BEuler" - Backward Euler integration (or backward Euler integration): `s = g(z) = (z-1)/(T*z)` and `z = ginv(s) = 1/(-T*s+1)`;
+               the sampling time `g.Ts` is set to the value `T ≠ 0` (default `T = -1`), while `ginv.Ts = 0`;
+
+    "Moebius" - general (Moebius ) bilinear transformation: `λ = g(δ) = (a*δ+b)/(c*δ+d)` and `δ = ginv(λ) = (d*λ-b)/(-c*λ+a)`;  
+                the sampling times `g.Ts` and `ginv.Ts` are  set to the values `T` and `Ti`, respectively;
+                the default values of the parameters `a`, `b`, `c`, and `d` are `a = 1`, `b = 0`, `c = 0`, and `d = 1`.
+                Some useful particular Moebius transformations correspond to the following choices of parameters: 
+                - _translation_: `a = 1`, `b ≠ 0`, `c = 0`, `d = 1` (`λ = δ+b`)
+                - _scaling_: `a ≠ 0`, `b = 0`, `c = 0`, `d = 1` (`λ = a*δ`)
+                - _rotation_: `|a| = 1`, `b = 0`, `c = 0`, `d = 1` (`λ = a*δ`)
+                - _inversion_: `a = 0`, `b = 1`, `c = 1`, `d = 0`  (`λ = 1/δ`)
+
+    "lft"     - alias to "Moebius" (linear fractional transformation).   
+"""
+function rtfbilin(type = "c2d"; Ts::Union{Real,Nothing,Missing} = missing, Tsi::Union{Real,Nothing,Missing} = missing, 
+                    a::Number = 1, b::Number = 0, c::Number = 0, d::Number = 1 )   
+    s = rtf('s'); 
+    type = lowercase(type)
+    if type == "c2d" || type == "cayley" 
+        ismissing(Ts) && (Ts = -1)
+        z = rtf('z',Ts = Ts)
+        g = (z-1)/(z+1); ginv = (s+1)/(-s+1)
+    elseif type == "d2c"
+        ismissing(Tsi) && (Tsi = -1)
+        z = rtf('z',Ts = Tsi);
+        g = (s+1)/(-s+1); ginv = (z-1)/(z+1);
+    elseif type ==  "tustin" 
+        ismissing(Ts) && (Ts = 2) 
+        Ts > 0 || error("sampling time must be positive") 
+        z = rtf('z',Ts = Ts);
+        g = (2*z-2)/(Ts*z+Ts); ginv = (Ts*s+2)/(-Ts*s+2);
+    elseif type ==  "euler" 
+        ismissing(Ts) && (Ts = 1) 
+        Ts > 0 || error("sampling time must be positive") 
+        z = rtf('z',Ts = Ts);
+        g = (z-1)/Ts; ginv = Ts*s+1;
+    elseif type ==  "beuler" 
+        ismissing(Ts) && (Ts = 1) 
+        Ts > 0 || error("sampling time must be positive") 
+        z = rtf('z',Ts = Ts);
+        g = (z-1)/(Ts*z); ginv = 1/(-Ts*s+1);
+    elseif type ==  "lft" || type ==  "moebius"
+        c == 0 && d == 0 &&  error("the denominator of g must be nonzero")
+        a*d ≈ b*c &&  error("the McMillan degree of g must be one")
+        ismissing(Ts) && (Ts = 0)
+        if Ts == 0
+            g = (a*s+b)/(c*s+d) 
+        elseif isnothing(Ts)
+            λ = rtf(:λ)
+            g = (a*λ+b)/(c*λ+d) 
+        else
+            z = rtf('z',Ts = Ts)
+            g = (a*z+b)/(c*z+d) 
+        end
+        ismissing(Tsi) && (Tsi = 0)
+        if Tsi == 0
+            ginv = (d*s-b)/(-c*s+a)
+        elseif isnothing(Tsi)
+            λ = rtf(:λ)
+            ginv = (d*λ-b)/(-c*λ+a) 
+        else
+            z = rtf('z',Ts = Tsi)
+            ginv = (d*z-b)/(-c*z+a)
+        end
+    else
+        error("Unknown type")
+    end
+    return g, ginv
+    # end RTFBILIN
 end
