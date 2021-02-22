@@ -118,18 +118,18 @@ function rtf(num::Number; Ts::Union{Real,Nothing} = nothing, var::Symbol = :x)
     T = eltype(num)
     return RationalTransferFunction{T}(Polynomial{T}(num,var), Polynomial{T}(one(T),var), Ts)
 end
-function rtf(r1::RationalTransferFunction{T1}, r2::RationalTransferFunction{T2}; Ts::Union{Real,Nothing} = 0) where {T1 <: Number, T2 <: Number}
-    T = promote_type(T1,T2)
-    return RationalTransferFunction{T}(r1.num*r2.den, r1.den*r2.num, Ts)
-end
-function rtf(r1::RationalTransferFunction{T1}, r2::Polynomial{T2}; Ts::Union{Real,Nothing} = 0) where {T1 <: Number, T2 <: Number}
-    T = promote_type(T1,T2)
-    return RationalTransferFunction{T}(r1.num, r1.den*r2, Ts)
-end
-function rtf(r1::Polynomial{T1}, r2::RationalTransferFunction{T2}; Ts::Union{Real,Nothing} = 0) where {T1 <: Number, T2 <: Number}
-    T = promote_type(T1,T2)
-    return RationalTransferFunction{T}(r1.num*r2.den, r2.num, Ts)
-end
+# function rtf(r1::RationalTransferFunction{T1}, r2::RationalTransferFunction{T2}; Ts::Union{Real,Nothing} = 0) where {T1 <: Number, T2 <: Number}
+#     T = promote_type(T1,T2)
+#     return RationalTransferFunction{T}(r1.num*r2.den, r1.den*r2.num, Ts)
+# end
+# function rtf(r1::RationalTransferFunction{T1}, r2::Polynomial{T2}; Ts::Union{Real,Nothing} = 0) where {T1 <: Number, T2 <: Number}
+#     T = promote_type(T1,T2)
+#     return RationalTransferFunction{T}(r1.num, r1.den*r2, Ts)
+# end
+# function rtf(r1::Polynomial{T1}, r2::RationalTransferFunction{T2}; Ts::Union{Real,Nothing} = 0) where {T1 <: Number, T2 <: Number}
+#     T = promote_type(T1,T2)
+#     return RationalTransferFunction{T}(r1.num*r2.den, r2.num, Ts)
+# end
 """
     r = rtf(f; Ts = nothing, var = :λ) 
 
@@ -357,7 +357,7 @@ function ^(f::RationalTransferFunction{T}, n::Int) where T
 end
 
 """
-     zpk(r) -> (z,p,k)
+     zpk(r) -> (z, p, k)
 
 Compute the roots (zeros) `z`, poles `p` and gain `k` of the rational transfer function `r(λ)`.
 """
@@ -444,14 +444,14 @@ function promote_var(num::Polynomial, den::Polynomial)
 end
 _zerortf(::Type{RationalTransferFunction{T}},Ts::Union{Real,Nothing} = 0,var::Symbol = :x) where T = RationalTransferFunction{T}(Polynomial{T}(zero(T),var), Polynomial{T}(one(T),var), Ts)
 _zerortf(::Type{RationalTransferFunction},Ts::Union{Real,Nothing} = 0,var::Symbol = :x)  = RationalTransferFunction{T}(Polynomial{T}(zero(T),var), Polynomial{T}(one(T),var), Ts)
-Base.zero(::Type{RationalTransferFunction})  = _zerortf(RationalTransferFunction{Float64})
-Base.zero(::Type{RationalTransferFunction{T}}) where T  = _zerortf(RationalTransferFunction{T})
+Base.zero(::Type{RationalTransferFunction})  = _zerortf(RationalTransferFunction{Float64},nothing,:x)
+Base.zero(::Type{RationalTransferFunction{T}}) where T  = _zerortf(RationalTransferFunction{T},nothing,:x)
 Base.zero(f::RationalTransferFunction) = _zerortf(typeof(f),f.Ts,f.num.var)
 
 _onertf(::Type{RationalTransferFunction{T}},Ts::Union{Real,Nothing} = 0,var::Symbol = :x) where T = RationalTransferFunction{T}(Polynomial{T}(one(T),var), Polynomial{T}(one(T),var), Ts)
 _onertf(::Type{RationalTransferFunction},Ts::Union{Real,Nothing} = 0,var::Symbol = :x)  = RationalTransferFunction{T}(Polynomial{T}(one(T),var), Polynomial{T}(one(T),var), Ts)
-Base.one(::Type{RationalTransferFunction})  = _onertf(RationalTransferFunction{Float64})
-Base.one(::Type{RationalTransferFunction{T}}) where T  = _onertf(RationalTransferFunction{T})
+Base.one(::Type{RationalTransferFunction})  = _onertf(RationalTransferFunction{Float64},nothing,:x)
+Base.one(::Type{RationalTransferFunction{T}}) where T  = _onertf(RationalTransferFunction{T},nothing,:x)
 Base.one(f::RationalTransferFunction) = _onertf(typeof(f),f.Ts,f.num.var)
 
 """

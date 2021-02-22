@@ -17,7 +17,7 @@ import Polynomials: variable, degree
 export DescriptorStateSpace, AbstractDescriptorStateSpace, dss, dssdata, rdss, rss, iszero, order
 export AbstractRationalTransferFunction, RationalTransferFunction, rtf
 export gminreal, gir, gbalmr, gsvselect, gss2ss, gbilin
-export confmap, rmconfmap, simplify, normalize, poles, gain, zpk, rtfbilin, numpoly, denpoly
+export confmap, rmconfmap, simplify, normalize, poles, gain, zpk, rtfbilin, numpoly, denpoly, isconstant
 export blockdiag, eye, rcond
 export gdual, ctranspose, inv, ldiv, rdiv
 export append, series, parallel, horzcat, vertcat

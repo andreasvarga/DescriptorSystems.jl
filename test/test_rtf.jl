@@ -18,6 +18,25 @@ sys2 = rtf(Polynomial([b, a]), Polynomial([d, c]), Ts = 0, var = :s)
 @test sys == sys1 && sys == sys2
 @test sys ≈ sys1  && sys ≈ sys2
 
+# some basic tests
+@test propertynames(sys) == (:zeros, :poles, :gain, :var, :num, :den, :Ts)
+@test poles(sys) ≈ [-d/c] && gain(sys) ≈ a/c && length(sys) == 1
+@test poles(sys.num) ≈ Int[] && gain(sys.den) ≈ c
+@test !isconstant(sys) && !isconstant(sys.num) && isconstant(a)
+@test variable(sys) == variable(sys.num)
+@test all(zpk(sys) .≈ ([-2.0], [-1.3333333333333333], 0.3333333333333333))
+@test all(zpk(sys.num) .≈ ([-2.0], Int64[], 1))
+@test sys' == rtf(-a*s+b, -c*s+d)
+@test numpoly(5) == Polynomial(5) && denpoly(5) == Polynomial(1)
+@test order(sys) == 1
+@test convert(RationalTransferFunction{Float64},5) == rtf(5.)
+@test DescriptorSystems.promote_var(a*s+b,Polynomial(1)) == :s && 
+      DescriptorSystems.promote_var(Polynomial(1),Polynomial(1)) == :x 
+@test zero(RationalTransferFunction) == rtf(0) && 
+      zero(RationalTransferFunction{}) == rtf(0) &&
+      one(RationalTransferFunction) == rtf(1) && 
+      one(RationalTransferFunction{}) == rtf(1)
+
 
 a = 1; b = 2; c = 3; d = 4;
 sysd = rtf(Polynomial([b, a],:z), Polynomial([d, c],:z), Ts = 1)
@@ -26,6 +45,7 @@ sysd1 = rtf(a*z+b, c*z+d, Ts = 1)
 sysd2 = rtf(Polynomial([b, a]), Polynomial([d, c]), Ts = 1, var = :z)
 @test sysd == sysd1 && sysd == sysd2
 @test sysd ≈ sysd1  && sysd == sysd2
+@test sysd' == rtf(a+b*z, c+d*z, Ts = 1)
 
 a = 1; b = 2; c = 3; d = 4;
 sys = rtf(Polynomial([b, a],:s), d, Ts = 0)
@@ -111,9 +131,9 @@ sys1 = rtf([-b/a],[-d/c],a/c,Ts = 0, var = :s)
 
 zer = eigvals(rand(5,5))
 pol = eigvals(rand(7,7))
-gain = .5
-sys = rtf(gain*fromroots(zer),fromroots(pol))
-sys1 = rtf(zer,pol,gain,Ts = 0)
+k = .5
+sys = rtf(k*fromroots(zer),fromroots(pol))
+sys1 = rtf(zer,pol,k,Ts = 0)
 @test sys ≈ sys1
 
 # operations
@@ -124,6 +144,7 @@ r4 = rtf(Polynomial(1), Polynomial([-1, 1]), Ts=1, var = :z) # r3 =  1/(z-1)
 
 @test_throws ErrorException r3+r4
 @test_throws ErrorException r3*r4
+@test_throws ErrorException rtf(Polynomial(1), Polynomial(0))
 
 @test r1+r2 ≈ rtf(Polynomial(2), Polynomial([-1, 0, 1]))
 @test r1-r2 ≈ rtf(Polynomial([0, 2]), Polynomial([-1, 0, 1]))
