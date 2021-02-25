@@ -63,8 +63,6 @@ The current version of the package includes the following categories of function
 
 * Factorization of descriptor system transfer function matrices
 
-* Various system manipulation utilities
-
 ## Future plans
 
 This is a rapidly evolving software project for which new functionality will be frequently added.

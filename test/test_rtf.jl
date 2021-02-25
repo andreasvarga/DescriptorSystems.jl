@@ -33,9 +33,11 @@ sys2 = rtf(Polynomial([b, a]), Polynomial([d, c]), Ts = 0, var = :s)
 @test DescriptorSystems.promote_var(a*s+b,Polynomial(1)) == :s && 
       DescriptorSystems.promote_var(Polynomial(1),Polynomial(1)) == :x 
 @test zero(RationalTransferFunction) == rtf(0) && 
-      zero(RationalTransferFunction{}) == rtf(0) &&
-      one(RationalTransferFunction) == rtf(1) && 
-      one(RationalTransferFunction{}) == rtf(1)
+      zero(RationalTransferFunction{Float64}) == rtf(0.) &&
+      zero(sys) == rtf(0.) && zero(sys) == 0 && zero(sys) == Polynomial(0) &&
+      one(RationalTransferFunction) == rtf(1) && rtf(1) == 1 && rtf(1) == Polynomial(1) &&
+      one(RationalTransferFunction{Float64}) == rtf(1.) && 
+      one(sys) == rtf(1.) 
 
 
 a = 1; b = 2; c = 3; d = 4;
@@ -46,6 +48,8 @@ sysd2 = rtf(Polynomial([b, a]), Polynomial([d, c]), Ts = 1, var = :z)
 @test sysd == sysd1 && sysd == sysd2
 @test sysd ≈ sysd1  && sysd == sysd2
 @test sysd' == rtf(a+b*z, c+d*z, Ts = 1)
+@test rtf(a*z+b, 1, Ts = 1)' == rtf(a+b*z, z, Ts = 1)
+@test promote_type(typeof(sysd),Float64) == RationalTransferFunction{Float64}
 
 a = 1; b = 2; c = 3; d = 4;
 sys = rtf(Polynomial([b, a],:s), d, Ts = 0)
@@ -228,6 +232,9 @@ g, gi = rtfbilin("Moebius", Ts = nothing, Tsi = nothing, a = 1, b = 2, c = 3, d 
 @test confmap(g,gi) == λ
 @test confmap(gi,g) == λ
 
+@test_throws ErrorException rtfbilin("ddd")
+
+
 
 # normalization
 a = 1; b = 2; c = 3; d = 4;
@@ -263,9 +270,48 @@ g, ginv = rtfbilin("c2d")
 @test all(rmconfmap(rmconfmap(Gc,g),ginv) .== Gc)
 @test all(rmconfmap(rmconfmap(Gd,ginv),g) .== Gd)
 
+# concatenations
+s = rtf('s'); z = rtf('z');     # define the complex variables s and z  
+Gc = [s^2 s/(s+1); 0 1/s] 
+Gd = [z^2 z/(z-2); 0 1/z] 
+@test all([s^2 s/(s+1)] .== Gc[1:1,:])
+@test all([s/(s+1); 1/s] .== Gc[:,2:2])
+@test all([s^2 s/(s+1) I] .==[s^2 s/(s+1) 1])
+@test all([s^2; s/(s+1); I] .==[s^2; s/(s+1); 1])
+@test all([[s^2; s/(s+1)]; I] .==[s^2; s/(s+1); 1])
 
+@test all([z^2 z/(z-2)] .== Gd[1:1,:])
+@test all([z^2 z/(z-2) I; I] .== [Gd[1:1,:] I;I])
+@test all([z/(z-2); 1/z] .== Gd[:,2:2])
+@test all([[z/(z-2); 1/z;I] I] .== [[Gd[:,2:2];I] I])
 
+@test_throws ErrorException [Gc Gd]
+@test_throws ErrorException [Gc; Gd]
 
+Rc=[Gc[:,2:2];I]
+Rd=[Gd[:,2:2];I]
+@test_throws ErrorException [Rc Rd]
+@test_throws ErrorException [Rc; Rd]
+
+@test_throws DimensionMismatch [Rc Gc]
+@test_throws DimensionMismatch [Rc; Gc]
+
+Rc=[Gc[:,2:2] I]
+Rd=[Gd[2:2,:]; I]
+
+try
+   [Rc Gc I]
+   @test true
+catch
+   @test false
+end
+
+try
+   [Rd; Gd; I;]
+   @test true
+catch
+   @test false
+end
 
 end #test
 

@@ -1,9 +1,11 @@
+const _RationalConcatGroup = Union{Vector{RationalTransferFunction}, Matrix{RationalTransferFunction}}
+const _TypedRationalConcatGroup{T} = Union{Vector{RationalTransferFunction{T}}, Matrix{RationalTransferFunction{T}}}
 # rational concatenations
 
 # scalar elements
 # conversions to rational transfer functions
 promote_to_rtf_(n::Int, ::Type{T}, var::Symbol, A::Number, Ts::Union{Real,Nothing}) where {T} = rtf(Polynomial{T}(T(A),var), Ts = Ts)
-promote_to_rtf_(n::Int, ::Type{T}, var::Symbol, A::Polynomial, Ts::Union{Real,Nothing}) where {T} = rtf(Polynomial{T}(T.(A.coeffs), var), Polynomial{T}(one(T), var), Ts = Ts)
+#promote_to_rtf_(n::Int, ::Type{T}, var::Symbol, A::Polynomial, Ts::Union{Real,Nothing}) where {T} = rtf(Polynomial{T}(T.(A.coeffs), var), Polynomial{T}(one(T), var), Ts = Ts)
 promote_to_rtf_(n::Int, ::Type{T}, var::Symbol, A::RationalTransferFunction, Ts::Union{Real,Nothing}) where {T} = 
      (T == eltype(A) && Ts == A.Ts && var == A.num.var) ? A : rtf(Polynomial{T}(T.(A.num.coeffs), var), Polynomial{T}(T.(A.den.coeffs), var), Ts = Ts)
 promote_to_rtfs(Ts::Union{Real,Nothing}, var::Symbol, n, k, ::Type{T}, A) where {T} = (promote_to_rtf_(n[k], T, var, A, Ts),)
@@ -61,13 +63,15 @@ promote_to_rtfmat_(n::Int, ::Type{T}, var::Symbol, A::Number, Ts::Union{Real,Not
 promote_to_rtfmat_(n::Int, ::Type{T}, var::Symbol, A::Polynomial, Ts::Union{Real,Nothing}) where {T} = 
     (T == eltype(A) && var == A.num.var) ? [rtf(A,Ts=Ts)] : [rtf(Polynomial{T}(A.coeffs, var),Ts=Ts)]
 promote_to_rtfmat_(n::Int, ::Type{T}, var::Symbol, A::RationalTransferFunction, Ts::Union{Real,Nothing}) where {T} = 
-     (T == eltype(A) && Ts == A.Ts && var == A.num.var) ? A : [rtf(Polynomial{T}(T.(A.num.coeffs), var), Polynomial{T}(T.(A.den.coeffs), var), Ts = Ts)]
+     (T == eltype(A) && Ts == A.Ts && var == A.num.var) ? [A] : [rtf(Polynomial{T}(T.(A.num.coeffs), var), Polynomial{T}(T.(A.den.coeffs), var), Ts = Ts)]
 promote_to_rtfmat_(n::Int, ::Type{T}, var::Symbol, J::UniformScaling, Ts::Union{Real,Nothing}) where {T} = rtf.(Polynomial.(copyto!(Matrix{T}(undef, n,n), J),var),Ts=Ts)
 promote_to_rtfmat_(n::Int, ::Type{T}, var::Symbol, A::AbstractVecOrMat{T1}, Ts::Union{Real,Nothing}) where {T, T1 <: Number} = rtf.(Polynomial.(to_matrix(T,A),var),Ts=Ts)
 promote_to_rtfmat_(n::Int, ::Type{T}, var::Symbol, A::VecOrMat{Polynomial{T1}}, Ts::Union{Real,Nothing}) where {T,T1} = 
      (T == T1 && var == A[1].var) ? rtf.(A,Ts = Ts) : rtf.(Polynomial{T}.(coeffs.(A),var),Ts = Ts)
 promote_to_rtfmat_(n::Int, ::Type{T}, var::Symbol, A::VecOrMat{RationalTransferFunction{T1}}, Ts::Union{Real,Nothing}) where {T,T1} = 
      (T == T1 && var == A[1].num.var && Ts == A[1].Ts) ? A : rtf.(Polynomial{T}.(coeffs.(numpoly.(A)),var),Polynomial{T}.(coeffs.(denpoly.(A)),var),Ts = Ts)
+promote_to_rtfmat_(n::Int, ::Type{T}, var::Symbol, A::VecOrMat{RationalTransferFunction}, Ts::Union{Real,Nothing}) where T = 
+     (eltype(A[1].num) == T && var == A[1].num.var && Ts == A[1].Ts) ? A : rtf.(Polynomial{T}.(coeffs.(numpoly.(A)),var),Polynomial{T}.(coeffs.(denpoly.(A)),var),Ts = Ts)
 promote_to_rtfmats(Ts::Union{Real,Nothing}, var::Symbol, n, k, ::Type{T}, A) where {T} = (promote_to_rtfmat_(n[k], T, var, A, Ts),)
 promote_to_rtfmats(Ts::Union{Real,Nothing}, var::Symbol, n, k, ::Type{T}, A, B) where {T} =
     (promote_to_rtfmat_(n[k], T, var, A, Ts), promote_to_rtfmat_(n[k+1], T, var, B, Ts))
@@ -76,14 +80,25 @@ promote_to_rtfmats(Ts::Union{Real,Nothing}, var::Symbol, n, k, ::Type{T}, A, B, 
 promote_to_rtfmats(Ts::Union{Real,Nothing}, var::Symbol, n, k, ::Type{T}, A, B, Cs...) where {T} =
     (promote_to_rtfmat_(n[k], T, var, A, Ts), promote_to_rtfmat_(n[k+1], T, var, B, Ts), promote_to_rtfmats(Ts, var, n, k+2, T, Cs...)...)
 
-
-function Base.hcat(A::Union{AbstractVecOrMat{T1},AbstractVecOrMat{T2},AbstractVecOrMat{T3},UniformScaling}...) where 
-    {T, T1 <: RationalTransferFunction{T}, T2 <: Polynomial{T}, T3 <: Number} 
+function Base.hcat(A::Union{VecOrMat{<:RationalTransferFunction},VecOrMat{<:RationalTransferFunction{T}}}...) where T
+        n = -1
+    for a in A
+        require_one_based_indexing(a); na = size(a, 1)
+        n >= 0 && n != na &&
+            throw(DimensionMismatch(string("number of rows of each array must match (got ", n, " and ", na, ")")))
+        n = na
+    end
+    Tc = promote_rtf_eltype(A...)
+    var = promote_rtf_var(A...)
+    Ts = promote_rtf_SamplingTime(A...)
+    Tp = promote_rtf_type(A...)
+    return _hcat(RationalTransferFunction,promote_to_rtfmats(Ts, var, fill(n,length(A)), 1, Tc, A...)...)
+end
+function Base.hcat(A::Union{VecOrMat{<:RationalTransferFunction},VecOrMat{<:RationalTransferFunction{T}}, UniformScaling}...) where T
     n = -1
     for a in A
         if !isa(a, UniformScaling)
-            require_one_based_indexing(a)
-            na = size(a,1)
+            require_one_based_indexing(a); na = size(a, 1)
             n >= 0 && n != na &&
                 throw(DimensionMismatch(string("number of rows of each array must match (got ", n, " and ", na, ")")))
             n = na
@@ -94,7 +109,25 @@ function Base.hcat(A::Union{AbstractVecOrMat{T1},AbstractVecOrMat{T2},AbstractVe
     var = promote_rtf_var(A...)
     Ts = promote_rtf_SamplingTime(A...)
     Tp = promote_rtf_type(A...)
-    if Tp == RationalTransferFunction || Tp == Polynomial
+    return _hcat(RationalTransferFunction,promote_to_rtfmats(Ts, var, fill(n,length(A)), 1, Tc, A...)...)
+end
+function Base.hcat(A::Union{VecOrMat{<:RationalTransferFunction},VecOrMat{<:RationalTransferFunction{T}},RationalTransferFunction{T4},Number,UniformScaling}...) where 
+    {T, T4 <: Number} 
+    n = -1
+    for a in A
+        if !isa(a, UniformScaling)
+            isa(a,Union{RationalTransferFunction,Polynomial,Number}) ? na = 1 : (require_one_based_indexing(a); na = size(a, 1))
+            n >= 0 && n != na &&
+                throw(DimensionMismatch(string("number of rows of each array must match (got ", n, " and ", na, ")")))
+            n = na
+        end
+    end
+    n == -1 && throw(ArgumentError("hcat of only UniformScaling objects cannot determine the matrix size"))
+    Tc = promote_rtf_eltype(A...)
+    var = promote_rtf_var(A...)
+    Ts = promote_rtf_SamplingTime(A...)
+    Tp = promote_rtf_type(A...)
+    if Tp == RationalTransferFunction 
         return _hcat(RationalTransferFunction,promote_to_rtfmats(Ts, var, fill(n,length(A)), 1, Tc, A...)...)
     else
         return _hcat(Tc,LinearAlgebra.promote_to_arrays(fill(n,length(A)), 1, Matrix, A...)...)
@@ -106,9 +139,8 @@ function _hcat(::Type{T},A::AbstractVecOrMat...) where T
     ncols = 0
     for j = 1:nargs
         Aj = A[j]
-        if size(Aj, 1) != nrows
+        size(Aj, 1) != nrows &&
             throw(ArgumentError("number of rows of each array must match (got $(map(x->size(x,1), A)))"))
-        end
         nd = ndims(Aj)
         ncols += (nd==2 ? size(Aj,2) : 1)
     end
@@ -122,12 +154,26 @@ function _hcat(::Type{T},A::AbstractVecOrMat...) where T
     end
     return B
 end
-function Base.vcat(A::Union{AbstractVecOrMat{T1},AbstractVecOrMat{T2},AbstractVecOrMat{T3},UniformScaling}...) where 
-    {T, T1 <: RationalTransferFunction{T}, T2 <: Polynomial{T}, T3 <: Number}
+function Base.vcat(A::Union{VecOrMat{<:RationalTransferFunction},VecOrMat{<:RationalTransferFunction{T}}}...) where T
+    n = -1
+    for a in A
+        require_one_based_indexing(a); na = size(a,2)
+        n >= 0 && n != na &&
+            throw(DimensionMismatch(string("number of columns of each array must match (got ", n, " and ", na, ")")))
+        n = na
+    end
+    n == -1 && throw(ArgumentError("vcat of only UniformScaling objects cannot determine the matrix size"))
+    Tc = promote_rtf_eltype(A...)
+    var = promote_rtf_var(A...)
+    Ts = promote_rtf_SamplingTime(A...)
+    Tp = promote_rtf_type(A...)
+    return _vcat(RationalTransferFunction,promote_to_rtfmats(Ts, var, fill(n,length(A)), 1, Tc, A...)...)
+end
+function Base.vcat(A::Union{VecOrMat{<:RationalTransferFunction},VecOrMat{<:RationalTransferFunction{T}},UniformScaling}...) where T
     n = -1
     for a in A
         if !isa(a, UniformScaling)
-            require_one_based_indexing(a); na = size(a,2)
+            isa(a,Union{RationalTransferFunction,Polynomial,Number}) ? na = 1 : (require_one_based_indexing(a); na = size(a, 2))
             n >= 0 && n != na &&
                 throw(DimensionMismatch(string("number of columns of each array must match (got ", n, " and ", na, ")")))
             n = na
@@ -138,7 +184,26 @@ function Base.vcat(A::Union{AbstractVecOrMat{T1},AbstractVecOrMat{T2},AbstractVe
     var = promote_rtf_var(A...)
     Ts = promote_rtf_SamplingTime(A...)
     Tp = promote_rtf_type(A...)
-    if Tp == RationalTransferFunction || Tp == Polynomial
+    return _vcat(RationalTransferFunction,promote_to_rtfmats(Ts, var, fill(n,length(A)), 1, Tc, A...)...)
+end
+
+function Base.vcat(A::Union{VecOrMat{<:RationalTransferFunction},VecOrMat{<:RationalTransferFunction{T}},RationalTransferFunction{T4},Number,UniformScaling}...) where 
+    {T, T4 <: Number} 
+    n = -1
+    for a in A
+        if !isa(a, UniformScaling)
+            isa(a,Union{RationalTransferFunction,Polynomial,Number}) ? na = 1 : (require_one_based_indexing(a); na = size(a, 2))
+            n >= 0 && n != na &&
+                throw(DimensionMismatch(string("number of columns of each array must match (got ", n, " and ", na, ")")))
+            n = na
+        end
+    end
+    n == -1 && throw(ArgumentError("vcat of only UniformScaling objects cannot determine the matrix size"))
+    Tc = promote_rtf_eltype(A...)
+    var = promote_rtf_var(A...)
+    Ts = promote_rtf_SamplingTime(A...)
+    Tp = promote_rtf_type(A...)
+    if Tp == RationalTransferFunction 
         return _vcat(RationalTransferFunction,promote_to_rtfmats(Ts, var, fill(n,length(A)), 1, Tc, A...)...)
     else
         return _vcat(Tc,LinearAlgebra.promote_to_arrays(fill(n,length(A)), 1, Matrix, A...)...)
@@ -163,9 +228,8 @@ function _vcat(::Type{T},A::AbstractVecOrMat...) where T
     end
     return B
 end
-function Base.hvcat(rows::Tuple{Vararg{Int}}, A::Union{AbstractVecOrMat{T1},AbstractVecOrMat{T2},AbstractVecOrMat{T3},UniformScaling}...) where 
-    {T, T1 <: RationalTransferFunction{T}, T2 <: Polynomial{T}, T3 <: Number}
-    require_one_based_indexing(A...)
+function Base.hvcat(rows::Tuple{Vararg{Int}}, A::Union{AbstractVecOrMat{T1},AbstractVecOrMat{T2},AbstractVecOrMat{T3},RationalTransferFunction{T4},UniformScaling}...) where 
+    {T, T1 <: RationalTransferFunction{T}, T2 <: Polynomial{T}, T3 <: Number, T4 <: Number}
     nr = length(rows)
     sum(rows) == length(A) || throw(ArgumentError("mismatch between row sizes and number of arguments"))
     n = fill(-1, length(A))
@@ -175,7 +239,8 @@ function Base.hvcat(rows::Tuple{Vararg{Int}}, A::Union{AbstractVecOrMat{T1},Abst
         ni = -1 # number of rows in this block-row, -1 indicates unknown
         for k = 1:rows[i]
             if !isa(A[j+k], UniformScaling)
-                isa(A[j+k],Union{RationalTransferFunction,Polynomial,Number}) ? na = 1 : na = size(A[j+k], 1)
+                isa(A[j+k],Union{RationalTransferFunction,Polynomial,Number}) ? na = 1 : 
+                      (require_one_based_indexing(A[j+k]); na = size(A[j+k], 1))
                 ni >= 0 && ni != na &&
                     throw(DimensionMismatch("mismatch in number of rows"))
                 ni = na

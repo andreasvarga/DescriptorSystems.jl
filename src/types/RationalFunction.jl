@@ -311,20 +311,25 @@ end
 /(f::RationalTransferFunction, n::Number) = f*(1/n)
 /(f1::RationalTransferFunction, f2::RationalTransferFunction) = f1*(1/f2)
 
-==(f1::RationalTransferFunction, f2::RationalTransferFunction) = 
-  (f1.num * f2.den == f2.num * f1.den && f1.Ts == f2.Ts && f1.var == f2.var) 
-==(f1::RationalTransferFunction, f2::Polynomial) = 
-  (f1.num  == f2 * f1.den && f1.var == f2.var) 
-==(f1::Polynomial, f2::RationalTransferFunction) = 
-  (f2.num  == f1 * f2.den && f1.var == f2.var) 
+function ==(f1::RationalTransferFunction, f2::RationalTransferFunction)
+    f1.num * f2.den == f2.num * f1.den || (return false) 
+    ( isconstant(f1) || isconstant(f2) ) && (return true)
+    return (f1.Ts == f2.Ts && f1.var == f2.var) 
+end
+function ==(f1::RationalTransferFunction, f2::Polynomial)
+    f1.num  == f2 * f1.den || (return false)
+    ( isconstant(f1) || isconstant(f2) ) && (return true)
+    return  f1.var == f2.var
+end
+==(f1::Polynomial, f2::RationalTransferFunction) = ==(f2,f1)
 ==(f::RationalTransferFunction, n::Number) = (f.num  == n * f.den ) 
 ==(n::Number, f::RationalTransferFunction) = (f.num  == n * f.den ) 
 
 function isconstant(f::RationalTransferFunction)
-    return degree(f.num) == 0 && degree(f.den) == 0
+    return degree(f.num) <= 0 && degree(f.den) == 0
 end
 function isconstant(f::Polynomial)
-    return degree(f) == 0 
+    return degree(f) <= 0 
 end
 isconstant(f::Number) = true
 variable(f::RationalTransferFunction) = variable(f.num)
@@ -443,13 +448,11 @@ function promote_var(num::Polynomial, den::Polynomial)
     return var
 end
 _zerortf(::Type{RationalTransferFunction{T}},Ts::Union{Real,Nothing} = 0,var::Symbol = :x) where T = RationalTransferFunction{T}(Polynomial{T}(zero(T),var), Polynomial{T}(one(T),var), Ts)
-_zerortf(::Type{RationalTransferFunction},Ts::Union{Real,Nothing} = 0,var::Symbol = :x)  = RationalTransferFunction{T}(Polynomial{T}(zero(T),var), Polynomial{T}(one(T),var), Ts)
 Base.zero(::Type{RationalTransferFunction})  = _zerortf(RationalTransferFunction{Float64},nothing,:x)
 Base.zero(::Type{RationalTransferFunction{T}}) where T  = _zerortf(RationalTransferFunction{T},nothing,:x)
 Base.zero(f::RationalTransferFunction) = _zerortf(typeof(f),f.Ts,f.num.var)
 
 _onertf(::Type{RationalTransferFunction{T}},Ts::Union{Real,Nothing} = 0,var::Symbol = :x) where T = RationalTransferFunction{T}(Polynomial{T}(one(T),var), Polynomial{T}(one(T),var), Ts)
-_onertf(::Type{RationalTransferFunction},Ts::Union{Real,Nothing} = 0,var::Symbol = :x)  = RationalTransferFunction{T}(Polynomial{T}(one(T),var), Polynomial{T}(one(T),var), Ts)
 Base.one(::Type{RationalTransferFunction})  = _onertf(RationalTransferFunction{Float64},nothing,:x)
 Base.one(::Type{RationalTransferFunction{T}}) where T  = _onertf(RationalTransferFunction{T},nothing,:x)
 Base.one(f::RationalTransferFunction) = _onertf(typeof(f),f.Ts,f.num.var)
