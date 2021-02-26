@@ -100,12 +100,28 @@ sysi, g1 = gbilin(syst,ginv,atol=1.e-7);
 @test iszero(sys-sysi,atol=1.e-7) && gi == ginv && g == g1
 
 type = "lft"; 
+sys = rss(T = Ty, 3,2,3,disc=false); 
+val = rand(Ty,2)
+g, ginv = rtfbilin(type,Ts=-1, Tsi=0, a=val[1],b=val[2])
+syst, gi = gbilin(sys,g,atol=1.e-7); 
+sysi, g1 = gbilin(syst,ginv,atol=1.e-7); 
+@test iszero(sys-sysi,atol=1.e-7) && gi ≈ ginv && g ≈ g1
+
+type = "lft"; 
 sys = rdss(T = Ty, 3,2,3); 
 val = rand(Ty,4)
 g, ginv = rtfbilin(type,a=val[1],b=val[2],c=val[3],d=val[4])
 syst, gi = gbilin(sys,g,atol=1.e-7); 
 sysi, g1 = gbilin(syst,ginv,atol=1.e-7); 
 @test iszero(sys-sysi,atol=1.e-7) && gi == ginv && g == g1
+
+type = "lft"; 
+sys = rdss(T = Ty, 3,2,3); 
+val = rand(Ty,2)
+g, ginv = rtfbilin(type,a=val[1],b=val[2])
+syst, gi = gbilin(sys,g,atol=1.e-7); 
+sysi, g1 = gbilin(syst,ginv,atol=1.e-7); 
+@test iszero(sys-sysi,atol=1.e-7) && gi ≈ ginv && g ≈ g1
 
 type = "lft"; 
 sys = rdss(T = Ty, 3,2,3,disc=true); 

@@ -426,9 +426,8 @@ numerator and denominator polynomials (`n` is also known as the _McMillan degree
 function order(r::RationalTransferFunction)
     max(degree(r.num),degree(r.den))
 end
-function Base.promote_rule(::Type{RationalTransferFunction{T1}}, ::Type{T2}) where {T1 <:Number, T2<:Number}
+Base.promote_rule(::Type{RationalTransferFunction{T1}}, ::Type{T2}) where {T1 <:Number, T2<:Number} =
     RationalTransferFunction{promote_type(T1, T2)}
-end
 Base.convert(::Type{RationalTransferFunction{T}}, n::Number) where T = rtf(promote_type(T,eltype(n))(n), Ts = nothing)
 
 

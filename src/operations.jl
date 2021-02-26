@@ -206,14 +206,6 @@ function gbilin(sys::DescriptorStateSpace{T},g::RationalTransferFunction{T1}; co
                 rtol::Real = sys.nx*eps(real(float(one(T))))*iszero(min(atol1,atol2))) where {T,T1}
     
   
-    if compact
-       if standard
-           opt_ss = "ident"
-       else
-           opt_ss = "triu"
-       end
-    end
-    
     # check g is first order 
     num = g.num; degn = degree(num) 
     den = g.den; degd = degree(den)
@@ -225,21 +217,11 @@ function gbilin(sys::DescriptorStateSpace{T},g::RationalTransferFunction{T1}; co
     
     Ts = sys.Ts;
     Ts1 = g.Ts;   
-    if Ts > 0 && Ts1 > 0 && Ts != Ts1
-        error("sys and g must have the same sampling periods")
-    end
+    Ts > 0 && Ts1 > 0 && Ts != Ts1 && error("sys and g must have the same sampling periods")
     
     # assume g(delta) = (a*delta+b)/(c*delta+d)
-    if degn > 0
-       a = num[1]; b = num[0];
-    else
-       a = 0; b = num[0];
-    end
-    if degd > 0
-       c = den[1]; d = den[0];
-    else
-       a = a/den[0]; b = b/den[0]; c = 0; d = 1;
-    end
+    degn > 0 ? (a = num[1]; b = num[0]) : (a = 0; b = num[0])
+    degd > 0 ? (c = den[1]; d = den[0]) : (a = a/den[0]; b = b/den[0]; c = 0; d = 1)
     
     A, E, B, C, D = dssdata(sys);
     n, m = size(B); p = size(C,1);
@@ -258,7 +240,7 @@ function gbilin(sys::DescriptorStateSpace{T},g::RationalTransferFunction{T1}; co
              syst = gminreal(syst,atol1 = atol1, atol2 = atol2, rtol = rtol);
           end
        else
-          syst, = gss2ss(syst, atol1 = atol1, atol2 = atol2, rtol = rtol, Eshape = opt_ss);
+         syst, = gss2ss(syst, atol1 = atol1, atol2 = atol2, rtol = rtol, Eshape = standard ? "ident" : "triu");
        end
     else
        # polynomial case
@@ -267,9 +249,7 @@ function gbilin(sys::DescriptorStateSpace{T},g::RationalTransferFunction{T1}; co
           syst = dss((A-b*E)/a,B/a,C,D,Ts=Ts1);
        else
           syst = dss(A-b*E,a*E,B,C,D,Ts=Ts1);
-          if standard
-              syst, = gss2ss(syst,atol1 = atol1, atol2 = atol2, rtol = rtol);
-          end
+          standard && (syst,_ = gss2ss(syst, atol1 = atol1, atol2 = atol2, rtol = rtol) )
        end
     end
 
@@ -278,11 +258,7 @@ function gbilin(sys::DescriptorStateSpace{T},g::RationalTransferFunction{T1}; co
     elseif Ts != 0 && Ts1 == 0
        Tsi = Ts
     else # Ts != 0 && Ts1 != 0
-       if Ts1 < 0
-           Tsi = Ts;
-       else
-           Tsi = Ts1;
-       end
+       Ts1 < 0 ? Tsi = Ts : Tsi = Ts1;
     end
     #ginv = (d*s-b)/(-c*s+a)
      

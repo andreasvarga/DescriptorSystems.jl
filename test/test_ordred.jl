@@ -37,15 +37,22 @@ sys1, r = gss2ss(sys)
 
 Ty = Float64
 for Ty in (Float64,Complex{Float64})
-sys = rdss(T = Ty,3,2,3);
+sys = rdss(T = Ty,7,2,3);
 sys1, r = gss2ss(sys);
-@test iszero(sys-sys1,atol=1.e-7) && r == 3 && sys1.E == I
+@test iszero(sys-sys1,atol=1.e-7) && r == 7 && sys1.E == I
 
 sys1, r = gss2ss(sys,Eshape="triu");
-@test iszero(sys-sys1,atol=1.e-7) && r == 3 && istriu(sys1.E)
+@test iszero(sys-sys1,atol=1.e-7) && r == 7 && istriu(sys1.E)
+
+sys2, r2 = gss2ss(sys1,Eshape="triu");
+@test iszero(sys-sys2,atol=1.e-7) && r2 == 7 && istriu(sys2.E)
+
+sys3, r3 = gss2ss(sys1,Eshape="ident");
+@test iszero(sys-sys3,atol=1.e-7) && r3 == 7 && sys3.E == I
+
 
 sys1, r = gss2ss(sys,Eshape="diag");
-@test iszero(sys-sys1,atol=1.e-7) && r == 3 && isdiag(sys1.E)
+@test iszero(sys-sys1,atol=1.e-7) && r == 7 && isdiag(sys1.E)
 
 sys = rdss(T = Ty,3,2,3,id=ones(Int,2));
 sys1, r = gss2ss(sys);

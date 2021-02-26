@@ -17,20 +17,20 @@ promote_to_rtfs(Ts::Union{Real,Nothing}, var::Symbol, n, k, ::Type{T}, A, B, Cs.
     (promote_to_rtf_(n[k], T, var, A, Ts), promote_to_rtf_(n[k+1], T, var, B, Ts), promote_to_rtfs(Ts, var, n, k+2, T, Cs...)...)
 
 
-function Base.hcat(A::Union{AbstractRationalTransferFunction,Number}...) 
-    T = Base.promote_eltype(A...)
-    var = promote_rtf_var(A...)
-    Ts = promote_rtf_SamplingTime(A...)
-    Tp = promote_rtf_type(A...)
-    hvcat_fill(Matrix{RationalTransferFunction{T}}(undef, 1, length(A)), promote_to_rtfs(Ts, var, fill(1,length(A)), 1, T, A...))
-end
-function Base.vcat(A::Union{AbstractRationalTransferFunction,Number}...) 
-    T = Base.promote_eltype(A...)
-    var = promote_rtf_var(A...)
-    Ts = promote_rtf_SamplingTime(A...)
+# function Base.hcat(A::Union{AbstractRationalTransferFunction,Number}...) 
+#     T = Base.promote_eltype(A...)
+#     var = promote_rtf_var(A...)
+#     Ts = promote_rtf_SamplingTime(A...)
+#     Tp = promote_rtf_type(A...)
+#     hvcat_fill(Matrix{RationalTransferFunction{T}}(undef, 1, length(A)), promote_to_rtfs(Ts, var, fill(1,length(A)), 1, T, A...))
+# end
+# function Base.vcat(A::Union{AbstractRationalTransferFunction,Number}...) 
+#     T = Base.promote_eltype(A...)
+#     var = promote_rtf_var(A...)
+#     Ts = promote_rtf_SamplingTime(A...)
 
-    hvcat_fill(Matrix{RationalTransferFunction{T}}(undef, length(A), 1), promote_to_rtfs(Ts, var, fill(1,length(A)), 1, T, A...))
-end
+#     hvcat_fill(Matrix{RationalTransferFunction{T}}(undef, length(A), 1), promote_to_rtfs(Ts, var, fill(1,length(A)), 1, T, A...))
+# end
   
 
 function Base.hvcat(rows::Tuple{Vararg{Int}}, A::Union{AbstractRationalTransferFunction,Number}...)
@@ -60,14 +60,14 @@ end
 # conversions to rational matrices
 
 promote_to_rtfmat_(n::Int, ::Type{T}, var::Symbol, A::Number, Ts::Union{Real,Nothing}) where {T} = [rtf(Polynomial{T}(T(A),var),Ts=Ts)]
-promote_to_rtfmat_(n::Int, ::Type{T}, var::Symbol, A::Polynomial, Ts::Union{Real,Nothing}) where {T} = 
-    (T == eltype(A) && var == A.num.var) ? [rtf(A,Ts=Ts)] : [rtf(Polynomial{T}(A.coeffs, var),Ts=Ts)]
+# promote_to_rtfmat_(n::Int, ::Type{T}, var::Symbol, A::Polynomial, Ts::Union{Real,Nothing}) where {T} = 
+#     (T == eltype(A) && var == A.num.var) ? [rtf(A,Ts=Ts)] : [rtf(Polynomial{T}(A.coeffs, var),Ts=Ts)]
 promote_to_rtfmat_(n::Int, ::Type{T}, var::Symbol, A::RationalTransferFunction, Ts::Union{Real,Nothing}) where {T} = 
      (T == eltype(A) && Ts == A.Ts && var == A.num.var) ? [A] : [rtf(Polynomial{T}(T.(A.num.coeffs), var), Polynomial{T}(T.(A.den.coeffs), var), Ts = Ts)]
 promote_to_rtfmat_(n::Int, ::Type{T}, var::Symbol, J::UniformScaling, Ts::Union{Real,Nothing}) where {T} = rtf.(Polynomial.(copyto!(Matrix{T}(undef, n,n), J),var),Ts=Ts)
 promote_to_rtfmat_(n::Int, ::Type{T}, var::Symbol, A::AbstractVecOrMat{T1}, Ts::Union{Real,Nothing}) where {T, T1 <: Number} = rtf.(Polynomial.(to_matrix(T,A),var),Ts=Ts)
-promote_to_rtfmat_(n::Int, ::Type{T}, var::Symbol, A::VecOrMat{Polynomial{T1}}, Ts::Union{Real,Nothing}) where {T,T1} = 
-     (T == T1 && var == A[1].var) ? rtf.(A,Ts = Ts) : rtf.(Polynomial{T}.(coeffs.(A),var),Ts = Ts)
+# promote_to_rtfmat_(n::Int, ::Type{T}, var::Symbol, A::VecOrMat{Polynomial{T1}}, Ts::Union{Real,Nothing}) where {T,T1} = 
+#      (T == T1 && var == A[1].var) ? rtf.(A,Ts = Ts) : rtf.(Polynomial{T}.(coeffs.(A),var),Ts = Ts)
 promote_to_rtfmat_(n::Int, ::Type{T}, var::Symbol, A::VecOrMat{RationalTransferFunction{T1}}, Ts::Union{Real,Nothing}) where {T,T1} = 
      (T == T1 && var == A[1].num.var && Ts == A[1].Ts) ? A : rtf.(Polynomial{T}.(coeffs.(numpoly.(A)),var),Polynomial{T}.(coeffs.(denpoly.(A)),var),Ts = Ts)
 promote_to_rtfmat_(n::Int, ::Type{T}, var::Symbol, A::VecOrMat{RationalTransferFunction}, Ts::Union{Real,Nothing}) where T = 
@@ -127,11 +127,7 @@ function Base.hcat(A::Union{VecOrMat{<:RationalTransferFunction},VecOrMat{<:Rati
     var = promote_rtf_var(A...)
     Ts = promote_rtf_SamplingTime(A...)
     Tp = promote_rtf_type(A...)
-    if Tp == RationalTransferFunction 
-        return _hcat(RationalTransferFunction,promote_to_rtfmats(Ts, var, fill(n,length(A)), 1, Tc, A...)...)
-    else
-        return _hcat(Tc,LinearAlgebra.promote_to_arrays(fill(n,length(A)), 1, Matrix, A...)...)
-    end
+    return _hcat(RationalTransferFunction,promote_to_rtfmats(Ts, var, fill(n,length(A)), 1, Tc, A...)...)
 end
 function _hcat(::Type{T},A::AbstractVecOrMat...) where T
     nargs = length(A)
@@ -203,11 +199,7 @@ function Base.vcat(A::Union{VecOrMat{<:RationalTransferFunction},VecOrMat{<:Rati
     var = promote_rtf_var(A...)
     Ts = promote_rtf_SamplingTime(A...)
     Tp = promote_rtf_type(A...)
-    if Tp == RationalTransferFunction 
-        return _vcat(RationalTransferFunction,promote_to_rtfmats(Ts, var, fill(n,length(A)), 1, Tc, A...)...)
-    else
-        return _vcat(Tc,LinearAlgebra.promote_to_arrays(fill(n,length(A)), 1, Matrix, A...)...)
-    end
+    return _vcat(RationalTransferFunction,promote_to_rtfmats(Ts, var, fill(n,length(A)), 1, Tc, A...)...)
 end
 function _vcat(::Type{T},A::AbstractVecOrMat...) where T
     nargs = length(A)

@@ -31,6 +31,7 @@ sys2 = rtf(Polynomial([b, a]), Polynomial([d, c]), Ts = 0, var = :s)
 @test order(sys) == 1
 @test convert(RationalTransferFunction{Float64},5) == rtf(5.)
 @test DescriptorSystems.promote_var(a*s+b,Polynomial(1)) == :s && 
+      DescriptorSystems.promote_var(Polynomial(1),a*s+b) == :s && 
       DescriptorSystems.promote_var(Polynomial(1),Polynomial(1)) == :x 
 @test zero(RationalTransferFunction) == rtf(0) && 
       zero(RationalTransferFunction{Float64}) == rtf(0.) &&
@@ -49,6 +50,7 @@ sysd2 = rtf(Polynomial([b, a]), Polynomial([d, c]), Ts = 1, var = :z)
 @test sysd ≈ sysd1  && sysd == sysd2
 @test sysd' == rtf(a+b*z, c+d*z, Ts = 1)
 @test rtf(a*z+b, 1, Ts = 1)' == rtf(a+b*z, z, Ts = 1)
+@test rtf(1, a*z+b, Ts = 1)' == rtf(z, a+b*z, Ts = 1)
 @test promote_type(typeof(sysd),Float64) == RationalTransferFunction{Float64}
 
 a = 1; b = 2; c = 3; d = 4;
@@ -287,6 +289,7 @@ Gd = [z^2 z/(z-2); 0 1/z]
 
 @test_throws ErrorException [Gc Gd]
 @test_throws ErrorException [Gc; Gd]
+[Gc Gc]; [Gd;Gd]
 
 Rc=[Gc[:,2:2];I]
 Rd=[Gd[:,2:2];I]

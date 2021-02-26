@@ -41,8 +41,10 @@ function gss2ss(sys::DescriptorStateSpace{T}; Eshape = "ident", atol::Real = zer
     if  istriu(Er) && rcond(UpperTriangular(Er),atol2) > n*epsm
         Eshape == "triu" && (return sys, n) 
         if Eshape == "ident"
+            eltype(Er) <: Complex && 
+               (return dss(ldiv!(UpperTriangular(Er),Ar), ldiv!(UpperTriangular(Er),Br), Cr, Dr, Ts = sys.Ts), n)
             # make diagonal elements of E positive
-            indneg = (diag(Ar) .< 0)
+            indneg = (diag(Er) .< 0)
             if any(indneg)
                 Ar[indneg,:] = -Ar[indneg,:]
                 Er[indneg,:] = -Er[indneg,:]
@@ -52,6 +54,7 @@ function gss2ss(sys::DescriptorStateSpace{T}; Eshape = "ident", atol::Real = zer
             ldiv!(e2,Ar)
             rdiv!(Ar,e2)
             ldiv!(e2,Br)
+            rdiv!(Cr,e2)
             return dss(Ar, Br, Cr, Dr, Ts = sys.Ts), n
         end
     end
