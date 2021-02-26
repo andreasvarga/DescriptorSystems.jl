@@ -235,12 +235,12 @@ function gbilin(sys::DescriptorStateSpace{T},g::RationalTransferFunction{T1}; co
        syst = dss(At,Et,Bt,Ct,Dt, Ts = Ts1);
        if minimal 
           if standard
-             syst, = gss2ss(gir(syst,atol1 = atol1, atol2 = atol2, rtol = rtol),atol1 = atol1, atol2 = atol2, rtol = rtol);
+             syst = gss2ss(gir(syst,atol1 = atol1, atol2 = atol2, rtol = rtol),atol1 = atol1, atol2 = atol2, rtol = rtol)[1];
           else
              syst = gminreal(syst,atol1 = atol1, atol2 = atol2, rtol = rtol);
           end
        else
-         syst, = gss2ss(syst, atol1 = atol1, atol2 = atol2, rtol = rtol, Eshape = standard ? "ident" : "triu");
+         syst = gss2ss(syst, atol1 = atol1, atol2 = atol2, rtol = rtol, Eshape = standard ? "ident" : "triu")[1];
        end
     else
        # polynomial case
@@ -249,7 +249,7 @@ function gbilin(sys::DescriptorStateSpace{T},g::RationalTransferFunction{T1}; co
           syst = dss((A-b*E)/a,B/a,C,D,Ts=Ts1);
        else
           syst = dss(A-b*E,a*E,B,C,D,Ts=Ts1);
-          standard && (syst,_ = gss2ss(syst, atol1 = atol1, atol2 = atol2, rtol = rtol) )
+          standard && (syst = gss2ss(syst, atol1 = atol1, atol2 = atol2, rtol = rtol)[1] )
        end
     end
 

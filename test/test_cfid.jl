@@ -362,9 +362,9 @@ sys = rss(n,p,m,T = Ty,disc=true, nuo = 5);
 
 # continuous, descriptor, proper, unobservable infinite eigenvalues
 sys = rdss(n,p,m,T = Ty,disc=false,iduo=[3*ones(Int,1);2*ones(Int,1)],randlt=true,randrt=false);
-sys = rdss(n,p,m,T = Ty,disc=false,randlt=true,randrt=false);
+#sys = rdss(n,p,m,T = Ty,disc=false,randlt=true,randrt=false);
 @time sysni, sysmi = glcfid(sys, fast = fast, mindeg = true, mininf = true, atol=1.e-7,atol3=1.e-7);
-@time sysni, sysmi = glcfid(sys, fast = false, mindeg = false, mininf = false, atol=1.e-7,atol3=1.e-7);
+#@time sysni, sysmi = glcfid(sys, fast = false, mindeg = false, mininf = false, atol=1.e-7,atol3=1.e-7);
 @test gnrank(sysmi*sys-sysni,atol=1.e-7) == 0   &&   
       gnrank(sysmi'*sysmi-I,atol=1.e-7) == 0  && 
       isproper(sysmi) && isproper(sysni) && 
