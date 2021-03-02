@@ -1,6 +1,6 @@
 # DescriptorSystems.jl
 
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.4456687.svg)](https://doi.org/10.5281/zenodo.4456687)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.4568159.svg)](https://doi.org/10.5281/zenodo.4568159)
 [![DocBuild](https://github.com/andreasvarga/DescriptorSystems.jl/workflows/CI/badge.svg)](https://github.com/andreasvarga/DescriptorSystems.jl/actions)
 [![codecov.io](https://codecov.io/gh/andreasvarga/DescriptorSystems.jl/coverage.svg?branch=main)](https://codecov.io/gh/andreasvarga/DescriptorSystems.jl?branch=main)
 [![Latest](https://img.shields.io/badge/docs-latest-blue.svg)](https://andreasvarga.github.io/DescriptorSystems.jl/dev/)
@@ -62,6 +62,8 @@ The current version of the package includes the following categories of function
 * Descriptor system analysis
 
 * Factorization of descriptor system transfer function matrices
+
+* Advanced operations on transfer function matrices via their descriptor system models
 
 ## Future plans
 

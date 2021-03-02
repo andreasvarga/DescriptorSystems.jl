@@ -24,10 +24,9 @@ export append, series, parallel, horzcat, vertcat
 export order, evalfr, dcgain, opnorm
 export gpole, gzero, gpoleinfo, gzeroinfo, gnrank, isregular, isproper, isstable, 
        glinfnorm, ghinfnorm, gl2norm, gh2norm, ghanorm
-#export gsdec
+export gsdec, grnull, glnull, grmcover1, grmcover2, glmcover1, glmcover2
 export grcf, glcf, grcfid, glcfid, giofac, goifac
-# export grmcover1, grmcover2, glmcover1, glmcover2
-# export grsol, glsol, grnull, glnull
+# export grsol, glsol
 # export PencilStateSpace, pss, pssdata
 
 
@@ -48,11 +47,11 @@ include("rational_concatenations.jl")
 include("operations.jl")
 include("order_reduction.jl")
 include("analysis.jl")
-#include("decompositions.jl")
+include("decompositions.jl")
 include("factorizations.jl")
-# include("covers.jl")
+include("covers.jl")
 # include("linsol.jl")
-# include("nullrange.jl")
+include("nullrange.jl")
 include("dstools.jl")
 include("dsutils.jl")
 end

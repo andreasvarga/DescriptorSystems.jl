@@ -13,10 +13,10 @@ makedocs(
         "rtf.md",
         "operations.md",
         "operations_rtf.md",
-        #"connections_rtf.md",
         "order_reduction.md",
         "analysis.md",
-        "factorizations.md"
+        "factorizations.md",
+        "advanced_operations.md"
      ],
      "Utilities" => [
         "dstools.md"

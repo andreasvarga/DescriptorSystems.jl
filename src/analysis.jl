@@ -26,7 +26,7 @@ The default relative tolerance is `n*ϵ`, where `ϵ` is the working machine epsi
 The keyword argument `atol` can be used to simultaneously set `atol1 = atol` and `atol2 = atol`. 
 """
 function gnrank(SYS::AbstractDescriptorStateSpace; fastrank = true, atol::Real = 0, atol1::Real = atol, atol2::Real = atol, rtol::Real = 0 ) 
-    return sprank(dssdata(SYS)..., atol1 = atol1, atol2 = atol2, rtol = rtol, fastrank = fastrank) - SYS.nx 
+    return max(0,sprank(dssdata(SYS)..., atol1 = atol1, atol2 = atol2, rtol = rtol, fastrank = fastrank) - SYS.nx)
 end
 """
     val = gzero(sys; fast = false, atol = 0, atol1 = atol, atol2 = atol, rtol = n*ϵ) 

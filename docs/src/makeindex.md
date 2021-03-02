@@ -9,6 +9,7 @@ Pages = [ "dss.md",
           "order_reduction.md",
           "analysis.md",
           "factorizations.md",
+          "advanced_operations.md",
           "dstools.md" ]
 Module = ["DescriptorSystems"]
 Order = [:type, :function]

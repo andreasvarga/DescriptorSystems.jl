@@ -14,8 +14,10 @@ include("test_analysis.jl")
 include("test_pscf.jl")
 include("test_cfid.jl")
 include("test_iofac.jl")
-# include("test_gsdec.jl")
-# include("test_covers.jl")
+# test advanced operations
+include("test_gsdec.jl")
+include("test_nullrange.jl")
+include("test_covers.jl")
 end
 
 end
