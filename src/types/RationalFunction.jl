@@ -1,7 +1,8 @@
 """ 
-     RationalTransferFunction <: AbstractRationalTransferFunction
+     RationalTransferFunction{T}(num::Polynomial{T}, den::Polynomial{T}, Ts::Union{Real,Nothing}) where T <: Number
 
-Rational transfer function model definition
+Construct a rational transfer function model from its numerator and denominator polynomials `num` and `den`, respectively,
+and a sampling time `Ts`. 
 
 If `r::RationalTransferFunction{T}` is a rational transfer function system model object 
 defined as `r(λ) = num(λ)/den(λ)`, where  `num(λ)` and `den(λ)` are polynomials

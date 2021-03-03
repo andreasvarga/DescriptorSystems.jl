@@ -1,8 +1,10 @@
 const AbstractNumOrArray = Union{AbstractVecOrMat,Number}
 """ 
-    DescriptorStateSpace <: AbstractDescriptorStateSpace
+    DescriptorStateSpace{T}(A::AbstractMatrix{T}, E::Union{AbstractMatrix{T},UniformScaling}, 
+                            B::AbstractMatrix{T}, C::AbstractMatrix{T}, D::AbstractMatrix{T},  
+                            Ts::Real) where T <: Number
 
-Descriptor state-space model definition
+Construct a descriptor state-space model from a quintuple of matrices `(A,E,B,C,D)` and a sampling time `Ts`.
 
 If `SYS::DescriptorStateSpace{T}` is a descriptor system model object 
 defined by the 4-tuple `SYS = (A-λE,B,C,D)`, then:
