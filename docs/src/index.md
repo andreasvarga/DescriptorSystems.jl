@@ -43,6 +43,11 @@ The available functions in the `DescriptorSystems.jl` package cover both standar
 * **[`dss`](@ref)**  Construction of descriptor state-space models.
 * **[`dssdata`](@ref)**   Extraction of matrix-data from a descriptor state-space model.
 
+**Building rational transfer functions**
+
+* **[`RationalTransferFunction`](@ref)**  Construction of rational transfer function objects.
+* **[`rtf`](@ref)**  Building rational transfer functions.
+
 **Interconnecting descriptor system models**
 
 * **[`append`](@ref)**  Building aggregate models by appending the inputs and outputs.
@@ -53,12 +58,22 @@ The available functions in the `DescriptorSystems.jl` package cover both standar
 
 **Basic operations on descriptor system models**
 
-* **[`inv`](@ref)**  Inversion of a descriptor system.
-* **[`ldiv`](@ref)**   Left division for two descriptor systems (also overloaded with **`\`**).
-* **[`rdiv`](@ref)**   Right division for two descriptor systems (also overloaded with **`/`**).
-* **[`gdual`](@ref)**   Construction of the dual of a descriptor system (also overloaded with **`transpose`**)
-* **[`ctranspose`](@ref)**  Construction of the conjugate transpose of a descriptor system (also overloaded with **`'`**).
-* **[`gbilin`](@ref)**  Generalized bilinear transformation.
+* **[`inv`](@ref)**  Inversion of a system.
+* **[`ldiv`](@ref)**   Left division for two systems (also overloaded with **`\`**).
+* **[`rdiv`](@ref)**   Right division for two systems (also overloaded with **`/`**).
+* **[`gdual`](@ref)**   Building the dual of a descriptor system (also overloaded with **`transpose`**)
+* **[`ctranspose`](@ref)**  Building the conjugate transpose of a system (also overloaded with **`adjoint`** and **`'`**).
+* **[`adjoint`](@ref)**  Building the adjoint of a system.
+* **[`gbilin`](@ref)**  Generalized bilinear transformation of a descriptor system.
+
+**Some operations on rational transfer functions and matrices**
+
+* **[`simplify`](@ref)**  Pole-zero cancellation.
+* **[`normalize`](@ref)**   Normalization of a rational transfer function to monic denominator.
+* **[`confmap`](@ref)**   Applying a conformal mapping transformation to a rational transfer function.
+* **[`rmconfmap`](@ref)**   Applying a conformal mapping transformation to a rational transfer function matrix.
+* **[`zpk`](@ref)**  Computation of zeros, poles and gain of a rational transfer function.
+* **[`rtfbilin`](@ref)**  Generation of common bilinear transformations and their inverses.
 
 **Simplification of descriptor system models**
 
@@ -91,6 +106,18 @@ The available functions in the `DescriptorSystems.jl` package cover both standar
 * **[`glcfid`](@ref)**   Left coprime factorization with inner denominator.
 * **[`giofac`](@ref)**   Inner-outer/QR-like factorization.
 * **[`goifac`](@ref)**   Co-outer-co-inner/RQ-like factorization.
+
+**Advanced operations on transfer function matrices**
+
+* **[`gsdec`](@ref)**  Additive spectral decompositions.
+* **[`grnull`](@ref)**   Right nullspace basis of a transfer function matrix.
+* **[`glnull`](@ref)**   Left nullspace basis of a transfer function matrix.
+* **[`grsol`](@ref)**   Solution of the linear rational matrix equation `G(λ)*X(λ) = F(λ)`.
+* **[`glsol`](@ref)**   Solution of the linear rational matrix equation `X(λ)*G(λ) = F(λ)`.
+* **[`grmcover1`](@ref)**  Right minimum dynamic cover of Type 1 based order reduction.
+* **[`glmcover1`](@ref)**   Left minimum dynamic cover of Type 1 based order reduction.
+* **[`grmcover2`](@ref)**  Right minimum dynamic cover of Type 2 based order reduction.
+* **[`glmcover2`](@ref)**  Left minimum dynamic cover of Type 2 based order reduction.
 
 ## Future plans
 

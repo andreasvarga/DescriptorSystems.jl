@@ -3,7 +3,7 @@
 ## Version 0.4.0
 
 This minor release includes new functions for advanced manipulation of transfer function matrices via their descriptor system realizations,
-such as, the computation of additive spectral decompositions, the computation of nullspace bases and the solution of minimal cover problems.
+such as, the computation of additive spectral decompositions, the computation of nullspace bases, the solution of linear equations with rational matrices and the solution of minimal cover problems.
 
 ## Version 0.3.0
 

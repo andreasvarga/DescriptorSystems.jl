@@ -41,7 +41,7 @@ For a proper basis, the poles of `Nl(λ)` can be freely assigned, by assigning t
 The vector `poles`, specified as a keyword argument, can be used to specify the desired eigenvalues,
 alternatively to or jointly with enforcing a desired stability degree `sdeg` of the real parts of the eigenvalues, 
 for a continuous-time system, or the moduli of eigenvalues, for a discrete-time system. 
-If `coinner = true`, the resulting basis `Nl(λ)` is coinner, i.e., `Nl(λ)*Nl(λ)' = I`, where `Nl(s)' = transpose(Nl(-s))` for a 
+If `coinner = true`, the resulting basis `Nl(λ)` is _coinner_, i.e., `Nl(λ)*Nl(λ)' = I`, where `Nl(s)' = transpose(Nl(-s))` for a 
 continuous-time system with `λ = s` and `Nl(z)' = transpose(Nl(1/z))` for a discrete-time system with `λ = z`. 
 If the proper basis is simple, each of the resulting individual basis vector is inner. 
 If `sys2` has poles on the boundary of the appropriate stability domain `Cs`, which are not poles of `sys1` too, 
@@ -158,7 +158,7 @@ For a proper basis, the poles of `Nr(λ)` can be freely assigned, by assigning t
 The vector `poles`, specified as a keyword argument, can be used to specify the desired eigenvalues,
 alternatively to or jointly with enforcing a desired stability degree `sdeg` of the real parts of the eigenvalues, 
 for a continuous-time system, or the moduli of eigenvalues, for a discrete-time system. 
-If `inner = true`, the resulting basis `Nr(λ)` is inner, i.e., `Nr(λ)'*Nr(λ) = I`, where `Nr(s)' = transpose(Nr(-s))` for a 
+If `inner = true`, the resulting basis `Nr(λ)` is _inner_, i.e., `Nr(λ)'*Nr(λ) = I`, where `Nr(s)' = transpose(Nr(-s))` for a 
 continuous-time system with `λ = s` and `Nr(z)' = transpose(Nr(1/z))` for a discrete-time system with `λ = z`. 
 If the proper basis is simple, each of the resulting individual basis vector is inner. 
 If `sys2` has poles on the boundary of the appropriate stability domain `Cs`, which are not poles of `sys1` too, 

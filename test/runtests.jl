@@ -18,6 +18,7 @@ include("test_iofac.jl")
 include("test_gsdec.jl")
 include("test_nullrange.jl")
 include("test_covers.jl")
+include("test_linsol.jl")
 end
 
 end

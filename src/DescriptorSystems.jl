@@ -1,5 +1,5 @@
 module DescriptorSystems
-# Release V0.1
+# Release V0.4
 
 using LinearAlgebra
 using MatrixEquations
@@ -24,9 +24,8 @@ export append, series, parallel, horzcat, vertcat
 export order, evalfr, dcgain, opnorm
 export gpole, gzero, gpoleinfo, gzeroinfo, gnrank, isregular, isproper, isstable, 
        glinfnorm, ghinfnorm, gl2norm, gh2norm, ghanorm
-export gsdec, grnull, glnull, grmcover1, grmcover2, glmcover1, glmcover2
+export gsdec, grnull, glnull, grsol, glsol, grmcover1, grmcover2, glmcover1, glmcover2
 export grcf, glcf, grcfid, glcfid, giofac, goifac
-# export grsol, glsol
 # export PencilStateSpace, pss, pssdata
 
 
@@ -50,7 +49,7 @@ include("analysis.jl")
 include("decompositions.jl")
 include("factorizations.jl")
 include("covers.jl")
-# include("linsol.jl")
+include("linsol.jl")
 include("nullrange.jl")
 include("dstools.jl")
 include("dsutils.jl")
