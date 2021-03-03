@@ -282,7 +282,7 @@ function grmcover1(sys::DescriptorStateSpace{T}, m1::Int; atol::Real = zero(real
       isproper(sys[:,isys2], atol1 = atol1, atol2 = atol2, rtol = rtol) || 
              error("The system sys2 must be proper")
       At, Et, Bt, Ct, _, _, _, blkdims = fiblkdiag(At, Et, Bt, Ct; fast = fast, finite_infinite = true, 
-                                                   atol1 = atol1, atol2 = atol2, rtol, withQ = false, withZ = false) 
+                                                   atol1 = atol1, atol2 = atol2, rtol = rtol, withQ = false, withZ = false) 
       n1 = blkdims[1]; i1 = 1:n1; i2 = n1+1:n
       sysi1 = dss(lsminreal(At[i2,i2], Et[i2,i2], Bt[i2,isys1], Ct[:,i2], zeros(T,p,m1), 
                   fast = fast, atol1 = atol1, atol2 = atol2, rtol = rtol)[1:5]...,Ts = Ts)
@@ -519,7 +519,7 @@ function grmcover2(sys::DescriptorStateSpace{T},m1::Int; atol::Real = zero(real(
       # # sysfx, sysy, info = grmcover2(sysf, m1, fast = fast, atol1 = atol1, atol2 = atol2, rtol = rtol)  
       # return sysfx+gminreal(sysi[:,1:m1],fast = fast, atol1 = atol1, atol2 = atol2, rtol = rtol), sysy, info
       At, Et, Bt, Ct, _, _, _, blkdims = fiblkdiag(At, Et, Bt, Ct; fast = fast, finite_infinite = true, 
-                                                   atol1 = atol1, atol2 = atol2, rtol, withQ = false, withZ = false) 
+                                                   atol1 = atol1, atol2 = atol2, rtol = rtol, withQ = false, withZ = false) 
       n1 = blkdims[1]; i1 = 1:n1; i2 = n1+1:n
       sysi1 = dss(lsminreal(At[i2,i2], Et[i2,i2], Bt[i2,1:m1], Ct[:,i2], zeros(T,p,m1), 
                   fast = fast, atol1 = atol1, atol2 = atol2, rtol = rtol)[1:5]...,Ts = Ts)

@@ -44,9 +44,9 @@ sys = dss(ones(p1+p2,m));
 @time sysnull, info = grnull(sys,p2)
 isys1 = 1:p1; isys2 = p1+1:p1+p2;
 indf = m+1:m+p2; indnull = 1:m;
-@test gnrank(sys[isys1,:]*sysnull[indnull,:]) == 0 &&
+@test gnrank(sys[isys1,:]*sysnull[indnull,:], atol = 1.e-7) == 0 &&
       gnrank(sys[isys2,:]*sysnull[indnull,:]-sysnull[indf,:], atol = 1.e-7) == 0 &&
-      info.nrank == 1 && info.degs == [0] && info.stdim == []
+      info.nrank == 1 && info.degs == [0] && info.stdim == Int64[]
 
 p1 = 0; p2 = 1; m = 2; 
 sys = dss(ones(p1+p2,m));
@@ -360,9 +360,9 @@ sys = dss(ones(p,m1+m2));
 @time sysnull, info = glnull(sys,m2)
 isys1 = 1:m1; isys2 = m1+1:m1+m2;
 indf = p+1:p+m2; indnull = 1:p;
-@test gnrank(sysnull[:,indnull]*sys[:,isys1]) == 0 &&
+@test gnrank(sysnull[:,indnull]*sys[:,isys1], atol = 1.e-7) == 0 &&
       gnrank(sysnull[:,indnull]*sys[:,isys2]-sysnull[:,indf], atol = 1.e-7) == 0 &&
-      info.nrank == 1 && info.degs == [0] && info.stdim == []
+      info.nrank == 1 && info.degs == [0] && info.stdim == Int[]
 
 m1 = 0; m2 = 1; p = 2; 
 sys = dss(ones(p,m1+m2));
