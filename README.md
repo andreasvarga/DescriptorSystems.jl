@@ -63,7 +63,7 @@ The current version of the package includes the following categories of function
 
 * Factorization of descriptor system transfer function matrices
 
-* Advanced operations on transfer function matrices via their descriptor system models
+* Advanced operations on transfer function matrices via their descriptor system realizations
 
 ## Future plans
 

@@ -1,5 +1,5 @@
 """
-    gsdec(sys; job, smarg, fast,  atol,  atol1, atol2, rtol) -> (sys1, sys2)
+    gsdec(sys; job = "finite", smarg, fast = true,  atol = 0,  atol1 = atol, atol2 = atol, rtol = nϵ) -> (sys1, sys2)
 
 Compute for the descriptor system `sys = (A-λE,B,C,D)` with the transfer function matrix
 `G(λ)`, the additive spectral decomposition `G(λ) = G1(λ) + G2(λ)` such that `G1(λ)`, 
@@ -13,8 +13,8 @@ stable eigenvalues of `A-λE`, such that, in the continuous-time case,
 the stable eigenvalues have real parts less than or equal to `smarg`, and
 in the discrete-time case, the stable eigenvalues
 have moduli less than or equal to `smarg`. If `smarg = missing`, the used default values 
-are: `smarg = -sqrt(epsm)`, for a continuous-time system, and `smarg = 1-sqrt(epsm)`, 
-for a discrete-time system), where `epsm` is the machine precision of the working accuracy. 
+are: `smarg = -sqrt(ϵ)`, for a continuous-time system, and `smarg = 1-sqrt(ϵ)`, 
+for a discrete-time system), where `ϵ` is the machine precision of the working accuracy. 
 
 The keyword argument `job`, in conjunction with `smarg`, defines the domain of 
 interest `Cg`, as follows:
@@ -35,7 +35,7 @@ for `job = "stable"`, `Cg` is the stability domain of eigenvalues defined by `sm
     the resulting pairs `(A1,E1)` and `(A2,E2)` are in generalized Schur form with
     `E1` upper triangular and nonsingular and `E2` upper triangular;   
  
-for `job = "unstable"`,`Cg` is the complement of the stability domain of the 
+for `job = "unstable"`, `Cg` is the complement of the stability domain of the 
     eigenvalues defined by `smarg`, and  
     `sys1` has only unstable and infinite poles and `sys2` has only stable poles;    
     the resulting pairs `(A1,E1)` and `(A2,E2)` are in generalized Schur form with
@@ -43,7 +43,8 @@ for `job = "unstable"`,`Cg` is the complement of the stability domain of the
 
 The keyword arguments `atol1`, `atol2`, and `rtol`, specify, respectively, the absolute tolerance for the 
 nonzero elements of `A`, the absolute tolerance for the nonzero elements of `E`,  and the relative tolerance 
-for the nonzero elements of `A` and `E`. The keyword argument `atol` can be used 
+for the nonzero elements of `A` and `E`. The default relative tolerance is `n*ϵ`, where `ϵ` is the working machine epsilon 
+and `n` is the order of the system `sys`. The keyword argument `atol` can be used 
 to simultaneously set `atol1 = atol`, `atol2 = atol`. 
 
 The separation of the finite and infinite eigenvalues is performed using 

@@ -1,5 +1,5 @@
 """
-    glnull(sys, polynomial = false, simple = false, coinner = false, fast = true, poles = missing, sdeg = missing,  
+    glnull(sys; polynomial = false, simple = false, coinner = false, fast = true, poles = missing, sdeg = missing,  
            atol = 0, atol1 = atol, atol2 = atol, rtol, offset = sqrt(ϵ) ) -> (syslnull, info)
 
 Determine for the descriptor systems `sys = (A-λE,B,C,D)` with the `p x m` transfer function matrix `G(λ)`, 
@@ -8,7 +8,7 @@ such that `Nl(λ)` is a minimal rational left nullspace basis of `G(λ)` and sat
 
 For the call with
 
-    glnull(sys, m2, polynomial = false, simple = false, coinner = false, fast = true, poles = missing, sdeg = missing,  
+    glnull(sys, m2; polynomial = false, simple = false, coinner = false, fast = true, poles = missing, sdeg = missing,  
            atol = 0, atol1 = atol, atol2 = atol, rtol, offset = sqrt(ϵ) ) -> (syslnull, info)
 
 `sys` contains the compound system `sys = [sys1 sys2]`, with `G(λ)`, the transfer function matrix of `sys1`, and 
@@ -39,7 +39,7 @@ The corresponding realization of `vi(λ)*G2(λ)` can be constructed as `(Ali-λE
 
 For a proper basis, the poles of `Nl(λ)` can be freely assigned, by assigning the eigenvalues of the pencil `Al-λEl`.
 The vector `poles`, specified as a keyword argument, can be used to specify the desired eigenvalues,
-alternatively to or jointly with enforcing a desired stability degree `sdeg` of for the real parts of the eigenvalues, 
+alternatively to or jointly with enforcing a desired stability degree `sdeg` of the real parts of the eigenvalues, 
 for a continuous-time system, or the moduli of eigenvalues, for a discrete-time system. 
 If `coinner = true`, the resulting basis `Nl(λ)` is coinner, i.e., `Nl(λ)*Nl(λ)' = I`, where `Nl(s)' = transpose(Nl(-s))` for a 
 continuous-time system with `λ = s` and `Nl(z)' = transpose(Nl(1/z))` for a discrete-time system with `λ = z`. 
@@ -48,7 +48,7 @@ If `sys2` has poles on the boundary of the appropriate stability domain `Cs`, wh
 then there exists no inner `Nl(λ)` such that `Nl(λ)*G2(λ)` is stable. An offset can be specified via the keyword parameter `offset = β`
 to be used to assess the existence of zeros on the stability domain boundary. Accordingly, for a continuous-time system, 
 the boundary of `Cs` contains the complex numbers with real parts within the interval `[-β,β]`, 
-while for a discrete-time system, then the boundary of `Cs` contains
+while for a discrete-time system, the boundary of `Cs` contains
 the complex numbers with moduli within the interval `[1-β,1+β]`. 
 The default value used for `β` is `sqrt(ϵ)`, where `ϵ` is the working machine precision. 
 
@@ -69,21 +69,21 @@ non-orthogonal transformations whose worst condition number is returned in `info
 using feedback gains, whose norms are returned in `info.fnorm`. High values of these quantities
 indicate a potential loss of numerical stability of computations.  
 
-Note: The resulting realization of `syslnull` is minimal provided the realization of `sys` is minimal. 
+_Note:_ The resulting realization of `syslnull` is minimal provided the realization of `sys` is minimal. 
 However, `syslnull1` is a minimal basis only if the realization (A-lambda E,B,C,D) of `sys1` is 
 minimal. In this case, `info.degs` are the degrees of the vectors of a minimal polynomial basis or, 
 if `simple = true`, of the resulting minimal simple proper basis. 
 
-Method: The computation method for the computation of a right nullspace basis is applied
+_Method:_ The computation method for the computation of a right nullspace basis is applied
 to the dual of descriptor system `sys`.
 The computation of a minimal proper right nullspace basis is based
-on [1] (see also [2]). For the computation of a minimal simple proper 
+on [1]; see also [2]. For the computation of a minimal simple proper 
 right nullspace basis the method of [3] is emloyed to compute a simple basis from a
 minimal proper basis. For the computation of an inner proper right nullspace basis,
 the inner factor of an inner-outer factorization of `Nl(λ)` is explicitly 
 constructed using formulas given in [4]. 
 
-References:
+_References:_
 
 [1] T.G.J. Beelen.
     New algorithms for computing the Kronecker structure of a pencil 
@@ -115,7 +115,7 @@ function glnull(sys::DescriptorStateSpace{T}, m2::Int = 0; polynomial::Bool = fa
    return gdual(sysnull[:,p-info.nrank:-1:1],rev = true), info
 end
 """
-    grnull(sys, polynomial = false, simple = false, inner = false, fast = true, poles = missing, sdeg = missing,  
+    grnull(sys; polynomial = false, simple = false, inner = false, fast = true, poles = missing, sdeg = missing,  
            atol = 0, atol1 = atol, atol2 = atol, rtol, offset = sqrt(ϵ) ) -> (sysrnull, info)
 
 Determine for the descriptor systems `sys = (A-λE,B,C,D)` with the `p x m` transfer function matrix `G(λ)`, 
@@ -124,7 +124,7 @@ such that `Nr(λ)` is a minimal rational right nullspace basis of `G(λ)` and sa
 
 For the call with
 
-    grnull(sys, p2, polynomial = false, simple = false, inner = false, fast = true, poles = missing, sdeg = missing,  
+    grnull(sys, p2; polynomial = false, simple = false, inner = false, fast = true, poles = missing, sdeg = missing,  
            atol = 0, atol1 = atol, atol2 = atol, rtol, offset = sqrt(ϵ) ) -> (sysrnull, info)
 
 `sys` contains the compound system `sys = [sys1; sys2]`, with `G(λ)`, the transfer function matrix of `sys1`, and 
@@ -156,7 +156,7 @@ The corresponding realization of `G2(λ)*vi(λ)` can be constructed as `(Ari-λE
 
 For a proper basis, the poles of `Nr(λ)` can be freely assigned, by assigning the  eigenvalues of the pencil `Ar-λEr`.
 The vector `poles`, specified as a keyword argument, can be used to specify the desired eigenvalues,
-alternatively to or jointly with enforcing a desired stability degree `sdeg` of for the real parts of the eigenvalues, 
+alternatively to or jointly with enforcing a desired stability degree `sdeg` of the real parts of the eigenvalues, 
 for a continuous-time system, or the moduli of eigenvalues, for a discrete-time system. 
 If `inner = true`, the resulting basis `Nr(λ)` is inner, i.e., `Nr(λ)'*Nr(λ) = I`, where `Nr(s)' = transpose(Nr(-s))` for a 
 continuous-time system with `λ = s` and `Nr(z)' = transpose(Nr(1/z))` for a discrete-time system with `λ = z`. 
@@ -165,7 +165,7 @@ If `sys2` has poles on the boundary of the appropriate stability domain `Cs`, wh
 then there exists no inner `Nr(λ)` such that `G2(λ)*Nr(λ)` is stable. An offset can be specified via the keyword parameter `offset = β`
 to be used to assess the existence of zeros on the stability domain boundary. Accordingly, for a continuous-time system, 
 the boundary of `Cs` contains the complex numbers with real parts within the interval `[-β,β]`, 
-while for a discrete-time system, then the boundary of `Cs` contains
+while for a discrete-time system, the boundary of `Cs` contains
 the complex numbers with moduli within the interval `[1-β,1+β]`. 
 The default value used for `β` is `sqrt(ϵ)`, where `ϵ` is the working machine precision. 
 
@@ -186,20 +186,20 @@ non-orthogonal transformations whose worst condition number is returned in `info
 using feedback gains, whose norms are returned in `info.fnorm`. High values of these quantities
 indicate a potential loss of numerical stability of computations.  
 
-Note: The resulting realization of `sysrnull` is minimal provided the realization of `sys` is minimal. 
+_Note:_ The resulting realization of `sysrnull` is minimal provided the realization of `sys` is minimal. 
 However, `sysrnull1` is a minimal basis only if the realization (A-lambda E,B,C,D) of `sys1` is 
 minimal. In this case, `info.degs` are the degrees of the vectors of a minimal polynomial basis or, 
 if `simple = true`, of the resulting minimal simple proper basis. 
 
 
-Method: The computation of a minimal proper right nullspace basis is based
-on [1] (see also [2]). For the computation of a minimal simple proper 
+_Method:_ The computation of a minimal proper right nullspace basis is based
+on [1]; see also [2]. For the computation of a minimal simple proper 
 right nullspace basis the method of [3] is emloyed to compute a simple basis from a
 minimal proper basis. For the computation of an inner proper right nullspace basis,
 the inner factor of an inner-outer factorization of `Nr(λ)` is explicitly 
 constructed using formulas given in [4]. 
 
-References:
+_References:_
 
 [1] T.G.J. Beelen.
     New algorithms for computing the Kronecker structure of a pencil 

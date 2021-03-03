@@ -223,8 +223,12 @@ for (f,dim,name) in ((:hcat,1,"rows"), (:vcat,2,"cols"))
                 end
             end
             n == -1 && throw(ArgumentError($("$f of only UniformScaling objects cannot determine the matrix size")))
-            Ts = promote_system_SamplingTime(A...)
-            return $f(promote_to_systems(Ts, fill(n,length(A)), 1, promote_type(eltype.(A)...), A...)...)
+            if isadss(A...) == 0
+                return $f(promote_to_systems(0, fill(n,length(A)), 1, promote_type(eltype.(A)...), A...)...).D
+            else       
+                Ts = promote_system_SamplingTime(A...)
+                return $f(promote_to_systems(Ts, fill(n,length(A)), 1, promote_type(eltype.(A)...), A...)...)
+            end
         end
     end
 end
