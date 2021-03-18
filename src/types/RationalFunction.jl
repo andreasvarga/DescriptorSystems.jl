@@ -37,8 +37,8 @@ struct RationalTransferFunction{T} <: AbstractRationalTransferFunction
     num::Polynomial{T}        # numerator polynomial
     den::Polynomial{T}        # denominator polynomial
     Ts::Union{Real,Nothing}   # sampling time (0 - continuous-time, -1 or > 0 - discrete-time, nothing - none)
-    function RationalTransferFunction{T}(num::Polynomial{T}, den::Polynomial{T}, Ts::Union{Real,Nothing}) where T <: Number
-        length(num) > 1 && length(den) > 1 && num.var != den.var && 
+    function RationalTransferFunction{T}(num::Polynomial{T,X}, den::Polynomial{T,X}, Ts::Union{Real,Nothing}) where T <: Number where X
+        length(num) > 1 && length(den) > 1 && Polynomials.indeterminate(num) != Polynomials.indeterminate(den) && 
               error("The numerator and denominator polynomials must have the same variable")
         if all(den == zero(den))
             error("Cannot create a rational function with zero denominator")
@@ -62,7 +62,7 @@ function Base.getproperty(F::RationalTransferFunction, d::Symbol)
     elseif d === :gain
         return last(getfield(F, :num)) / last(getfield(F, :den))
     elseif d === :var
-        return getfield(F, :num).var
+        return Polynomials.indeterminate(getfield(F, :num))
     else
         getfield(F, d)
     end
@@ -92,30 +92,34 @@ rational function of indeterminate `λ`. The resulting `r` is such that `r.Ts = 
 
 Both `num(λ)` and `den(λ)` can be real or complex numbers as well. 
 """
-function rtf(num::Polynomial{T1}, den::Polynomial{T2}; Ts::Union{Real,Nothing} = 0, 
-             var::Symbol = num.var) where {T1 <: Number, T2 <: Number}
+function rtf(num::Polynomial{T1,X}, den::Polynomial{T2,X}; Ts::Union{Real,Nothing} = 0, 
+             var::Symbol = Polynomials.indeterminate(num)) where {T1 <: Number, T2 <: Number, X}
     T = promote_type(T1,T2)
     return RationalTransferFunction{T}(Polynomial{T}(num.coeffs,var), Polynomial{T}(den.coeffs,var), Ts)
 end
-# function rtf(num::Polynomial{T1}, den::Polynomial{T2}; Ts::Union{Real,Nothing} = 0) where {T1 <: Number, T2 <: Number}
-#     T = promote_type(T1,T2)
-#     var = promote_var(num,den)
-#     return RationalTransferFunction{T}(Polynomial{T}(num.coeffs,var), Polynomial{T}(den.coeffs,var), Ts)
-# end
-function rtf(num::Polynomial{T}, den::Number; Ts::Union{Real,Nothing} = 0) where T <: Number 
+function rtf(num::Polynomial{T1}, den::Polynomial{T2}; Ts::Union{Real,Nothing} = 0) where {T1 <: Number, T2 <: Number}
+    T = promote_type(T1,T2)
+    var = promote_var(num,den)
+    return RationalTransferFunction{T}(Polynomial{T}(num.coeffs,var), Polynomial{T}(den.coeffs,var), Ts)
+end
+function rtf(num::Polynomial{T,X}, den::Number; Ts::Union{Real,Nothing} = 0) where T<:Number where X 
     T1 = promote_type(T,eltype(den))
-    return RationalTransferFunction{T1}(num, Polynomial(den,num.var), Ts)
+    return RationalTransferFunction{T1}(num, Polynomial(den,Polynomials.indeterminate(num)), Ts)
 end
-function rtf(num::Number, den::Polynomial{T}; Ts::Union{Real,Nothing} = 0) where T <: Number 
+function rtf(num::Number, den::Polynomial{T,X}; Ts::Union{Real,Nothing} = 0) where T<:Number where X 
     T1 = promote_type(T,eltype(num))
-    return RationalTransferFunction{T1}(Polynomial(num,den.var), den, Ts)
+    return RationalTransferFunction{T1}(Polynomial(num,Polynomials.indeterminate(den)), den, Ts)
 end
-function rtf(num::Number, den::Number; Ts::Union{Real,Nothing} = 0, var::Symbol = :x) 
+function rtf(num::Number, den::Number; Ts::Union{Real,Nothing} = 0, var::Symbol = :λ) 
     T = promote_type(eltype(num),eltype(den))
     return  RationalTransferFunction{T}(Polynomial{T}(num,var), Polynomial{T}(den,var), Ts)
 end
 #rtf(num::Polynomial{T}; Ts::Union{Real,Nothing} = 0) where T <: Number = RationalTransferFunction{T}(num, one(num), Ts)
-function rtf(num::Number; Ts::Union{Real,Nothing} = nothing, var::Symbol = :x) 
+# function rtf(f::Polynomial; Ts::Union{Real,Nothing} = nothing, var::Symbol = Polynomials.indeterminate(f))
+#     T = eltype(f)
+#     return RationalTransferFunction{T}(Polynomial{T}(f.coeffs,var), Polynomial{T}(one(T),var), Ts)
+# end
+function rtf(num::Number; Ts::Union{Real,Nothing} = nothing, var::Symbol = :λ) 
     T = eltype(num)
     return RationalTransferFunction{T}(Polynomial{T}(num,var), Polynomial{T}(one(T),var), Ts)
 end
@@ -137,7 +141,7 @@ end
 Set for the rational transfer function `r(λ) = f(λ)` the sampling time to `Ts` and variable name to `var`
 such that `r(λ) = f(λ)`, `r.Ts = Ts` (default `r.Ts = f.Ts`) and `r.var = var` (default `r.var = f.var`).
 """
-function rtf(f::RationalTransferFunction; Ts::Union{Real,Nothing} = f.Ts, var::Symbol = f.num.var)
+function rtf(f::RationalTransferFunction; Ts::Union{Real,Nothing} = f.Ts, var::Symbol = f.var)
     T = eltype(f)
     return RationalTransferFunction{T}(Polynomial{T}(f.num.coeffs,var), Polynomial{T}(f.den.coeffs,var), Ts)
 end
@@ -145,10 +149,11 @@ end
     r = rtf(p; Ts = nothing, var = :λ) 
 
 Create for the polynomial `p(λ)`, sampling time `Ts` and variable `var`
-the rational transfer function `r(λ) = p(λ)` such that `r.Ts = Ts` and `r.var = var`.
+the rational transfer function `r(λ) = p(λ)` such that `r.Ts = Ts` (default `r.Ts = nothing`)
+and `r.var = var` (default  (default `r.var = Polynomials.indeterminate(f)`).
 `p(λ)` can be a real or complex number as well. 
 """
-function rtf(f::Polynomial; Ts::Union{Real,Nothing} = nothing, var::Symbol = f.var)
+function rtf(f::Polynomial; Ts::Union{Real,Nothing} = nothing, var::Symbol = Polynomials.indeterminate(f))
     T = eltype(f)
     return RationalTransferFunction{T}(Polynomial{T}(f.coeffs,var), Polynomial{T}(one(T),var), Ts)
 end
@@ -206,10 +211,12 @@ end
 
 Create from the roots (zeros) `z`, poles `p`, gain `k`, sampling time `Ts` and variable name `var`
 the rational transfer function `r(λ) = k*num(λ)/den(λ)`, where `num(λ)` and `den(λ)` are monic polynomials
-with roots equal `z` and `p`, respectively, and such that `r.Ts = Ts` and `r.var = var`. 
+with roots equal `z` and `p`, respectively, and such that `r.Ts = Ts` (default `r.Ts = nothing`)
+ and `r.var = var` (default `r.var = :λ` if `r.Ts = nothing`, or `r.var = :s` if `r.Ts = 0` or 
+ `r.var = :z` if `r.Ts ≠ 0`). 
 """
-function rtf(zer::Vector, pol::Vector, k::Number; 
-             var::Symbol = :x, Ts::Union{Real,Nothing} = nothing) 
+function rtf(zer::Vector, pol::Vector, k::Number; Ts::Union{Real,Nothing} = nothing,
+    var::Symbol = isnothing(Ts) ? :λ : (Ts == 0 ? :s : :z) ) 
     T = promote_type(eltype(zer),eltype(pol),eltype(k))
     reald = false   # check data correspond to real numerator and denominator
     if eltype(k) <: Real 
@@ -301,7 +308,7 @@ function /(p1::Polynomial{T1}, p2::Polynomial{T2}) where {T1,T2}
 end
 function /(n::Number, p::Polynomial{T}) where T
     T1 = promote_type(T, eltype(n))
-    var = p.var
+    var = Polynomials.indeterminate(p)
     return RationalTransferFunction{T}(Polynomial{T}(T(n),var), Polynomial{T}(p.coeffs,var), nothing)
 end
 
@@ -320,7 +327,7 @@ end
 function ==(f1::RationalTransferFunction, f2::Polynomial)
     f1.num  == f2 * f1.den || (return false)
     ( isconstant(f1) || isconstant(f2) ) && (return true)
-    return  f1.var == f2.var
+    return  f1.var == Polynomials.indeterminate(f2)
 end
 ==(f1::Polynomial, f2::RationalTransferFunction) = ==(f2,f1)
 ==(f::RationalTransferFunction, n::Number) = (f.num  == n * f.den ) 
@@ -338,21 +345,26 @@ variable(f::RationalTransferFunction) = variable(f.num)
 
 function isapprox(r1::RationalTransferFunction{T1}, r2::RationalTransferFunction{T2};
                   rtol::Real = sqrt(eps(float(real(promote_type(T1,T2))))), atol::Real = 0) where {T1,T2}
+  (r1.Ts == r2.Ts && r1.var == r2.var) || (return false)
   p1 = r1.num * r2.den
   p2 = r1.den * r2.num
-  isapprox(coeffs(p1), coeffs(p2); rtol = rtol, atol = atol) && r1.Ts == r2.Ts && r1.var == r2.var
+  isapprox(coeffs(p1), coeffs(p2); rtol = rtol, atol = atol) 
 end
 function isapprox(r1::RationalTransferFunction{T1}, r2::Polynomial{T2};
                   rtol::Real = sqrt(eps(float(real(promote_type(T1,T2))))), atol::Real = 0) where {T1,T2}
   p1 = r1.num 
   p2 = r1.den * r2
-  isapprox(coeffs(p1), coeffs(p2); rtol = rtol, atol = atol) && r1.var == r2.var
+  isapprox(coeffs(p1), coeffs(p2); rtol = rtol, atol = atol) || (return false)
+  ( isconstant(r1) || isconstant(r2) ) && (return true)
+  return  r1.var == Polynomials.indeterminate(r2)
 end
 function isapprox(r1::Polynomial{T1}, r2::RationalTransferFunction{T2};
     rtol::Real = sqrt(eps(float(real(promote_type(T1,T2))))), atol::Real = 0) where {T1,T2}
     p1 = r1 * r2.den
     p2 = r2.num
-    isapprox(coeffs(p1), coeffs(p2); rtol = rtol, atol = atol) && r1.var == r2.var
+    isapprox(coeffs(p1), coeffs(p2); rtol = rtol, atol = atol) || (return false)
+    ( isconstant(r1) || isconstant(r2) ) && (return true)
+    return  r2.var == Polynomials.indeterminate(r1)
 end
 isapprox(f::RationalTransferFunction, n::Number) = isapprox(f.num, n * f.den ) 
 isapprox(n::Number, f::RationalTransferFunction) = isapprox(f.num, n * f.den ) 
@@ -386,27 +398,30 @@ Compute the adjoint `rt(λ)` of the rational transfer function `r(λ)` such that
     (3) `rt(λ) = conj(num(λ))/conj(num(λ))`, if `r.Ts = nothing`. 
 """
 function adjoint(f::RationalTransferFunction{T}) where T
-   if f.Ts == 0
-      p1 = copy(conj(f.num.coeffs))
-      i1 = 2:2:length(p1)
-      p1[i1] = -p1[i1]
-      p2 = copy(conj(f.den.coeffs))
-      i2 = 2:2:length(p2)
-      p2[i2] = -p2[i2]
-      return RationalTransferFunction{T}(Polynomial{T}(p1,f.num.var), Polynomial{T}(p2,f.den.var), f.Ts) 
-   else
-      m = degree(f.num)+1
-      n = degree(f.den)+1
-      p1 = reverse(conj(f.num.coeffs[1:m]))
-      p2 = reverse(conj(f.den.coeffs[1:n]))
-      if m >= n
-        return RationalTransferFunction{T}(Polynomial{T}(p1,f.num.var), Polynomial{T}([zeros(T,m-n); p2],f.den.var), f.Ts) 
-      else
-        return RationalTransferFunction{T}(Polynomial{T}([zeros(T,n-m); p1],f.num.var), Polynomial{T}(p2,f.den.var), f.Ts) 
-      end         
-   end
-end
-"""
+    if f.Ts == 0
+       p1 = copy(conj(f.num.coeffs))
+       i1 = 2:2:length(p1)
+       p1[i1] = -p1[i1]
+       p2 = copy(conj(f.den.coeffs))
+       i2 = 2:2:length(p2)
+       p2[i2] = -p2[i2]
+       return RationalTransferFunction{T}(Polynomial{T}(p1,Polynomials.indeterminate(f.num)), Polynomial{T}(p2,Polynomials.indeterminate(f.den)), f.Ts) 
+    elseif isnothing(f.Ts)
+       return RationalTransferFunction{T}(Polynomial{T}(conj(f.num.coeffs),Polynomials.indeterminate(f.num)), 
+              Polynomial{T}(conj(f.den.coeffs),Polynomials.indeterminate(f.den)), f.Ts)    
+    else
+       m = degree(f.num)+1
+       n = degree(f.den)+1
+       p1 = reverse(conj(f.num.coeffs[1:m]))
+       p2 = reverse(conj(f.den.coeffs[1:n]))
+       if m >= n
+         return RationalTransferFunction{T}(Polynomial{T}(p1,Polynomials.indeterminate(f.num)), Polynomial{T}([zeros(T,m-n); p2],Polynomials.indeterminate(f.den)), f.Ts) 
+       else
+         return RationalTransferFunction{T}(Polynomial{T}([zeros(T,n-m); p1],Polynomials.indeterminate(f.num)), Polynomial{T}(p2,Polynomials.indeterminate(f.den)), f.Ts) 
+       end         
+    end
+ end
+ """
     rinv = inv(r)
 
 Build the inverse `rinv` of a nonzero rational transfer function `r` such that `rinv(λ) = 1/r(λ)`. 
@@ -436,12 +451,12 @@ function promote_var(num::Polynomial, den::Polynomial)
     m = length(num)
     n = length(den)
     if m > 1 &&  n > 1 
-       var = num.var
-       var != den.var && error("The numerator and denominator polynomials must have the same variable")
+       var = Polynomials.indeterminate(num)
+       var != Polynomials.indeterminate(den) && error("The numerator and denominator polynomials must have the same variable")
     elseif m > 1
-       var = num.var
+       var = Polynomials.indeterminate(num)
     elseif  n > 1
-       var = den.var
+       var = Polynomials.indeterminate(den)
     else
        var = :x   # use the default variable of Polynomials
     end
@@ -450,12 +465,12 @@ end
 _zerortf(::Type{RationalTransferFunction{T}},Ts::Union{Real,Nothing} = 0,var::Symbol = :x) where T = RationalTransferFunction{T}(Polynomial{T}(zero(T),var), Polynomial{T}(one(T),var), Ts)
 Base.zero(::Type{RationalTransferFunction})  = _zerortf(RationalTransferFunction{Float64},nothing,:x)
 Base.zero(::Type{RationalTransferFunction{T}}) where T  = _zerortf(RationalTransferFunction{T},nothing,:x)
-Base.zero(f::RationalTransferFunction) = _zerortf(typeof(f),f.Ts,f.num.var)
+Base.zero(f::RationalTransferFunction) = _zerortf(typeof(f),f.Ts,Polynomials.indeterminate(f.num))
 
 _onertf(::Type{RationalTransferFunction{T}},Ts::Union{Real,Nothing} = 0,var::Symbol = :x) where T = RationalTransferFunction{T}(Polynomial{T}(one(T),var), Polynomial{T}(one(T),var), Ts)
 Base.one(::Type{RationalTransferFunction})  = _onertf(RationalTransferFunction{Float64},nothing,:x)
 Base.one(::Type{RationalTransferFunction{T}}) where T  = _onertf(RationalTransferFunction{T},nothing,:x)
-Base.one(f::RationalTransferFunction) = _onertf(typeof(f),f.Ts,f.num.var)
+Base.one(f::RationalTransferFunction) = _onertf(typeof(f),f.Ts,Polynomials.indeterminate(f.num))
 
 """
      normalize(r; atol = 0, rtol = atol)
@@ -526,7 +541,7 @@ function simplify(r::RationalTransferFunction{T}; atol::Real = 0, rtol::Real=10*
     length(u) > m && (return r) # no cancelation, keep original r
     knum = pnum[end]/d[end]/u[end]
     kden = pden[end]/d[end]/w[end]
-    return rtf(Polynomial(u*knum,r.num.var), Polynomial(w*kden,r.den.var), Ts = r.Ts)
+    return rtf(Polynomial(u*knum,Polynomials.indeterminate(r.num)), Polynomial(w*kden,Polynomials.indeterminate(r.den)), Ts = r.Ts)
 end
 """
     Rval = evalfr(R,val) 

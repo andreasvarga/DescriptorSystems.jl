@@ -1,5 +1,9 @@
 # Release Notes
 
+## Version 0.4.1
+
+Patch release to upgrade to using Polynomials.jl v2.0 and MatrixPencils 1.6.2.
+
 ## Version 0.4.0
 
 This minor release includes new functions for advanced manipulation of transfer function matrices via their descriptor system realizations,
@@ -16,4 +20,4 @@ evaluation of normal rank, evaluation of several system norms, as well as a coll
 
 ## Version 0.1.0
 
-This is the initial release providing a prototype implementation of the basic descriptor system object, jointly with functions to perform basic operations, connections and simplifications of descriptor system models. 
+This is the initial release providing a prototype implementation of the basic descriptor system object, jointly with functions to perform basic operations, connections and simplifications of descriptor system models.

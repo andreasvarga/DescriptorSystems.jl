@@ -318,8 +318,6 @@ function dss(P::AbstractArray{T,3};
     sysdata = pm2ls(P, contr = contr, obs = obs, noseig = noseig, minimal = minimal, atol = atol, rtol = rtol)
     return DescriptorStateSpace{eltype(sysdata[1])}(sysdata..., Ts)
 end
-# dss(P::Union{AbstractVecOrMat{Polynomial{T,X}},Polynomial{T,X}}; kwargs...) where T where X =
-#     dss(poly2pm(P); kwargs...)
 dss(P::Union{AbstractVecOrMat{<:Polynomial},Polynomial}; kwargs...)  =
     dss(poly2pm(P); kwargs...)
 """
@@ -339,6 +337,7 @@ the 3-dimensional matrices `X`, where `X[:,:,i]` contains the `i`-th coefficient
 
 `T(λ)`, `U(λ)`, `V(λ)`, and `W(λ)` can also be specified as matrices, vectors or scalars of elements of the `Polynomial` type 
 provided by the [Polynomials](https://github.com/JuliaMath/Polynomials.jl) package.   
+In this case, no check is performed that `T(λ)`, `U(λ)`, `V(λ)`  and `W(λ)` have the same indeterminates.
 
 The computed descriptor realization satisfies:
 
@@ -366,10 +365,23 @@ function dss(T::AbstractArray{T1,3}, U::AbstractArray{T2,3}, V::AbstractArray{T3
     sysdata = spm2ls(T, U, V, W, contr = contr, obs = obs, minimal = minimal, atol = atol, rtol = rtol)
     return DescriptorStateSpace{eltype(sysdata[1])}(sysdata..., Ts)
 end
-function dss(T::Union{AbstractVecOrMat{Polynomial{T1}},Polynomial{T1}}, U::Union{AbstractVecOrMat{Polynomial{T2}},Polynomial{T2}}, 
-             V::Union{AbstractVecOrMat{Polynomial{T3}},Polynomial{T3}}, W::Union{AbstractVecOrMat{Polynomial{T4}},Polynomial{T4}}; kwargs...) where {T1, T2, T3, T4}
-       dss(poly2pm(T),poly2pm(U),poly2pm(V),poly2pm(W); kwargs...)
+# function dss(T::Union{AbstractVecOrMat{Polynomial{T1}},AbstractVecOrMat{Polynomial{T1,X}},Polynomial{T1},Polynomial{T1,X}}, 
+#              U::Union{AbstractVecOrMat{Polynomial{T2}},AbstractVecOrMat{Polynomial{T2,X}},Polynomial{T2},Polynomial{T2,X}}, 
+#              V::Union{AbstractVecOrMat{Polynomial{T3}},AbstractVecOrMat{Polynomial{T3,X}},Polynomial{T3},Polynomial{T3,X}}, 
+#              W::Union{AbstractVecOrMat{Polynomial{T4}},AbstractVecOrMat{Polynomial{T4,X}},Polynomial{T4},Polynomial{T4,X}}; kwargs...) where {T1, T2, T3, T4, X}
+#              println("T = $T")
+#        dss(poly2pm(T),poly2pm(U),poly2pm(V),poly2pm(W); kwargs...)
+# end
+function dss(T::Union{AbstractVecOrMat{TP},TP}, 
+             U::Union{AbstractVecOrMat{TP},TP,Number,AbstractVecOrMat{<:Number}}, 
+             V::Union{AbstractVecOrMat{TP},TP,Number,AbstractVecOrMat{<:Number}}, 
+             W::Union{AbstractVecOrMat{TP},TP,Number,AbstractVecOrMat{<:Number}}; 
+             Ts::Real = 0, contr::Bool = false, obs::Bool = false, minimal::Bool = false, 
+             fast::Bool = true, atol::Real = zero(float(real(eltype(eltype(T))))), 
+             rtol::Real = size(T,1)*eps(one(eltype(atol)))*iszero(atol)) where {TP <: Polynomial}
+    return dss(poly2pm(T),poly2pm(U),poly2pm(V),poly2pm(W); Ts = Ts, contr = contr, obs = obs, minimal = minimal, fast = fast, atol = atol, rtol = rtol)
 end
+
 """
     A, E, B, C, D  = dssdata([T,] sys) 
     

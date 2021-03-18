@@ -105,7 +105,7 @@ function glnull(sys::DescriptorStateSpace{T}, m2::Int = 0; polynomial::Bool = fa
                 poles::Union{AbstractVector,Missing} = missing, sdeg::Union{Real,Missing} = missing, 
                 offset::Real = sqrt(eps(float(real(T)))), 
                 atol::Real = zero(real(T)), atol1::Real = atol, atol2::Real = atol, 
-                rtol::Real = ((size(sys.A,1)+1)*eps(real(float(one(T)))))*iszero(max(atol1,atol2)), 
+                rtol::Real = sys.nx*eps(real(float(one(T))))*iszero(max(atol1,atol2)), 
                 fast::Bool = true, coinner::Bool = false, simple::Bool = false) where T 
    p, m = size(sys)
    (m2 <= m && m2 >= 0) || throw(DimensionMismatch("m2 must be at most $m, got $m2"))

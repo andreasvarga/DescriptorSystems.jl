@@ -7,7 +7,7 @@ const _TypedRationalConcatGroup{T} = Union{Vector{RationalTransferFunction{T}}, 
 promote_to_rtf_(n::Int, ::Type{T}, var::Symbol, A::Number, Ts::Union{Real,Nothing}) where {T} = rtf(Polynomial{T}(T(A),var), Ts = Ts)
 #promote_to_rtf_(n::Int, ::Type{T}, var::Symbol, A::Polynomial, Ts::Union{Real,Nothing}) where {T} = rtf(Polynomial{T}(T.(A.coeffs), var), Polynomial{T}(one(T), var), Ts = Ts)
 promote_to_rtf_(n::Int, ::Type{T}, var::Symbol, A::RationalTransferFunction, Ts::Union{Real,Nothing}) where {T} = 
-     (T == eltype(A) && Ts == A.Ts && var == A.num.var) ? A : rtf(Polynomial{T}(T.(A.num.coeffs), var), Polynomial{T}(T.(A.den.coeffs), var), Ts = Ts)
+     (T == eltype(A) && Ts == A.Ts && var == A.var) ? A : rtf(Polynomial{T}(T.(A.num.coeffs), var), Polynomial{T}(T.(A.den.coeffs), var), Ts = Ts)
 promote_to_rtfs(Ts::Union{Real,Nothing}, var::Symbol, n, k, ::Type{T}, A) where {T} = (promote_to_rtf_(n[k], T, var, A, Ts),)
 promote_to_rtfs(Ts::Union{Real,Nothing}, var::Symbol, n, k, ::Type{T}, A, B) where {T} =
     (promote_to_rtf_(n[k], T, var, A, Ts), promote_to_rtf_(n[k+1], T, var, B, Ts))
@@ -63,15 +63,15 @@ promote_to_rtfmat_(n::Int, ::Type{T}, var::Symbol, A::Number, Ts::Union{Real,Not
 # promote_to_rtfmat_(n::Int, ::Type{T}, var::Symbol, A::Polynomial, Ts::Union{Real,Nothing}) where {T} = 
 #     (T == eltype(A) && var == A.num.var) ? [rtf(A,Ts=Ts)] : [rtf(Polynomial{T}(A.coeffs, var),Ts=Ts)]
 promote_to_rtfmat_(n::Int, ::Type{T}, var::Symbol, A::RationalTransferFunction, Ts::Union{Real,Nothing}) where {T} = 
-     (T == eltype(A) && Ts == A.Ts && var == A.num.var) ? [A] : [rtf(Polynomial{T}(T.(A.num.coeffs), var), Polynomial{T}(T.(A.den.coeffs), var), Ts = Ts)]
+     (T == eltype(A) && Ts == A.Ts && var == A.var) ? [A] : [rtf(Polynomial{T}(T.(A.num.coeffs), var), Polynomial{T}(T.(A.den.coeffs), var), Ts = Ts)]
 promote_to_rtfmat_(n::Int, ::Type{T}, var::Symbol, J::UniformScaling, Ts::Union{Real,Nothing}) where {T} = rtf.(Polynomial.(copyto!(Matrix{T}(undef, n,n), J),var),Ts=Ts)
 promote_to_rtfmat_(n::Int, ::Type{T}, var::Symbol, A::AbstractVecOrMat{T1}, Ts::Union{Real,Nothing}) where {T, T1 <: Number} = rtf.(Polynomial.(to_matrix(T,A),var),Ts=Ts)
 # promote_to_rtfmat_(n::Int, ::Type{T}, var::Symbol, A::VecOrMat{Polynomial{T1}}, Ts::Union{Real,Nothing}) where {T,T1} = 
 #      (T == T1 && var == A[1].var) ? rtf.(A,Ts = Ts) : rtf.(Polynomial{T}.(coeffs.(A),var),Ts = Ts)
 promote_to_rtfmat_(n::Int, ::Type{T}, var::Symbol, A::VecOrMat{RationalTransferFunction{T1}}, Ts::Union{Real,Nothing}) where {T,T1} = 
-     (T == T1 && var == A[1].num.var && Ts == A[1].Ts) ? A : rtf.(Polynomial{T}.(coeffs.(numpoly.(A)),var),Polynomial{T}.(coeffs.(denpoly.(A)),var),Ts = Ts)
+     (T == T1 && var == A[1].var && Ts == A[1].Ts) ? A : rtf.(Polynomial{T}.(coeffs.(numpoly.(A)),var),Polynomial{T}.(coeffs.(denpoly.(A)),var),Ts = Ts)
 promote_to_rtfmat_(n::Int, ::Type{T}, var::Symbol, A::VecOrMat{RationalTransferFunction}, Ts::Union{Real,Nothing}) where T = 
-     (eltype(A[1].num) == T && var == A[1].num.var && Ts == A[1].Ts) ? A : rtf.(Polynomial{T}.(coeffs.(numpoly.(A)),var),Polynomial{T}.(coeffs.(denpoly.(A)),var),Ts = Ts)
+     (eltype(A[1].num) == T && var == A[1].var && Ts == A[1].Ts) ? A : rtf.(Polynomial{T}.(coeffs.(numpoly.(A)),var),Polynomial{T}.(coeffs.(denpoly.(A)),var),Ts = Ts)
 promote_to_rtfmats(Ts::Union{Real,Nothing}, var::Symbol, n, k, ::Type{T}, A) where {T} = (promote_to_rtfmat_(n[k], T, var, A, Ts),)
 promote_to_rtfmats(Ts::Union{Real,Nothing}, var::Symbol, n, k, ::Type{T}, A, B) where {T} =
     (promote_to_rtfmat_(n[k], T, var, A, Ts), promote_to_rtfmat_(n[k+1], T, var, B, Ts))
@@ -365,19 +365,19 @@ function promote_rtf_var(A::Union{AbstractVecOrMat, RationalTransferFunction, Po
     var = nothing
     for a in A
         if eltype(a) <: RationalTransferFunction 
-           t = a[1].num.var
+           t = a[1].var
            isnothing(var) ? (var = t) : 
                             (t != var && error("all transfer function matrix elements must have the same variable"))
         elseif eltype(a) <: Polynomial 
-            t = a[1].var
+            t = Polynomials.indeterminate(a[1])
             isnothing(var) ? (var = t) : 
                (t != var && error("all transfer function matrix elements must have the same variable"))
         elseif typeof(a) <: RationalTransferFunction 
-            t = a.num.var
+            t = a.var
             isnothing(var) ? (var = t) : 
                    (t != var && error("all transfer function matrix elements must have the same variable"))
         elseif typeof(a) <: Polynomial 
-            t = a.var
+            t = Polynomials.indeterminate(a)
             isnothing(var) ? (var = t) : 
                    (t != var && error("all transfer function matrix elements must have the same variable"))
         end

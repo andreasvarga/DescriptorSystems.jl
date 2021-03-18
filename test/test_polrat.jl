@@ -369,9 +369,9 @@ W = [s^3+2s^2+s+2];
 
 # G = (2*s + 3)/(s^2 + 3*s + 2)
 T1 = [s+1 0;0 s+2];
-U1 = Polynomial.([1;1]);
-V1 = Polynomial.([1 1]);
-W1 = Polynomial.([0]);
+U1 = Polynomial.([1;1],:s);
+V1 = Polynomial.([1 1],:s);
+W1 = Polynomial.([0],:s);
 
 sys = dss(T,U,V,W,atol = 1.e-7, minimal=true); 
 sys1 = dss(T1,U1,V1,W1,atol = 1.e-7, minimal=true); 
@@ -400,6 +400,17 @@ sys_poles = eigvals(sys.A,sys.E)
 @test sort(sys_poles) ≈ [-2., -1., 1.]
 sys_zeros = spzeros(dssdata(sys)...)[1] 
 @test coeffs(fromroots(sys_zeros)) ≈ [-1,1,0,1]
+
+D1 = Polynomial([-2,-1,2,1]);
+N1 = Polynomial([-1,1,0,1]);
+V1 = 1;
+W1 = 0;
+sys = dss(D1,N1,V1,W1,atol = 1.e-7, minimal=true); 
+sys_poles = eigvals(sys.A,sys.E)
+@test sort(sys_poles) ≈ [-2., -1., 1.]
+sys_zeros = spzeros(dssdata(sys)...)[1] 
+@test coeffs(fromroots(sys_zeros)) ≈ [-1,1,0,1]
+
 
 end # polynomial system matrix realizations
 

@@ -10,6 +10,7 @@ using Test
 
 @testset "nullrange" begin
 
+
 @testset "grnull" begin
 
 p1 = 0; p2 = 0; m = 0; 
@@ -107,7 +108,7 @@ sys = [G; F]
 
 s = Polynomial([0, 1],'s'); 
 m = 5; p1 = 2; p2 = 0; 
-G = copy([ 1 2; -2 s; 2 2*s; -2*s^2 s^3; -2+s^3 s+s^3]');
+G = copy(transpose([ 1 2; -2 s; 2 2*s; -2*s^2 s^3; -2+s^3 s+s^3]));
 sys = dss(G[:,1:m]);
 
 # minimal rational basis
@@ -134,7 +135,7 @@ sys = dss(G[:,1:m]);
 
 z = Polynomial([0, 1],'z'); 
 m = 5; p1 = 2; p2 = 0; 
-G = copy([ 1 2; -2 z; 2 2*z; -2*z^2 z^3; -2+z^3 z+z^3]');
+G = copy(transpose([ 1 2; -2 z; 2 2*z; -2*z^2 z^3; -2+z^3 z+z^3]));
 sys = dss(G,Ts = 1);
 
 # minimal inner rational basis (discrete-time)
@@ -146,7 +147,7 @@ sys = dss(G,Ts = 1);
 
 z = Polynomial([0, 1],'z'); 
 m = 5; p1 = 2; p2 = 0; 
-G = copy([ 1 2; -2 z; 2 2*z; -2*z^2 z^3; -2+z^3 z+z^3]');
+G = copy(transpose([ 1 2; -2 z; 2 2*z; -2*z^2 z^3; -2+z^3 z+z^3]));
 sys = dss(G,Ts = 1);
 
 # minimal rational simple basis (discrete-time)
@@ -157,7 +158,7 @@ sys = dss(G,Ts = 1);
 
 z = Polynomial([0, 1],'z'); 
 m = 5; p1 = 2; p2 = 0; 
-G = copy([ 1 2; -2 z; 2 2*z; -2*z^2 z^3; -2+z^3 z+z^3]');
+G = copy(transpose([ 1 2; -2 z; 2 2*z; -2*z^2 z^3; -2+z^3 z+z^3]));
 sys = dss(G,Ts = 1);
 
 # minimal rational simple basis with innner vectors (discrete-time)
@@ -171,7 +172,7 @@ sys = dss(G,Ts = 1);
 
 z = Polynomial([0, 1],'z'); 
 m = 5; p1 = 2; p2 = 0; 
-G = copy([ 1 2; -2 z; 2 2*z; -2*z^2 z^3; -2+z^3 z+z^3]');
+G = copy(transpose([ 1 2; -2 z; 2 2*z; -2*z^2 z^3; -2+z^3 z+z^3]));
 sys = dss(G,Ts = 1);
 
 # minimal polynomial simple basis (discrete-time)
@@ -190,7 +191,7 @@ sys = dss(G,Ts = 1);
 
 z = Polynomial([0, 1],'z'); 
 m = 5; p1 = 2; p2 = 0; 
-G = copy([ 1 2; -2 z; 2 2*z; -2*z^2 z^3; -2+z^3 z+z^3]');
+G = copy(transpose([ 1 2; -2 z; 2 2*z; -2*z^2 z^3; -2+z^3 z+z^3]));
 sys = dss(G,Ts = 1);
 
 # minimal simple basis with poles assigned to 0 (discrete-time)
@@ -202,7 +203,7 @@ sys = dss(G,Ts = 1);
 
 z = Polynomial([0, 1],'z'); 
 m = 5; p1 = 2; p2 = 0; 
-G = copy([ 1 2; -2 z; 2 2*z; -2*z^2 z^3; -2+z^3 z+z^3]');
+G = copy(transpose([ 1 2; -2 z; 2 2*z; -2*z^2 z^3; -2+z^3 z+z^3]));
 sys = dss(G,Ts = 1);
 
 # minimal rational basis with poles assigned to 0 (discrete-time)

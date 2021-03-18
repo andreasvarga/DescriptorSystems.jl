@@ -24,7 +24,7 @@ export append, series, parallel, horzcat, vertcat
 export order, evalfr, dcgain, opnorm
 export gpole, gzero, gpoleinfo, gzeroinfo, gnrank, isregular, isproper, isstable, 
        glinfnorm, ghinfnorm, gl2norm, gh2norm, ghanorm
-export gsdec, grnull, glnull, grsol, glsol, grmcover1, grmcover2, glmcover1, glmcover2
+export gsdec, grnull, glnull, grange, gcrange, grsol, glsol, grmcover1, grmcover2, glmcover1, glmcover2
 export grcf, glcf, grcfid, glcfid, giofac, goifac
 # export PencilStateSpace, pss, pssdata
 

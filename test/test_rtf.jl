@@ -49,7 +49,7 @@ sysd2 = rtf(Polynomial([b, a]), Polynomial([d, c]), Ts = 1, var = :z)
 @test sysd == sysd1 && sysd == sysd2
 @test sysd ≈ sysd1  && sysd == sysd2
 @test sysd' == rtf(a+b*z, c+d*z, Ts = 1)
-@test rtf(a*z+b, 1, Ts = 1)' == rtf(a+b*z, z, Ts = 1)
+@test rtf(a*z+b, 1, Ts = 1)' == rtf(a+b*z, z, Ts = 1)  
 @test rtf(1, a*z+b, Ts = 1)' == rtf(z, a+b*z, Ts = 1)
 @test promote_type(typeof(sysd),Float64) == RationalTransferFunction{Float64}
 
@@ -135,10 +135,10 @@ sys1 = rtf([-b/a],[-d/c],a/c,Ts = 0, var = :s)
       sys1.gain ≈ a/c && sys1.Ts == 0 && sys.var == :s
 
 
-zer = eigvals(rand(5,5))
+zer = eigvals(rand(5,5)) #fail
 pol = eigvals(rand(7,7))
 k = .5
-sys = rtf(k*fromroots(zer),fromroots(pol))
+sys = rtf(k*fromroots(zer),fromroots(pol),var=:s)
 sys1 = rtf(zer,pol,k,Ts = 0)
 @test sys ≈ sys1
 
@@ -262,8 +262,8 @@ s = Polynomial([0, 1],'s'); z = Polynomial([0, 1],'z');
 Gc1 = [s^2 s/(s+1); 0 1/s] 
 Gd1 = [z^2 z/(z-2); 0 1/z] 
 
-@test all( Gc .== rtf.(Gc1,Ts = Gc[1].Ts,var=s.var))
-@test all( Gd .== rtf.(Gd1,Ts = Gd[1].Ts,var=z.var))
+@test all( Gc .== rtf.(Gc1,Ts = Gc[1].Ts,var=:s))
+@test all( Gd .== rtf.(Gd1,Ts = Gd[1].Ts,var=:z))
 
 g, ginv = rtfbilin("c2d")
 @test all(confmap.(confmap.(Gc,[g]),[ginv]) .== Gc)
