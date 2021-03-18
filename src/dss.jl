@@ -372,14 +372,23 @@ end
 #              println("T = $T")
 #        dss(poly2pm(T),poly2pm(U),poly2pm(V),poly2pm(W); kwargs...)
 # end
-function dss(T::Union{AbstractVecOrMat{TP},TP}, 
-             U::Union{AbstractVecOrMat{TP},TP,Number,AbstractVecOrMat{<:Number}}, 
-             V::Union{AbstractVecOrMat{TP},TP,Number,AbstractVecOrMat{<:Number}}, 
-             W::Union{AbstractVecOrMat{TP},TP,Number,AbstractVecOrMat{<:Number}}; 
-             Ts::Real = 0, contr::Bool = false, obs::Bool = false, minimal::Bool = false, 
-             fast::Bool = true, atol::Real = zero(float(real(eltype(eltype(T))))), 
-             rtol::Real = size(T,1)*eps(one(eltype(atol)))*iszero(atol)) where {TP <: Polynomial}
-    return dss(poly2pm(T),poly2pm(U),poly2pm(V),poly2pm(W); Ts = Ts, contr = contr, obs = obs, minimal = minimal, fast = fast, atol = atol, rtol = rtol)
+# function dss(T::Union{AbstractVecOrMat{TP},TP}, 
+#              U::Union{AbstractVecOrMat{TP},TP,Number,AbstractVecOrMat{<:Number}}, 
+#              V::Union{AbstractVecOrMat{TP},TP,Number,AbstractVecOrMat{<:Number}}, 
+#              W::Union{AbstractVecOrMat{TP},TP,Number,AbstractVecOrMat{<:Number}}; 
+#              Ts::Real = 0, contr::Bool = false, obs::Bool = false, minimal::Bool = false, 
+#              fast::Bool = true, atol::Real = zero(float(real(eltype(eltype(T))))), 
+#              rtol::Real = size(T,1)*eps(one(eltype(atol)))*iszero(atol)) where {TP <: Polynomial}
+#     return dss(poly2pm(T),poly2pm(U),poly2pm(V),poly2pm(W); Ts = Ts, contr = contr, obs = obs, minimal = minimal, fast = fast, atol = atol, rtol = rtol)
+# end
+function dss(T::Union{AbstractVecOrMat{<:Polynomial},Polynomial}, 
+    U::Union{AbstractVecOrMat{<:Polynomial},Polynomial,Number,AbstractVecOrMat{<:Number}}, 
+    V::Union{AbstractVecOrMat{<:Polynomial},Polynomial,Number,AbstractVecOrMat{<:Number}}, 
+    W::Union{AbstractVecOrMat{<:Polynomial},Polynomial,Number,AbstractVecOrMat{<:Number}}; 
+    Ts::Real = 0, contr::Bool = false, obs::Bool = false, minimal::Bool = false, 
+    fast::Bool = true, atol::Real = zero(float(real(eltype(eltype(T))))), 
+    rtol::Real = size(T,1)*eps(one(eltype(atol)))*iszero(atol)) 
+return dss(poly2pm(T),poly2pm(U),poly2pm(V),poly2pm(W); Ts = Ts, contr = contr, obs = obs, minimal = minimal, fast = fast, atol = atol, rtol = rtol)
 end
 
 """
