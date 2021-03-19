@@ -697,38 +697,38 @@ sys = rss(n,p,m,T = Ty, stable = true);
 sys.D[:,:] = zeros(Ty,p,m);
 @time hinf, hfpeak = ghinfnorm(sys,fast = fast,rtolinf = rtolinf)
 @time linf, lfpeak = glinfnorm(sys',fast = fast,rtolinf = rtolinf)
-@test abs(hinf-linf)/hinf < 2*rtolinf && abs(hfpeak-lfpeak) <= rtolinf*lfpeak
+@test abs(hinf-linf)/hinf < 2*rtolinf && (hfpeak == lfpeak || abs(hfpeak-lfpeak) <= 0.01*lfpeak)
 
 sys = rss(n,p,m,T = Ty, stable = true); 
 @time hinf, hfpeak = ghinfnorm(sys,fast = fast,rtolinf = rtolinf)
 @time linf, lfpeak = glinfnorm(sys',fast = fast,rtolinf = rtolinf)
-@test abs(hinf-linf)/hinf < 2*rtolinf && abs(hfpeak-lfpeak) <= rtolinf*lfpeak
+@test abs(hinf-linf)/hinf < 2*rtolinf && (hfpeak == lfpeak || abs(hfpeak-lfpeak) <= 0.01*lfpeak)
 
 sys = rss(n,p,m,stable = true, disc = true); 
-@time hinf, fpeak = ghinfnorm(sys,fast = fast,rtolinf = rtolinf)
-@time linf, fpeak = glinfnorm(sys',fast = fast,rtolinf = rtolinf)
-@test abs(hinf-linf)/hinf < 2*rtolinf
+@time hinf, hfpeak = ghinfnorm(sys,fast = fast,rtolinf = rtolinf)
+@time linf, lfpeak = glinfnorm(sys',fast = fast,rtolinf = rtolinf)
+@test abs(hinf-linf)/hinf < 2*rtolinf && (hfpeak == lfpeak || abs(hfpeak-lfpeak) <= 0.01*lfpeak)
 
 sys = rdss(n,p,m,T = Ty, stable = true); 
 sys.D[:,:] = zeros(Ty,p,m);
 @time hinf, hfpeak = ghinfnorm(sys,fast = fast,rtolinf = rtolinf)
 @time linf, lfpeak = glinfnorm(sys',fast = fast,rtolinf = rtolinf)
-@test abs(hinf-linf)/hinf < 2*rtolinf && abs(hfpeak-lfpeak) <= rtolinf*lfpeak
+@test abs(hinf-linf)/hinf < 2*rtolinf && (hfpeak == lfpeak || abs(hfpeak-lfpeak) <= 0.01*lfpeak)
 
 sys = rdss(n,p,m,T = Ty, stable = true); 
 @time hinf, hfpeak = ghinfnorm(sys,fast = fast,rtolinf = rtolinf)
 @time linf, lfpeak = glinfnorm(sys',fast = fast,rtolinf = rtolinf)
-@test abs(hinf-linf)/hinf < 2*rtolinf && abs(hfpeak-lfpeak) <= rtolinf*lfpeak
+@test abs(hinf-linf)/hinf < 2*rtolinf && (hfpeak == lfpeak || abs(hfpeak-lfpeak) <= 0.01*lfpeak)
 
 sys = rdss(n,p,m,T = Ty, stable = true, disc = true); 
-@time hinf, fpeak = ghinfnorm(sys,fast = fast,rtolinf = rtolinf)
-@time linf, fpeak = glinfnorm(sys',fast = fast,rtolinf = rtolinf)
-@test abs(hinf-linf)/hinf < 2*rtolinf
+@time hinf, hfpeak = ghinfnorm(sys,fast = fast,rtolinf = rtolinf)
+@time linf, lfpeak = glinfnorm(sys',fast = fast,rtolinf = rtolinf)
+@test abs(hinf-linf)/hinf < 2*rtolinf && (hfpeak == lfpeak || abs(hfpeak-lfpeak) <= 0.01*lfpeak)
 
 sys = rdss(n,p,m,T = Ty, stable = true, id=ones(Int,3)); 
 @time hinf, hfpeak = ghinfnorm(sys,fast = fast,rtolinf = rtolinf)
 @time linf, lfpeak = glinfnorm(sys',fast = fast,rtolinf = rtolinf)
-@test abs(hinf-linf)/hinf < 2*rtolinf && abs(hfpeak-lfpeak) <= rtolinf*lfpeak
+@test abs(hinf-linf)/hinf < 2*rtolinf && (hfpeak == lfpeak || abs(hfpeak-lfpeak) <= 0.01*lfpeak)
 
 end # fast
 end # Ty
