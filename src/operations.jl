@@ -201,9 +201,9 @@ and the relative tolerance for the nonzero elements of `A`, `B`, `C`, `D` and `E
 The default relative tolerance is `n*ϵ`, where `n` is the order of the square matrices `A` and `E`, and  `ϵ` is the working machine epsilon. 
 The keyword argument `atol` can be used to simultaneously set `atol1 = atol` and `atol2 = atol`. 
 """
-function gbilin(sys::DescriptorStateSpace{T},g::RationalTransferFunction{T1}; compact = true, minimal = false, standard = true, 
-                atol::Real = zero(real(T)), atol1::Real = atol, atol2::Real = atol, 
-                rtol::Real = sys.nx*eps(real(float(one(T))))*iszero(min(atol1,atol2))) where {T,T1}
+function gbilin(sys::DescriptorStateSpace{T},g::RationalTransferFunction; compact = true, minimal = false, standard = true, 
+                atol::Real = zero(float(real(T))), atol1::Real = atol, atol2::Real = atol, 
+                rtol::Real = sys.nx*eps(real(float(one(T))))*iszero(min(atol1,atol2))) where T
     
   
     # check g is first order 

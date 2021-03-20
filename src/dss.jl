@@ -55,7 +55,7 @@ function dss(A::AbstractNumOrArray, E::Union{AbstractNumOrArray,UniformScaling},
              rtol::Real = (typeof(A) <: Number ? 1 : min(size(A)...))*eps(real(float(one(eltype(A)))))*iszero(min(atol1,atol2))) 
 
     T = promote_type(eltype(A), E == I ? Bool : eltype(E), eltype(B), eltype(C), eltype(D))
-    check_reg && E != I && !isregular(to_matrix(T,A), to_matrix(T,E), atol1 = atol1, atol2 = atol2, rtol = rtol ) && 
+    check_reg && E != I && !MatrixPencils.isregular(to_matrix(T,A), to_matrix(T,E), atol1 = atol1, atol2 = atol2, rtol = rtol ) && 
                             error("The pencil A-λE is not regular")
     p = typeof(C) <: Union{AbstractVector,Number} ? (size(A,1) <= 1 ? size(C,1) : 1) : size(C,1)                        
     m = typeof(B) <: Union{AbstractVector,Number} ? 1 : size(B,2)                        
@@ -217,8 +217,8 @@ function dss(NUM::AbstractArray{T1,3},DEN::AbstractArray{T2,3};
     sysdata = rm2ls(NUM, DEN, contr = contr, obs = obs, noseig = noseig, minimal = minimal, atol = atol, rtol = rtol)
     return DescriptorStateSpace{eltype(sysdata[1])}(sysdata[1:5]...,Ts)
 end
-dss(NUM::Union{AbstractVecOrMat{Polynomial{T1}},Polynomial{T1},Number,AbstractVecOrMat},
-    DEN::Union{AbstractVecOrMat{Polynomial{T2}},Polynomial{T2},Number,AbstractVecOrMat}; kwargs...) where {T1,T2} =
+dss(NUM::Union{AbstractVecOrMat{Polynomial{T1,X}},Polynomial{T1,X},Number,AbstractVecOrMat},
+    DEN::Union{AbstractVecOrMat{Polynomial{T2,X}},Polynomial{T2,X},Number,AbstractVecOrMat}; kwargs...) where {T1,T2,X} =
     dss(poly2pm(NUM),poly2pm(DEN); kwargs...)
 """
     sys = dss(R; Ts=missing, contr = false, obs = false, noseig = false, minimal = false, fast = true, atol = 0, rtol) 
@@ -262,9 +262,9 @@ IEEE Transactions on Automatic Control, vol. AC-26, pp. 111-129, 1981.
 
 [2] A. Varga, Solving Fault Diagnosis Problems - Linear Synthesis Techniques, Springer Verlag, 2017. 
 """
-function dss(R::Union{AbstractVecOrMat{RationalTransferFunction{T}},RationalTransferFunction{T}}; Ts::Union{Real,Missing} = missing, 
-             minimal::Bool = false, contr::Bool = false, obs::Bool = false, noseig::Bool = false, atol::Real = zero(real(T)), 
-             rtol::Real = 100*eps(real(float(one(T))))*iszero(atol)) where T
+function dss(R::Union{AbstractVecOrMat{<:RationalTransferFunction},RationalTransferFunction}; Ts::Union{Real,Missing} = missing, 
+             minimal::Bool = false, contr::Bool = false, obs::Bool = false, noseig::Bool = false, 
+             atol::Real = zero(float(real(_eltype(R)))), rtol::Real = 100*eps(one(atol))*iszero(atol)) 
     ismissing(Ts) && (eltype(R) <: RationalTransferFunction ? Ts = R[1].Ts : Ts = R.Ts )
     isnothing(Ts) && (Ts = 0)
     dss(poly2pm(numpoly.(R)), poly2pm(denpoly.(R)); Ts = Ts, contr = contr, obs = obs, 
@@ -382,12 +382,12 @@ end
 #     return dss(poly2pm(T),poly2pm(U),poly2pm(V),poly2pm(W); Ts = Ts, contr = contr, obs = obs, minimal = minimal, fast = fast, atol = atol, rtol = rtol)
 # end
 function dss(T::Union{AbstractVecOrMat{<:Polynomial},Polynomial}, 
-    U::Union{AbstractVecOrMat{<:Polynomial},Polynomial,Number,AbstractVecOrMat{<:Number}}, 
-    V::Union{AbstractVecOrMat{<:Polynomial},Polynomial,Number,AbstractVecOrMat{<:Number}}, 
-    W::Union{AbstractVecOrMat{<:Polynomial},Polynomial,Number,AbstractVecOrMat{<:Number}}; 
-    Ts::Real = 0, contr::Bool = false, obs::Bool = false, minimal::Bool = false, 
-    fast::Bool = true, atol::Real = zero(float(real(eltype(eltype(T))))), 
-    rtol::Real = size(T,1)*eps(one(eltype(atol)))*iszero(atol)) 
+             U::Union{AbstractVecOrMat{<:Polynomial},Polynomial,Number,AbstractVecOrMat{<:Number}}, 
+             V::Union{AbstractVecOrMat{<:Polynomial},Polynomial,Number,AbstractVecOrMat{<:Number}}, 
+             W::Union{AbstractVecOrMat{<:Polynomial},Polynomial,Number,AbstractVecOrMat{<:Number}}; 
+             Ts::Real = 0, contr::Bool = false, obs::Bool = false, minimal::Bool = false, 
+             fast::Bool = true, atol::Real = zero(float(real(eltype(eltype(T))))), 
+             rtol::Real = size(T,1)*eps(one(eltype(atol)))*iszero(atol)) 
 return dss(poly2pm(T),poly2pm(U),poly2pm(V),poly2pm(W); Ts = Ts, contr = contr, obs = obs, minimal = minimal, fast = fast, atol = atol, rtol = rtol)
 end
 

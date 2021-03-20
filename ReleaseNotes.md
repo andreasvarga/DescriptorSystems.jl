@@ -1,5 +1,10 @@
 # Release Notes
 
+## Version 0.4.2
+
+Patch release to enhance the definition of the rational transfer function object to better fit to 
+Polynomials.jl v2.0.
+
 ## Version 0.4.1
 
 Patch release to upgrade to using Polynomials.jl v2.0 and MatrixPencils 1.6.2.

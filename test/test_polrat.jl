@@ -203,19 +203,19 @@ num = [s 2; 1 s]
 den = [s+1 (s+1)*(s+3); s+4 (s+2)*(s+4)]
 G = num./den
 
-sys = dss(G,contr=true)
+@time sys = dss(G,contr=true)
 @test evalfr.(G,1) ≈ evalfr(sys,1)
 
-sys = dss(G,obs=true)  
+@time sys = dss(G,obs=true)  
 @test evalfr(G,1) ≈ evalfr(sys,1)
 
-sys = dss(G,minimal = true, atol = 1.e-7);
+@time sys = dss(G,minimal = true, atol = 1.e-7);
 @test evalfr(G,1) ≈ evalfr(sys,1)
 
-sys = dss(G,minimal = true, contr = true, atol = 1.e-7);
+@time sys = dss(G,minimal = true, contr = true, atol = 1.e-7);
 @test evalfr(G,1) ≈ evalfr(sys,1)
 
-sys = dss(G,minimal = true, obs = true, atol = 1.e-7);
+@time sys = dss(G,minimal = true, obs = true, atol = 1.e-7);
 @test evalfr(G,1) ≈ evalfr(sys,1)
 
 num1, den1 = ls2rm(dssdata(sys)..., atol1 = 1.e-7, atol2 = 1.e-7);
@@ -228,10 +228,10 @@ num = [s^2+1 s+1]
 den = [s^2 s^3]
 G = num./den
 
-sys = dss(G,contr=true)
+@time sys = dss(G,contr=true)
 @test evalfr(G,1) ≈ evalfr(sys,1)
 
-sys = dss(G,obs=true)
+@time sys = dss(G,obs=true)
 @test evalfr(G,1) ≈ evalfr(sys,1)
 
 # Example 4.3 (modified) Antsaklis, Michel 2006
@@ -241,7 +241,7 @@ num = [s^3+1 s+1]
 den = [s^2 s^3]
 G = num./den
 
-sys = dss(G,contr=true)
+@time sys = dss(G,contr=true)
 @test evalfr(G,1) ≈ evalfr(sys,1)
 
 
@@ -252,14 +252,14 @@ num = [2 1; 1 0];
 den = [s+1 1; s 1];
 G = num./den
 
-sys = dss(G)
+@time sys = dss(G)
 @test evalfr(G,1) ≈ evalfr(sys,1)
 
 
-sys = dss(G,contr=true)
+@time sys = dss(G,contr=true)
 @test evalfr(G,1) ≈ evalfr(sys,1)
 
-sys = dss(G,obs=true)
+@time sys = dss(G,obs=true)
 @test evalfr(G,1) ≈ evalfr(sys,1)
 
 
@@ -332,31 +332,31 @@ W = Polynomial.(zeros(3,3));
 sys = dss(D,D,D,W,atol = 1.e-7, minimal=true)  
 @test all(Polynomial.(sys.D) .≈ -D)  
 
-sys = dss(D,D,D,W,atol = 1.e-7)  
+@time sys = dss(D,D,D,W,atol = 1.e-7)  
 @test all(Polynomial.(dcgain(sys)) .≈ -D)  && iszero(sys.E)
 
 # 
 D = rand(3,3,2); V = zeros(3,3,1); V[:,:,1] = Matrix{eltype(V)}(I,3,3); W = zeros(3,3,1);
-sys = dss(D,D,V,W,atol = 1.e-7, minimal=true)   
+@time sys = dss(D,D,V,W,atol = 1.e-7, minimal=true)   
 @test sys.D ≈ Matrix{eltype(V)}(I,3,3)
 
 D = rand(3,3,4); W = zeros(3,3,1);
-sys2 = dss(D,D,D,W,atol = 1.e-7, minimal=true)  
+@time sys2 = dss(D,D,D,W,atol = 1.e-7, minimal=true)  
 sys1 = dss(D) 
 @test iszero(sys1-sys2,atol1 = 1.e-7,atol2 = 1.e-7) 
 
 
 
 T = rand(3,3,4); U = rand(3,3,2); V = rand(3,3,4); W = rand(3,3,3);
-sys = dss(T,U,V,W);
+@time sys = dss(T,U,V,W);
 @test evalfr(sys,5im) ≈ pmeval(V,5im)*(pmeval(T,5im)\pmeval(U,5im))+pmeval(W,5im)
 
 T = rand(Complex{Float64},3,3,4); U = rand(3,3,2); V = rand(3,3,4); W = rand(3,3,3);
-sys = dss(T,U,V,W);
+@time sys = dss(T,U,V,W);
 @test evalfr(sys,1) ≈ pmeval(V,1)*(pmeval(T,1)\pmeval(U,1))+pmeval(W,1)
 
 T = rand(0,0,4); U = rand(0,3,2); V = rand(3,0,4); W = rand(3,3,3);
-sys = dss(T,U,V,W);
+@time sys = dss(T,U,V,W);
 @test evalfr(sys,5im) ≈ pmeval(V,5im)*(pmeval(T,5im)\pmeval(U,5im))+pmeval(W,5im)
 
 
@@ -373,8 +373,8 @@ U1 = Polynomial.([1;1],:s);
 V1 = Polynomial.([1 1],:s);
 W1 = Polynomial.([0],:s);
 
-sys = dss(T,U,V,W,atol = 1.e-7, minimal=true); 
-sys1 = dss(T1,U1,V1,W1,atol = 1.e-7, minimal=true); 
+@time sys = dss(T,U,V,W,atol = 1.e-7, minimal=true); 
+@time sys1 = dss(T1,U1,V1,W1,atol = 1.e-7, minimal=true); 
 @test iszero(sys1-sys,atol1=1.e-7,atol2=1.e-7)
 
 
@@ -384,7 +384,7 @@ D = reshape([-2,-1,2,1],1,1,4);
 N = reshape([-1,1,0,1],1,1,4);
 V = reshape([1],1,1,1);
 W = reshape([0.],1,1,1);
-sys = dss(D,N,V,W,atol = 1.e-7, minimal=true); 
+@time sys = dss(D,N,V,W,atol = 1.e-7, minimal=true); 
 sys_poles = eigvals(sys.A,sys.E)
 @test sort(sys_poles) ≈ [-2., -1., 1.]
 sys_zeros = spzeros(dssdata(sys)...)[1] 
@@ -405,7 +405,7 @@ D1 = Polynomial([-2,-1,2,1]);
 N1 = Polynomial([-1,1,0,1]);
 V1 = 1;
 W1 = 0;
-sys = dss(D1,N1,V1,W1,atol = 1.e-7, minimal=true); 
+@time sys = dss(D1,N1,V1,W1,atol = 1.e-7, minimal=true); 
 sys_poles = eigvals(sys.A,sys.E)
 @test sort(sys_poles) ≈ [-2., -1., 1.]
 sys_zeros = spzeros(dssdata(sys)...)[1] 

@@ -51,7 +51,7 @@ sysd2 = rtf(Polynomial([b, a]), Polynomial([d, c]), Ts = 1, var = :z)
 @test sysd' == rtf(a+b*z, c+d*z, Ts = 1)
 @test rtf(a*z+b, 1, Ts = 1)' == rtf(a+b*z, z, Ts = 1)  
 @test rtf(1, a*z+b, Ts = 1)' == rtf(z, a+b*z, Ts = 1)
-@test promote_type(typeof(sysd),Float64) == RationalTransferFunction{Float64}
+@test promote_type(typeof(sysd),Float64) == RationalTransferFunction{Float64,:z}
 
 a = 1; b = 2; c = 3; d = 4;
 sys = rtf(Polynomial([b, a],:s), d, Ts = 0)
@@ -148,8 +148,8 @@ k = .5
 @time r3 = rtf(Polynomial(1), Polynomial([-1, 1]), var = :s) # r3 =  1/(s-1)
 @time r4 = rtf(Polynomial(1), Polynomial([-1, 1]), Ts=1, var = :z) # r3 =  1/(z-1)
 
-@test_throws ErrorException r3+r4
-@test_throws ErrorException r3*r4
+@test_throws MethodError r3+r4
+@test_throws MethodError r3*r4
 @test_throws ErrorException rtf(Polynomial(1), Polynomial(0))
 
 @test r1+r2 ≈ rtf(Polynomial(2), Polynomial([-1, 0, 1]))
