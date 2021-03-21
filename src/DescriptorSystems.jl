@@ -1,5 +1,5 @@
 module DescriptorSystems
-# Release V0.4
+# Release V0.4.*
 
 using LinearAlgebra
 using MatrixEquations

@@ -21,14 +21,12 @@ promote_to_rtfs(Ts::Union{Real,Nothing}, var::Symbol, n, k, ::Type{T}, A, B, Cs.
 #     T = Base.promote_eltype(A...)
 #     var = promote_rtf_var(A...)
 #     Ts = promote_rtf_SamplingTime(A...)
-#     Tp = promote_rtf_type(A...)
 #     hvcat_fill(Matrix{RationalTransferFunction{T}}(undef, 1, length(A)), promote_to_rtfs(Ts, var, fill(1,length(A)), 1, T, A...))
 # end
 # function Base.vcat(A::Union{AbstractRationalTransferFunction,Number}...) 
 #     T = Base.promote_eltype(A...)
 #     var = promote_rtf_var(A...)
 #     Ts = promote_rtf_SamplingTime(A...)
-
 #     hvcat_fill(Matrix{RationalTransferFunction{T}}(undef, length(A), 1), promote_to_rtfs(Ts, var, fill(1,length(A)), 1, T, A...))
 # end
   
@@ -68,10 +66,8 @@ promote_to_rtfmat_(n::Int, ::Type{T}, var::Symbol, J::UniformScaling, Ts::Union{
 promote_to_rtfmat_(n::Int, ::Type{T}, var::Symbol, A::AbstractVecOrMat{T1}, Ts::Union{Real,Nothing}) where {T, T1 <: Number} = rtf.(Polynomial.(to_matrix(T,A),var),Ts=Ts)
 # promote_to_rtfmat_(n::Int, ::Type{T}, var::Symbol, A::VecOrMat{Polynomial{T1}}, Ts::Union{Real,Nothing}) where {T,T1} = 
 #      (T == T1 && var == A[1].var) ? rtf.(A,Ts = Ts) : rtf.(Polynomial{T}.(coeffs.(A),var),Ts = Ts)
-promote_to_rtfmat_(n::Int, ::Type{T}, var::Symbol, A::VecOrMat{RationalTransferFunction{T1}}, Ts::Union{Real,Nothing}) where {T,T1} = 
-     (T == T1 && var == A[1].var && Ts == A[1].Ts) ? A : rtf.(Polynomial{T}.(coeffs.(numpoly.(A)),var),Polynomial{T}.(coeffs.(denpoly.(A)),var),Ts = Ts)
-promote_to_rtfmat_(n::Int, ::Type{T}, var::Symbol, A::VecOrMat{RationalTransferFunction}, Ts::Union{Real,Nothing}) where T = 
-     (eltype(A[1].num) == T && var == A[1].var && Ts == A[1].Ts) ? A : rtf.(Polynomial{T}.(coeffs.(numpoly.(A)),var),Polynomial{T}.(coeffs.(denpoly.(A)),var),Ts = Ts)
+promote_to_rtfmat_(n::Int, ::Type{T}, var::Symbol, A::VecOrMat{<:RationalTransferFunction}, Ts::Union{Real,Nothing}) where T = 
+     (length(A) > 0 && _eltype(A) == T && var == A[1].var && Ts == A[1].Ts) ? A : rtf.(Polynomial{T}.(coeffs.(numpoly.(A)),var),Polynomial{T}.(coeffs.(denpoly.(A)),var),Ts = Ts)
 promote_to_rtfmats(Ts::Union{Real,Nothing}, var::Symbol, n, k, ::Type{T}, A) where {T} = (promote_to_rtfmat_(n[k], T, var, A, Ts),)
 promote_to_rtfmats(Ts::Union{Real,Nothing}, var::Symbol, n, k, ::Type{T}, A, B) where {T} =
     (promote_to_rtfmat_(n[k], T, var, A, Ts), promote_to_rtfmat_(n[k+1], T, var, B, Ts))
@@ -80,8 +76,8 @@ promote_to_rtfmats(Ts::Union{Real,Nothing}, var::Symbol, n, k, ::Type{T}, A, B, 
 promote_to_rtfmats(Ts::Union{Real,Nothing}, var::Symbol, n, k, ::Type{T}, A, B, Cs...) where {T} =
     (promote_to_rtfmat_(n[k], T, var, A, Ts), promote_to_rtfmat_(n[k+1], T, var, B, Ts), promote_to_rtfmats(Ts, var, n, k+2, T, Cs...)...)
 
-function Base.hcat(A::Union{VecOrMat{<:RationalTransferFunction},VecOrMat{<:RationalTransferFunction{T}}}...) where T
-        n = -1
+function Base.hcat(A::VecOrMat{<:RationalTransferFunction}...) 
+    n = -1
     for a in A
         require_one_based_indexing(a); na = size(a, 1)
         n >= 0 && n != na &&
@@ -91,10 +87,9 @@ function Base.hcat(A::Union{VecOrMat{<:RationalTransferFunction},VecOrMat{<:Rati
     Tc = promote_rtf_eltype(A...)
     var = promote_rtf_var(A...)
     Ts = promote_rtf_SamplingTime(A...)
-    Tp = promote_rtf_type(A...)
     return _hcat(RationalTransferFunction,promote_to_rtfmats(Ts, var, fill(n,length(A)), 1, Tc, A...)...)
 end
-function Base.hcat(A::Union{VecOrMat{<:RationalTransferFunction},VecOrMat{<:RationalTransferFunction{T}}, UniformScaling}...) where T
+function Base.hcat(A::Union{VecOrMat{<:RationalTransferFunction}, UniformScaling}...) 
     n = -1
     for a in A
         if !isa(a, UniformScaling)
@@ -111,8 +106,7 @@ function Base.hcat(A::Union{VecOrMat{<:RationalTransferFunction},VecOrMat{<:Rati
     Tp = promote_rtf_type(A...)
     return _hcat(RationalTransferFunction,promote_to_rtfmats(Ts, var, fill(n,length(A)), 1, Tc, A...)...)
 end
-function Base.hcat(A::Union{VecOrMat{<:RationalTransferFunction},VecOrMat{<:RationalTransferFunction{T}},RationalTransferFunction{T4},Number,UniformScaling}...) where 
-    {T, T4 <: Number} 
+function Base.hcat(A::Union{VecOrMat{<:RationalTransferFunction},RationalTransferFunction,Number,UniformScaling}...) 
     n = -1
     for a in A
         if !isa(a, UniformScaling)
@@ -126,7 +120,6 @@ function Base.hcat(A::Union{VecOrMat{<:RationalTransferFunction},VecOrMat{<:Rati
     Tc = promote_rtf_eltype(A...)
     var = promote_rtf_var(A...)
     Ts = promote_rtf_SamplingTime(A...)
-    Tp = promote_rtf_type(A...)
     return _hcat(RationalTransferFunction,promote_to_rtfmats(Ts, var, fill(n,length(A)), 1, Tc, A...)...)
 end
 function _hcat(::Type{T},A::AbstractVecOrMat...) where T
@@ -150,7 +143,7 @@ function _hcat(::Type{T},A::AbstractVecOrMat...) where T
     end
     return B
 end
-function Base.vcat(A::Union{VecOrMat{<:RationalTransferFunction},VecOrMat{<:RationalTransferFunction{T}}}...) where T
+function Base.vcat(A::VecOrMat{<:RationalTransferFunction}...) 
     n = -1
     for a in A
         require_one_based_indexing(a); na = size(a,2)
@@ -158,14 +151,12 @@ function Base.vcat(A::Union{VecOrMat{<:RationalTransferFunction},VecOrMat{<:Rati
             throw(DimensionMismatch(string("number of columns of each array must match (got ", n, " and ", na, ")")))
         n = na
     end
-    n == -1 && throw(ArgumentError("vcat of only UniformScaling objects cannot determine the matrix size"))
     Tc = promote_rtf_eltype(A...)
     var = promote_rtf_var(A...)
     Ts = promote_rtf_SamplingTime(A...)
-    Tp = promote_rtf_type(A...)
     return _vcat(RationalTransferFunction,promote_to_rtfmats(Ts, var, fill(n,length(A)), 1, Tc, A...)...)
 end
-function Base.vcat(A::Union{VecOrMat{<:RationalTransferFunction},VecOrMat{<:RationalTransferFunction{T}},UniformScaling}...) where T
+function Base.vcat(A::Union{VecOrMat{<:RationalTransferFunction},UniformScaling}...) 
     n = -1
     for a in A
         if !isa(a, UniformScaling)
@@ -179,12 +170,10 @@ function Base.vcat(A::Union{VecOrMat{<:RationalTransferFunction},VecOrMat{<:Rati
     Tc = promote_rtf_eltype(A...)
     var = promote_rtf_var(A...)
     Ts = promote_rtf_SamplingTime(A...)
-    Tp = promote_rtf_type(A...)
     return _vcat(RationalTransferFunction,promote_to_rtfmats(Ts, var, fill(n,length(A)), 1, Tc, A...)...)
 end
 
-function Base.vcat(A::Union{VecOrMat{<:RationalTransferFunction},VecOrMat{<:RationalTransferFunction{T}},RationalTransferFunction{T4},Number,UniformScaling}...) where 
-    {T, T4 <: Number} 
+function Base.vcat(A::Union{VecOrMat{<:RationalTransferFunction},RationalTransferFunction,Number,UniformScaling}...) 
     n = -1
     for a in A
         if !isa(a, UniformScaling)
@@ -198,7 +187,6 @@ function Base.vcat(A::Union{VecOrMat{<:RationalTransferFunction},VecOrMat{<:Rati
     Tc = promote_rtf_eltype(A...)
     var = promote_rtf_var(A...)
     Ts = promote_rtf_SamplingTime(A...)
-    Tp = promote_rtf_type(A...)
     return _vcat(RationalTransferFunction,promote_to_rtfmats(Ts, var, fill(n,length(A)), 1, Tc, A...)...)
 end
 function _vcat(::Type{T},A::AbstractVecOrMat...) where T
@@ -221,7 +209,7 @@ function _vcat(::Type{T},A::AbstractVecOrMat...) where T
     return B
 end
 function Base.hvcat(rows::Tuple{Vararg{Int}}, A::Union{AbstractVecOrMat{T1},AbstractVecOrMat{T2},AbstractVecOrMat{T3},RationalTransferFunction{T4},UniformScaling}...) where 
-    {T, T1 <: RationalTransferFunction{T}, T2 <: Polynomial{T}, T3 <: Number, T4 <: Number}
+    {T1 <: RationalTransferFunction, T2 <: Polynomial, T3 <: Number, T4 <: Number}
     nr = length(rows)
     sum(rows) == length(A) || throw(ArgumentError("mismatch between row sizes and number of arguments"))
     n = fill(-1, length(A))
@@ -327,48 +315,45 @@ function _hvcat(::Type{T}, rows::Tuple{Vararg{Int}}, as::AbstractVecOrMat...) wh
     out
 end
 
-function promote_rtf_SamplingTime(A::Union{AbstractVecOrMat, RationalTransferFunction, Polynomial, Number, UniformScaling}...)  
-    # pick and check the common sampling time  
+function promote_rtf_SamplingTime(A...)  
+    # pick and check the common sampling time 
     Ts = nothing
     for a in A
         if eltype(a) <: RationalTransferFunction 
-           Ts = promote_Ts(Ts,a[1].Ts)
+           length(a) > 0 && (Ts = promote_Ts(Ts,a[1].Ts))
         elseif typeof(a) <: RationalTransferFunction 
             Ts = promote_Ts(Ts,a.Ts)
         end
     end
     return Ts   # for transfer functions Ts = nothing is also allowed
 end
-function promote_rtf_eltype(A::Union{AbstractVecOrMat, RationalTransferFunction, Polynomial, Number, UniformScaling}...)  
+function promote_rtf_eltype(A...)  
     T = Bool
     for a in A
-        if eltype(a) <: RationalTransferFunction 
-           T = promote_type(T,eltype(a[1].num))
-        elseif eltype(a) <: Polynomial
-           T = promote_type(T,eltype(a[1]))
+        if eltype(a) <: RationalTransferFunction || eltype(a) <: Polynomial
+           T = promote_type(T,_eltype(a))
         else
            T = promote_type(T,eltype(a)) 
         end
     end
     return T
 end
-function promote_rtf_type(A::Union{AbstractVecOrMat, RationalTransferFunction, Polynomial, Number, UniformScaling}...)  
-    T = Bool
+function promote_rtf_type(A...)  
     T2 = Bool
     for a in A
         (eltype(a) <: RationalTransferFunction || typeof(a) <: RationalTransferFunction) && (return RationalTransferFunction)
         (eltype(a) <: Polynomial || typeof(a) <: Polynomial) && (T2 = Polynomial)
     end
-    return T != T2 ? T2 : T
+    return T2
 end
-function promote_rtf_var(A::Union{AbstractVecOrMat, RationalTransferFunction, Polynomial, Number, UniformScaling}...) 
+function promote_rtf_var(A...) 
     var = nothing
     for a in A
-        if eltype(a) <: RationalTransferFunction 
+        if eltype(a) <: RationalTransferFunction && length(a) > 0
            t = a[1].var
            isnothing(var) ? (var = t) : 
                             (t != var && error("all transfer function matrix elements must have the same variable"))
-        elseif eltype(a) <: Polynomial 
+        elseif eltype(a) <: Polynomial && length(a) > 0
             t = Polynomials.indeterminate(a[1])
             isnothing(var) ? (var = t) : 
                (t != var && error("all transfer function matrix elements must have the same variable"))

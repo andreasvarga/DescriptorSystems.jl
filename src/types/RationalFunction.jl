@@ -56,8 +56,9 @@ function RationalTransferFunction(num::Polynomial{T1,X}, den::Polynomial{T2,X}, 
     T = promote_type(T1,T2)
     RationalTransferFunction{T,X}(convert(Polynomial{T,X}, num), convert(Polynomial{T,X}, den), Ts)
 end
-RationalTransferFunction{T}(num::Polynomial{T1,X}, den::Polynomial{T2,X}, Ts::Union{Real,Nothing}) where {T,T1,T2,X} = RationalTransferFunction{T,X}(convert(Polynomial{T,X}, num), convert(Polynomial{T,X}, den), Ts)
-
+function RationalTransferFunction{T}(num::Polynomial{T1,X}, den::Polynomial{T2,X}, Ts::Union{Real,Nothing}) where {T,T1,T2,X}
+    RationalTransferFunction{T,X}(convert(Polynomial{T,X}, num), convert(Polynomial{T,X}, den), Ts)
+end
 function Base.getproperty(F::RationalTransferFunction, d::Symbol)
     if d === :zeros
         return roots(getfield(F, :num))
@@ -71,7 +72,7 @@ function Base.getproperty(F::RationalTransferFunction, d::Symbol)
         getfield(F, d)
     end
 end
-Base.propertynames(F::RationalTransferFunction{T} where T) =
+Base.propertynames(F::RationalTransferFunction) =
     (:zeros, :poles, :gain, :var, fieldnames(typeof(F))...)
 
 poles(F::RationalTransferFunction) = F.poles
@@ -96,16 +97,6 @@ rational function of indeterminate `λ`. The resulting `r` is such that `r.Ts = 
 
 Both `num(λ)` and `den(λ)` can be real or complex numbers as well. 
 """
-# function rtf(num::Polynomial{T1,X}, den::Polynomial{T2,X}; Ts::Union{Real,Nothing} = 0, 
-#              var::Symbol = Polynomials.indeterminate(num)) where {T1 <: Number, T2 <: Number, X}
-#     T = promote_type(T1,T2)
-#     return RationalTransferFunction{T,X}(Polynomial{T}(num.coeffs,var), Polynomial{T}(den.coeffs,var), Ts)
-# end
-# function rtf(num::Polynomial{T1}, den::Polynomial{T2}; Ts::Union{Real,Nothing} = 0) where {T1 <: Number, T2 <: Number}
-#     T = promote_type(T1,T2)
-#     var = promote_var(num,den)
-#     return RationalTransferFunction{T,X}(Polynomial{T}(num.coeffs,var), Polynomial{T}(den.coeffs,var), Ts)
-# end
 function rtf(num::Polynomial, den::Polynomial; Ts::Union{Real,Nothing} = 0, 
              var::Symbol = promote_var(num,den)) 
     T = promote_type(eltype(num),eltype(den))
@@ -123,27 +114,10 @@ function rtf(num::Number, den::Number; Ts::Union{Real,Nothing} = 0, var::Symbol 
     T = promote_type(eltype(num),eltype(den))
     return  RationalTransferFunction{T}(Polynomial{T}(num,var), Polynomial{T}(den,var), Ts)
 end
-#rtf(num::Polynomial{T}; Ts::Union{Real,Nothing} = 0) where T <: Number = RationalTransferFunction{T}(num, one(num), Ts)
-# function rtf(f::Polynomial; Ts::Union{Real,Nothing} = nothing, var::Symbol = Polynomials.indeterminate(f))
-#     T = eltype(f)
-#     return RationalTransferFunction{T}(Polynomial{T}(f.coeffs,var), Polynomial{T}(one(T),var), Ts)
-# end
 function rtf(num::Number; Ts::Union{Real,Nothing} = nothing, var::Symbol = :λ) 
     T = eltype(num)
     return RationalTransferFunction{T}(Polynomial{T}(num,var), Polynomial{T}(one(T),var), Ts)
 end
-# function rtf(r1::RationalTransferFunction{T1}, r2::RationalTransferFunction{T2}; Ts::Union{Real,Nothing} = 0) where {T1 <: Number, T2 <: Number}
-#     T = promote_type(T1,T2)
-#     return RationalTransferFunction{T}(r1.num*r2.den, r1.den*r2.num, Ts)
-# end
-# function rtf(r1::RationalTransferFunction{T1}, r2::Polynomial{T2}; Ts::Union{Real,Nothing} = 0) where {T1 <: Number, T2 <: Number}
-#     T = promote_type(T1,T2)
-#     return RationalTransferFunction{T}(r1.num, r1.den*r2, Ts)
-# end
-# function rtf(r1::Polynomial{T1}, r2::RationalTransferFunction{T2}; Ts::Union{Real,Nothing} = 0) where {T1 <: Number, T2 <: Number}
-#     T = promote_type(T1,T2)
-#     return RationalTransferFunction{T}(r1.num*r2.den, r2.num, Ts)
-# end
 """
     r = rtf(f; Ts = nothing, var = :λ) 
 
@@ -167,8 +141,9 @@ function rtf(f::Polynomial; Ts::Union{Real,Nothing} = nothing, var::Symbol = Pol
     return RationalTransferFunction{T}(Polynomial{T}(f.coeffs,var), Polynomial{T}(one(T),var), Ts)
 end
 Base.eltype(sys::RationalTransferFunction) = eltype(sys.num)
-_eltype(sys::RationalTransferFunction) = eltype(sys.num)
+_eltype(R::RationalTransferFunction) = eltype(R.num)
 _eltype(R::AbstractVecOrMat{<:RationalTransferFunction}) = length(R) == 0 ? eltype(eltype(Polynomials.coeffs.(numpoly.(R)))) : eltype(R[1])
+_eltype(R::AbstractVecOrMat{<:Polynomial}) = length(R) == 0 ? eltype(eltype(Polynomials.coeffs.(R))) : eltype(R[1])
 """
     r = rtf(var; Ts = nothing)
     r = rtf('s') or r = rtf('z') 
