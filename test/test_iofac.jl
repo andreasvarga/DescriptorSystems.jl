@@ -80,7 +80,7 @@ sys = dss(a,e,b,c,d,Ts = 1);
       isproper(sysi) & isproper(syso) && # checking properness of factors
       isstable(sysi) && (isstable(sys) ? isstable(syso) : true) &&
       count(t -> isinf(t), gzero(gminreal(syso))) == 1 &&
-      info.nrank == 1 && ismissing(info.nfuz) && info.niuz == 1
+      info.nrank == 1 && ismissing(info.nfuz) && info.niuz == 0
 
 @time sysi, syso, info = giofac(sys, minphase = true, atol1 = 1.e-7, atol2 = 1.e-7)
 zer = gzero(gminreal(syso));
