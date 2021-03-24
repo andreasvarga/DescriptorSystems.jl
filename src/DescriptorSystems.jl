@@ -15,7 +15,7 @@ import MatrixPencils: isregular, rmeval
 import Polynomials: variable, degree
 
 export DescriptorStateSpace, AbstractDescriptorStateSpace, dss, dssdata, rdss, rss, iszero, order
-export AbstractRationalTransferFunction, RationalTransferFunction, rtf
+export AbstractRationalFunction, RationalTransferFunction, rtf
 export gminreal, gir, gbalmr, gsvselect, gss2ss, gbilin
 export confmap, rmconfmap, simplify, normalize, poles, gain, zpk, rtfbilin, numpoly, denpoly, isconstant
 export blockdiag, eye, rcond
@@ -34,7 +34,7 @@ abstract type AbstractLTISystem <: AbstractDynamicalSystem end
 abstract type AbstractGeneralizedLTIStateSpace <: AbstractLTISystem end
 abstract type AbstractDescriptorStateSpace <: AbstractLTISystem end
 abstract type AbstractPencilStateSpace <: AbstractLTISystem end
-abstract type AbstractRationalTransferFunction <: AbstractLTISystem end
+abstract type AbstractTransferFunction <: AbstractLTISystem end
 
 include("types/DescriptorStateSpace.jl")
 include("types/RationalFunction.jl")

@@ -262,12 +262,38 @@ IEEE Transactions on Automatic Control, vol. AC-26, pp. 111-129, 1981.
 
 [2] A. Varga, Solving Fault Diagnosis Problems - Linear Synthesis Techniques, Springer Verlag, 2017. 
 """
-function dss(R::Union{AbstractVecOrMat{<:RationalTransferFunction},RationalTransferFunction}; Ts::Union{Real,Missing} = missing, 
+# function dss(R::Union{AbstractVecOrMat{<:RationalTransferFunction},RationalTransferFunction}; Ts::Union{Real,Missing} = missing, 
+#              minimal::Bool = false, contr::Bool = false, obs::Bool = false, noseig::Bool = false, 
+#              atol::Real = zero(float(real(_eltype(R)))), rtol::Real = 100*eps(one(atol))*iszero(atol)) 
+#     ismissing(Ts) && (eltype(R) <: RationalTransferFunction ? Ts = R[1].Ts : Ts = R.Ts )
+#     isnothing(Ts) && (Ts = 0)
+#     dss(poly2pm(numpoly.(R)), poly2pm(denpoly.(R)); Ts = Ts, contr = contr, obs = obs, 
+#             noseig = noseig, minimal = minimal, atol = atol, rtol = rtol)
+# end
+# function dss(R::VecOrMat{RationalTransferFunction{T,X}}; Ts::Union{Real,Missing} = missing, 
+#              minimal::Bool = false, contr::Bool = false, obs::Bool = false, noseig::Bool = false, 
+#              atol::Real = zero(float(real(T))), rtol::Real = 100*eps(one(atol))*iszero(atol)) where T where X
+#     length(R) == 0 && (return dss(zeros(_eltype(R),size(R)...),Ts = Ts))
+#     ismissing(Ts) && (Ts = R[1].Ts)
+#     isnothing(Ts) && (Ts = 0)
+#     dss(poly2pm(numpoly.(R)), poly2pm(denpoly.(R)); Ts = Ts, contr = contr, obs = obs, 
+#             noseig = noseig, minimal = minimal, atol = atol, rtol = rtol)
+# end
+function dss(R::VecOrMat{<:RationalTransferFunction}; Ts::Union{Real,Missing} = missing, 
              minimal::Bool = false, contr::Bool = false, obs::Bool = false, noseig::Bool = false, 
              atol::Real = zero(float(real(_eltype(R)))), rtol::Real = 100*eps(one(atol))*iszero(atol)) 
-    ismissing(Ts) && (eltype(R) <: RationalTransferFunction ? Ts = R[1].Ts : Ts = R.Ts )
+    length(R) == 0 && (return dss(zeros(_eltype(R),size(R)...),Ts = Ts))
+    ismissing(Ts) && (Ts = R[1].Ts)
     isnothing(Ts) && (Ts = 0)
     dss(poly2pm(numpoly.(R)), poly2pm(denpoly.(R)); Ts = Ts, contr = contr, obs = obs, 
+            noseig = noseig, minimal = minimal, atol = atol, rtol = rtol)
+end
+function dss(R::RationalTransferFunction; Ts::Union{Real,Missing} = missing, 
+             minimal::Bool = false, contr::Bool = false, obs::Bool = false, noseig::Bool = false, 
+             atol::Real = zero(float(real(_eltype(R)))), rtol::Real = 100*eps(one(atol))*iszero(atol)) 
+    ismissing(Ts) && (Ts = R.Ts)
+    isnothing(Ts) && (Ts = 0)
+    dss(poly2pm(numpoly(R)), poly2pm(denpoly(R)); Ts = Ts, contr = contr, obs = obs, 
             noseig = noseig, minimal = minimal, atol = atol, rtol = rtol)
 end
 """

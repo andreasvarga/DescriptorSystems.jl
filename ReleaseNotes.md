@@ -1,5 +1,9 @@
 # Release Notes
 
+## Version 0.4.3
+
+This patch version alleviates the excessive compilation times arising after updating the package to using the latest version v2.0 of Polynomials.jl.
+
 ## Version 0.4.2
 
 Patch release to enhance the definition of the rational transfer function object to better fit to 

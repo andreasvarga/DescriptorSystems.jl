@@ -33,10 +33,10 @@ can be obtained as `r.zeros`, while the roots of the denominator polynomial `den
 The ratio of the leading polynomial coefficients of `num(λ)` and `den(λ)` 
 (also called _gain_ of `r(λ)`) can be obtained as `r.gain`.
 """
-struct RationalTransferFunction{T,X} <: AbstractRationalTransferFunction
-    num::Polynomial{T,X}        # numerator polynomial
-    den::Polynomial{T,X}        # denominator polynomial
-    Ts::Union{Real,Nothing}   # sampling time (0 - continuous-time, -1 or > 0 - discrete-time, nothing - none)
+struct RationalTransferFunction{T,X} <: AbstractTransferFunction
+    num::Polynomial{T,X}       # numerator polynomial
+    den::Polynomial{T,X}       # denominator polynomial
+    Ts::Union{Real,Nothing}    # sampling time (0 - continuous-time, -1 or > 0 - discrete-time, nothing - none)
     function RationalTransferFunction{T,X}(num::Polynomial{T,X}, den::Polynomial{T,X}, Ts::Union{Real,Nothing}) where T <: Number where X
         length(num) > 1 && length(den) > 1 && Polynomials.indeterminate(num) != Polynomials.indeterminate(den) && 
               error("The numerator and denominator polynomials must have the same variable")
@@ -508,7 +508,7 @@ and return `Rt(δ) = R(f(δ))`. The resulting elements of `Rt` inherit the sampl
 function rmconfmap(R::VecOrMat{<:RationalTransferFunction},f::RationalTransferFunction) 
     nrow = size(R,1)
     ncol = size(R,2)
-    Rt = similar(R)
+    Rt = similar(R,RationalTransferFunction{_eltype(R),f.var}, nrow, ncol)
     for j = 1:ncol
         for i = 1:nrow
             Rt[i,j] = confmap(R[i,j],f)

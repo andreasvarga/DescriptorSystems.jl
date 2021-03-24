@@ -30,17 +30,37 @@ promote_to_rtfs(Ts::Union{Real,Nothing}, var::Symbol, n, k, ::Type{T}, A, B, Cs.
 #     hvcat_fill(Matrix{RationalTransferFunction{T}}(undef, length(A), 1), promote_to_rtfs(Ts, var, fill(1,length(A)), 1, T, A...))
 # end
   
-
-function Base.hvcat(rows::Tuple{Vararg{Int}}, A::Union{AbstractRationalTransferFunction,Number}...)
+function Base.hvcat(rows::Tuple{Vararg{Int}}, A::RationalTransferFunction...)
     nr = length(rows)
     nc = rows[1]
     sum(rows) == length(A) || throw(ArgumentError("mismatch between row sizes and number of arguments"))
     T = Base.promote_eltype(A...)
     var = promote_rtf_var(A...)
     Ts = promote_rtf_SamplingTime(A...)
-
-    hvcat_fill(Matrix{RationalTransferFunction{T}}(undef, nr, nc), promote_to_rtfs(Ts, var, fill(1,length(A)), 1, T, A...))
+    
+    hvcat_fill(Matrix{RationalTransferFunction{T,var}}(undef, nr, nc), promote_to_rtfs(Ts, var, fill(1,length(A)), 1, T, A...))
 end
+
+function Base.hvcat(rows::Tuple{Vararg{Int}}, A::Union{RationalTransferFunction,Number}...)
+    nr = length(rows)
+    nc = rows[1]
+    sum(rows) == length(A) || throw(ArgumentError("mismatch between row sizes and number of arguments"))
+    T = Base.promote_eltype(A...)
+    var = promote_rtf_var(A...)
+    Ts = promote_rtf_SamplingTime(A...)
+    
+    hvcat_fill(Matrix{RationalTransferFunction{T,var}}(undef, nr, nc), promote_to_rtfs(Ts, var, fill(1,length(A)), 1, T, A...))
+end
+# function Base.hvcat(rows::Tuple{Vararg{Int}}, A::Union{RationalTransferFunction,Polynomial,Number}...)
+#     nr = length(rows)
+#     nc = rows[1]
+#     sum(rows) == length(A) || throw(ArgumentError("mismatch between row sizes and number of arguments"))
+#     T = Base.promote_eltype(A...)
+#     var = promote_rtf_var(A...)
+#     Ts = promote_rtf_SamplingTime(A...)
+    
+#     hvcat_fill(Matrix{RationalTransferFunction{T,var}}(undef, nr, nc), promote_to_rtfs(Ts, var, fill(1,length(A)), 1, T, A...))
+# end
 function hvcat_fill(a::Array, xs::Tuple) 
     k = 1
     nr, nc = size(a,1), size(a,2)
@@ -50,7 +70,7 @@ function hvcat_fill(a::Array, xs::Tuple)
             k += 1
         end
     end
-    a
+    return a
 end
 
 
@@ -87,7 +107,7 @@ function Base.hcat(A::VecOrMat{<:RationalTransferFunction}...)
     Tc = promote_rtf_eltype(A...)
     var = promote_rtf_var(A...)
     Ts = promote_rtf_SamplingTime(A...)
-    return _hcat(RationalTransferFunction,promote_to_rtfmats(Ts, var, fill(n,length(A)), 1, Tc, A...)...)
+    return _hcat(RationalTransferFunction{Tc,var},promote_to_rtfmats(Ts, var, fill(n,length(A)), 1, Tc, A...)...)
 end
 function Base.hcat(A::Union{VecOrMat{<:RationalTransferFunction}, UniformScaling}...) 
     n = -1
@@ -104,7 +124,7 @@ function Base.hcat(A::Union{VecOrMat{<:RationalTransferFunction}, UniformScaling
     var = promote_rtf_var(A...)
     Ts = promote_rtf_SamplingTime(A...)
     Tp = promote_rtf_type(A...)
-    return _hcat(RationalTransferFunction,promote_to_rtfmats(Ts, var, fill(n,length(A)), 1, Tc, A...)...)
+    return _hcat(RationalTransferFunction{Tc,var},promote_to_rtfmats(Ts, var, fill(n,length(A)), 1, Tc, A...)...)
 end
 function Base.hcat(A::Union{VecOrMat{<:RationalTransferFunction},RationalTransferFunction,Number,UniformScaling}...) 
     n = -1
@@ -120,7 +140,7 @@ function Base.hcat(A::Union{VecOrMat{<:RationalTransferFunction},RationalTransfe
     Tc = promote_rtf_eltype(A...)
     var = promote_rtf_var(A...)
     Ts = promote_rtf_SamplingTime(A...)
-    return _hcat(RationalTransferFunction,promote_to_rtfmats(Ts, var, fill(n,length(A)), 1, Tc, A...)...)
+    return _hcat(RationalTransferFunction{Tc,var},promote_to_rtfmats(Ts, var, fill(n,length(A)), 1, Tc, A...)...)
 end
 function _hcat(::Type{T},A::AbstractVecOrMat...) where T
     nargs = length(A)
@@ -154,7 +174,7 @@ function Base.vcat(A::VecOrMat{<:RationalTransferFunction}...)
     Tc = promote_rtf_eltype(A...)
     var = promote_rtf_var(A...)
     Ts = promote_rtf_SamplingTime(A...)
-    return _vcat(RationalTransferFunction,promote_to_rtfmats(Ts, var, fill(n,length(A)), 1, Tc, A...)...)
+    return _vcat(RationalTransferFunction{Tc,var},promote_to_rtfmats(Ts, var, fill(n,length(A)), 1, Tc, A...)...)
 end
 function Base.vcat(A::Union{VecOrMat{<:RationalTransferFunction},UniformScaling}...) 
     n = -1
@@ -170,7 +190,7 @@ function Base.vcat(A::Union{VecOrMat{<:RationalTransferFunction},UniformScaling}
     Tc = promote_rtf_eltype(A...)
     var = promote_rtf_var(A...)
     Ts = promote_rtf_SamplingTime(A...)
-    return _vcat(RationalTransferFunction,promote_to_rtfmats(Ts, var, fill(n,length(A)), 1, Tc, A...)...)
+    return _vcat(RationalTransferFunction{Tc,var},promote_to_rtfmats(Ts, var, fill(n,length(A)), 1, Tc, A...)...)
 end
 
 function Base.vcat(A::Union{VecOrMat{<:RationalTransferFunction},RationalTransferFunction,Number,UniformScaling}...) 
@@ -187,7 +207,7 @@ function Base.vcat(A::Union{VecOrMat{<:RationalTransferFunction},RationalTransfe
     Tc = promote_rtf_eltype(A...)
     var = promote_rtf_var(A...)
     Ts = promote_rtf_SamplingTime(A...)
-    return _vcat(RationalTransferFunction,promote_to_rtfmats(Ts, var, fill(n,length(A)), 1, Tc, A...)...)
+    return _vcat(RationalTransferFunction{Tc,var},promote_to_rtfmats(Ts, var, fill(n,length(A)), 1, Tc, A...)...)
 end
 function _vcat(::Type{T},A::AbstractVecOrMat...) where T
     nargs = length(A)
@@ -208,8 +228,8 @@ function _vcat(::Type{T},A::AbstractVecOrMat...) where T
     end
     return B
 end
-function Base.hvcat(rows::Tuple{Vararg{Int}}, A::Union{AbstractVecOrMat{T1},AbstractVecOrMat{T2},AbstractVecOrMat{T3},RationalTransferFunction{T4},UniformScaling}...) where 
-    {T1 <: RationalTransferFunction, T2 <: Polynomial, T3 <: Number, T4 <: Number}
+function Base.hvcat(rows::Tuple{Vararg{Int}}, A::Union{AbstractVecOrMat{T1},AbstractVecOrMat{T2},AbstractVecOrMat{T3},RationalTransferFunction,UniformScaling}...) where 
+    {T1 <: RationalTransferFunction, T2 <: Polynomial, T3 <: Number}
     nr = length(rows)
     sum(rows) == length(A) || throw(ArgumentError("mismatch between row sizes and number of arguments"))
     n = fill(-1, length(A))
@@ -267,7 +287,7 @@ function Base.hvcat(rows::Tuple{Vararg{Int}}, A::Union{AbstractVecOrMat{T1},Abst
     Ts = promote_rtf_SamplingTime(A...)
     Tp = promote_rtf_type(A...)
     if Tp == RationalTransferFunction || Tp == Polynomial
-        return _hvcat(RationalTransferFunction,rows,promote_to_rtfmats(Ts,var, n, 1, Tc, A...)...)
+        return _hvcat(RationalTransferFunction{Tc,var},rows,promote_to_rtfmats(Ts,var, n, 1, Tc, A...)...)
     else
        return _hvcat(Tc,rows,LinearAlgebra.promote_to_arrays(n, 1, Matrix, A...)...)
     end
