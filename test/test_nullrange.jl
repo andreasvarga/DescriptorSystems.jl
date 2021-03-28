@@ -1,5 +1,4 @@
 module Test_nullrange
-Base.Experimental.@optlevel 3
 using DescriptorSystems
 using MatrixEquations
 using MatrixPencils
@@ -7,7 +6,6 @@ using LinearAlgebra
 using Polynomials
 using Test
 
-Base.Experimental.@optlevel 3
 @testset "nullrange" begin
 
 @testset "grange" begin
