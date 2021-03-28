@@ -264,7 +264,7 @@ zer = gzero(sysr,atol1=1.e-7)
 r = size(sysr,2);
 @test gnrank(sysd-sysr*sysx,atol1=1.e-7) == 0   &&   #  G(s) - Gi(s)*Go(s) = 0
       isproper(sysr) && # checking properness of factors
-      norm(sort(zeref[abs.(zeref) .< 1]) - sort(zer),Inf) < 1.e-7 && # check zeros 
+      norm(sort(zeref[abs.(zeref) .< 1]) - sort(abs.(zer)),Inf) < 1.e-7 && # check zeros 
       info.nrank == r && info.nfuz == 0 && info.niuz == 0
 
 
