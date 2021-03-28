@@ -231,7 +231,8 @@ zer = gzero(sysr,atol1=1.e-7)
 r = size(sysr,2);
 @test gnrank(sysd-sysr*sysx,atol1=1.e-7) == 0   &&   #  G(s) - Gi(s)*Go(s) = 0
       isproper(sysr) && # checking properness of factors
-      sort(real(zeref)) ≈ sort(real(zer)) && norm(imag(zer)) < 1.e-7 && # check zeros 
+      sort(real(zeref[isfinite.(zeref)])) ≈ sort(real(zer[isfinite.(zer)])) &&
+      zeref[isinf.(zeref)] == zer[isinf.(zer)] && norm(imag(zer),Inf) < 1.e-7 && # check zeros 
       info.nrank == r && ismissing(info.nfuz) && ismissing(info.niuz)
 
 @time sysr, sysx, info = grange(sysd, zeros = "finite", atol = 1.e-7)  

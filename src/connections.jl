@@ -322,7 +322,7 @@ function promote_system_SamplingTime(A::Union{DescriptorStateSpace,AbstractNumOr
     # pick and check the common sampling time  
     Ts = nothing
     for a in A
-        typeof(a) <: DescriptorStateSpace  && (Ts = promote_Ts(Ts,a.Ts))
+        typeof(a) <: DescriptorStateSpace  && (isnothing(Ts) ? Ts = a.Ts : Ts = promote_Ts(Ts,a.Ts))
     end
     return isnothing(Ts) ? (return 0) : (return Ts) # for systems use Ts = 0 as defualt
 end
