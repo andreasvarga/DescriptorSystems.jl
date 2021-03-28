@@ -1,19 +1,17 @@
-const _RationalConcatGroup = Union{Vector{RationalTransferFunction}, Matrix{RationalTransferFunction}}
-const _TypedRationalConcatGroup{T} = Union{Vector{RationalTransferFunction{T}}, Matrix{RationalTransferFunction{T}}}
 # rational concatenations
 
 # scalar elements
 # conversions to rational transfer functions
-promote_to_rtf_(n::Int, ::Type{T}, var::Symbol, A::Number, Ts::Union{Real,Nothing}) where {T} = rtf(Polynomial{T}(T(A),var), Ts = Ts)
-#promote_to_rtf_(n::Int, ::Type{T}, var::Symbol, A::Polynomial, Ts::Union{Real,Nothing}) where {T} = rtf(Polynomial{T}(T.(A.coeffs), var), Polynomial{T}(one(T), var), Ts = Ts)
-promote_to_rtf_(n::Int, ::Type{T}, var::Symbol, A::RationalTransferFunction, Ts::Union{Real,Nothing}) where {T} = 
+promote_to_rtf_(n::Int, ::Type{T}, var::Symbol, A::Number, Ts::Real) where {T} = rtf(Polynomial{T}(T(A),var), Ts = Ts)
+#promote_to_rtf_(n::Int, ::Type{T}, var::Symbol, A::Polynomial, Ts::Real) where {T} = rtf(Polynomial{T}(T.(A.coeffs), var), Polynomial{T}(one(T), var), Ts = Ts)
+promote_to_rtf_(n::Int, ::Type{T}, var::Symbol, A::RationalTransferFunction, Ts::Real) where {T} = 
      (T == eltype(A) && Ts == A.Ts && var == A.var) ? A : rtf(Polynomial{T}(T.(A.num.coeffs), var), Polynomial{T}(T.(A.den.coeffs), var), Ts = Ts)
-promote_to_rtfs(Ts::Union{Real,Nothing}, var::Symbol, n, k, ::Type{T}, A) where {T} = (promote_to_rtf_(n[k], T, var, A, Ts),)
-promote_to_rtfs(Ts::Union{Real,Nothing}, var::Symbol, n, k, ::Type{T}, A, B) where {T} =
+promote_to_rtfs(Ts::Real, var::Symbol, n, k, ::Type{T}, A) where {T} = (promote_to_rtf_(n[k], T, var, A, Ts),)
+promote_to_rtfs(Ts::Real, var::Symbol, n, k, ::Type{T}, A, B) where {T} =
     (promote_to_rtf_(n[k], T, var, A, Ts), promote_to_rtf_(n[k+1], T, var, B, Ts))
-promote_to_rtfs(Ts::Union{Real,Nothing}, var::Symbol, n, k, ::Type{T}, A, B, C) where {T} =
+promote_to_rtfs(Ts::Real, var::Symbol, n, k, ::Type{T}, A, B, C) where {T} =
     (promote_to_rtf_(n[k], T, var, A, Ts), promote_to_rtf_(n[k+1], T, var, B, Ts), promote_to_rtf_(n[k+2], T, var, C, Ts))
-promote_to_rtfs(Ts::Union{Real,Nothing}, var::Symbol, n, k, ::Type{T}, A, B, Cs...) where {T} =
+promote_to_rtfs(Ts::Real, var::Symbol, n, k, ::Type{T}, A, B, Cs...) where {T} =
     (promote_to_rtf_(n[k], T, var, A, Ts), promote_to_rtf_(n[k+1], T, var, B, Ts), promote_to_rtfs(Ts, var, n, k+2, T, Cs...)...)
 
 
@@ -77,23 +75,23 @@ end
 # matrix elements
 # conversions to rational matrices
 
-promote_to_rtfmat_(n::Int, ::Type{T}, var::Symbol, A::Number, Ts::Union{Real,Nothing}) where {T} = [rtf(Polynomial{T}(T(A),var),Ts=Ts)]
-# promote_to_rtfmat_(n::Int, ::Type{T}, var::Symbol, A::Polynomial, Ts::Union{Real,Nothing}) where {T} = 
+promote_to_rtfmat_(n::Int, ::Type{T}, var::Symbol, A::Number, Ts::Real) where {T} = [rtf(Polynomial{T}(T(A),var),Ts=Ts)]
+# promote_to_rtfmat_(n::Int, ::Type{T}, var::Symbol, A::Polynomial, Ts::Real) where {T} = 
 #     (T == eltype(A) && var == A.num.var) ? [rtf(A,Ts=Ts)] : [rtf(Polynomial{T}(A.coeffs, var),Ts=Ts)]
-promote_to_rtfmat_(n::Int, ::Type{T}, var::Symbol, A::RationalTransferFunction, Ts::Union{Real,Nothing}) where {T} = 
+promote_to_rtfmat_(n::Int, ::Type{T}, var::Symbol, A::RationalTransferFunction, Ts::Real) where {T} = 
      (T == eltype(A) && Ts == A.Ts && var == A.var) ? [A] : [rtf(Polynomial{T}(T.(A.num.coeffs), var), Polynomial{T}(T.(A.den.coeffs), var), Ts = Ts)]
-promote_to_rtfmat_(n::Int, ::Type{T}, var::Symbol, J::UniformScaling, Ts::Union{Real,Nothing}) where {T} = rtf.(Polynomial.(copyto!(Matrix{T}(undef, n,n), J),var),Ts=Ts)
-promote_to_rtfmat_(n::Int, ::Type{T}, var::Symbol, A::AbstractVecOrMat{T1}, Ts::Union{Real,Nothing}) where {T, T1 <: Number} = rtf.(Polynomial.(to_matrix(T,A),var),Ts=Ts)
-# promote_to_rtfmat_(n::Int, ::Type{T}, var::Symbol, A::VecOrMat{Polynomial{T1}}, Ts::Union{Real,Nothing}) where {T,T1} = 
+promote_to_rtfmat_(n::Int, ::Type{T}, var::Symbol, J::UniformScaling, Ts::Real) where {T} = rtf.(Polynomial.(copyto!(Matrix{T}(undef, n,n), J),var),Ts=Ts)
+promote_to_rtfmat_(n::Int, ::Type{T}, var::Symbol, A::AbstractVecOrMat{T1}, Ts::Real) where {T, T1 <: Number} = rtf.(Polynomial.(to_matrix(T,A),var),Ts=Ts)
+# promote_to_rtfmat_(n::Int, ::Type{T}, var::Symbol, A::VecOrMat{Polynomial{T1}}, Ts::Real) where {T,T1} = 
 #      (T == T1 && var == A[1].var) ? rtf.(A,Ts = Ts) : rtf.(Polynomial{T}.(coeffs.(A),var),Ts = Ts)
-promote_to_rtfmat_(n::Int, ::Type{T}, var::Symbol, A::VecOrMat{<:RationalTransferFunction}, Ts::Union{Real,Nothing}) where T = 
+promote_to_rtfmat_(n::Int, ::Type{T}, var::Symbol, A::VecOrMat{<:RationalTransferFunction}, Ts::Real) where T = 
      (length(A) > 0 && _eltype(A) == T && var == A[1].var && Ts == A[1].Ts) ? A : rtf.(Polynomial{T}.(coeffs.(numpoly.(A)),var),Polynomial{T}.(coeffs.(denpoly.(A)),var),Ts = Ts)
-promote_to_rtfmats(Ts::Union{Real,Nothing}, var::Symbol, n, k, ::Type{T}, A) where {T} = (promote_to_rtfmat_(n[k], T, var, A, Ts),)
-promote_to_rtfmats(Ts::Union{Real,Nothing}, var::Symbol, n, k, ::Type{T}, A, B) where {T} =
+promote_to_rtfmats(Ts::Real, var::Symbol, n, k, ::Type{T}, A) where {T} = (promote_to_rtfmat_(n[k], T, var, A, Ts),)
+promote_to_rtfmats(Ts::Real, var::Symbol, n, k, ::Type{T}, A, B) where {T} =
     (promote_to_rtfmat_(n[k], T, var, A, Ts), promote_to_rtfmat_(n[k+1], T, var, B, Ts))
-promote_to_rtfmats(Ts::Union{Real,Nothing}, var::Symbol, n, k, ::Type{T}, A, B, C) where {T} =
+promote_to_rtfmats(Ts::Real, var::Symbol, n, k, ::Type{T}, A, B, C) where {T} =
     (promote_to_rtfmat_(n[k], T, var, A, Ts), promote_to_rtfmat_(n[k+1], T, var, B, Ts), promote_to_rtfmat_(n[k+2], T, var, C, Ts))
-promote_to_rtfmats(Ts::Union{Real,Nothing}, var::Symbol, n, k, ::Type{T}, A, B, Cs...) where {T} =
+promote_to_rtfmats(Ts::Real, var::Symbol, n, k, ::Type{T}, A, B, Cs...) where {T} =
     (promote_to_rtfmat_(n[k], T, var, A, Ts), promote_to_rtfmat_(n[k+1], T, var, B, Ts), promote_to_rtfmats(Ts, var, n, k+2, T, Cs...)...)
 
 function Base.hcat(A::VecOrMat{<:RationalTransferFunction}...) 
@@ -130,7 +128,7 @@ function Base.hcat(A::Union{VecOrMat{<:RationalTransferFunction},RationalTransfe
     n = -1
     for a in A
         if !isa(a, UniformScaling)
-            isa(a,Union{RationalTransferFunction,Polynomial,Number}) ? na = 1 : (require_one_based_indexing(a); na = size(a, 1))
+            isa(a,Union{RationalTransferFunction,Number}) ? na = 1 : (require_one_based_indexing(a); na = size(a, 1))
             n >= 0 && n != na &&
                 throw(DimensionMismatch(string("number of rows of each array must match (got ", n, " and ", na, ")")))
             n = na
@@ -340,12 +338,12 @@ function promote_rtf_SamplingTime(A...)
     Ts = nothing
     for a in A
         if eltype(a) <: RationalTransferFunction 
-           length(a) > 0 && (Ts = promote_Ts(Ts,a[1].Ts))
+           length(a) > 0 && (isnothing(Ts) ? Ts =a[1].Ts : Ts = promote_Ts(Ts,a[1].Ts))
         elseif typeof(a) <: RationalTransferFunction 
-            Ts = promote_Ts(Ts,a.Ts)
+            Ts = isnothing(Ts) ? Ts = a.Ts : promote_Ts(Ts,a.Ts)
         end
     end
-    return Ts   # for transfer functions Ts = nothing is also allowed
+    return isnothing(Ts) ? 0. : Ts   
 end
 function promote_rtf_eltype(A...)  
     T = Bool
@@ -387,5 +385,5 @@ function promote_rtf_var(A...)
                    (t != var && error("all transfer function matrix elements must have the same variable"))
         end
     end
-    return isnothing(var) ? (:x) : var  # use default symbol from the Polynomials package
+    return isnothing(var) ? (:s) : var  # use default symbol for continuous-time system
 end

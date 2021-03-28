@@ -1,5 +1,5 @@
 """ 
-     RationalTransferFunction{T,X}(num::Polynomial{T,X}, den::Polynomial{T,X}, Ts::Union{Real,Nothing}) where T <: Number
+     RationalTransferFunction{T,X}(num::Polynomial{T,X}, den::Polynomial{T,X}, Ts::Real) where T <: Number
 
 Construct a rational transfer function model from its numerator and denominator polynomials `num` and `den`, respectively,
 and a sampling time `Ts`. 
@@ -23,8 +23,6 @@ indeterminate `λ`;
              `λ = z` is the complex variable in the `Z`-transform; 
              `Ts = -1` indicates a discrete-time system with an unspecified sampling time;
 
-  - `Ts = nothing` for a general rational function with indeterminate `λ`.             
-
 The symbol (or _variable_) used for the indeterminate `λ` is the common symbol used for the 
 indeterminates of the polynomials `num(λ)` and `den(λ)` and can be obtained as `r.var`. 
 The roots of the numerator polynomial `num(λ)` (also called _zeros_ of `r(λ)`)
@@ -36,8 +34,8 @@ The ratio of the leading polynomial coefficients of `num(λ)` and `den(λ)`
 struct RationalTransferFunction{T,X} <: AbstractTransferFunction
     num::Polynomial{T,X}       # numerator polynomial
     den::Polynomial{T,X}       # denominator polynomial
-    Ts::Union{Real,Nothing}    # sampling time (0 - continuous-time, -1 or > 0 - discrete-time, nothing - none)
-    function RationalTransferFunction{T,X}(num::Polynomial{T,X}, den::Polynomial{T,X}, Ts::Union{Real,Nothing}) where T <: Number where X
+    Ts::Float64                # sampling time (0. - continuous-time, -1. or > 0. - discrete-time)
+    function RationalTransferFunction{T,X}(num::Polynomial{T,X}, den::Polynomial{T,X}, Ts::Real) where T <: Number where X
         length(num) > 1 && length(den) > 1 && Polynomials.indeterminate(num) != Polynomials.indeterminate(den) && 
               error("The numerator and denominator polynomials must have the same variable")
         if all(den == zero(den))
@@ -47,16 +45,16 @@ struct RationalTransferFunction{T,X} <: AbstractTransferFunction
             den = one(den)
         end
         # Validate sampling time
-        isnothing(Ts) || Ts >= 0 || Ts == -1 || 
+        Ts >= 0 || Ts == -1 || 
              error("Ts must be either a positive number, 0 (continuous system), or -1 (unspecified)")
-        new{T,X}(num, den, Ts)
+        new{T,X}(num, den, Float64(Ts))
     end
 end
-function RationalTransferFunction(num::Polynomial{T1,X}, den::Polynomial{T2,X}, Ts::Union{Real,Nothing}) where {T1,T2,X}
+function RationalTransferFunction(num::Polynomial{T1,X}, den::Polynomial{T2,X}, Ts::Real) where {T1,T2,X}
     T = promote_type(T1,T2)
     RationalTransferFunction{T,X}(convert(Polynomial{T,X}, num), convert(Polynomial{T,X}, den), Ts)
 end
-function RationalTransferFunction{T}(num::Polynomial{T1,X}, den::Polynomial{T2,X}, Ts::Union{Real,Nothing}) where {T,T1,T2,X}
+function RationalTransferFunction{T}(num::Polynomial{T1,X}, den::Polynomial{T2,X}, Ts::Real) where {T,T1,T2,X}
     RationalTransferFunction{T,X}(convert(Polynomial{T,X}, num), convert(Polynomial{T,X}, den), Ts)
 end
 function Base.getproperty(F::RationalTransferFunction, d::Symbol)
@@ -92,117 +90,94 @@ the rational transfer function `r(λ) = num(λ)/den(λ)` of a single-input singl
 
 where `U(λ)` and `Y(λ)` are the Laplace transformed, if `Ts = 0`, or `Z`-transformed, if `Ts ≠ 0`,
 system input `u(t)` and system output `y(t)`, respectively, and 
-`λ = s`,  if `Ts = 0`, or  `λ = z`,  if `Ts ≠ 0`. For `Ts = nothing`, `r(λ)` represents a general 
-rational function of indeterminate `λ`. The resulting `r` is such that `r.Ts = Ts` and `r.var = var`.  
+`λ = s`,  if `Ts = 0`, or  `λ = z`,  if `Ts ≠ 0`. 
+The resulting `r` is such that `r.Ts = Ts` and `r.var = var`.  
 
 Both `num(λ)` and `den(λ)` can be real or complex numbers as well. 
 """
-function rtf(num::Polynomial, den::Polynomial; Ts::Union{Real,Nothing} = 0, 
+function rtf(num::Polynomial, den::Polynomial; Ts::Real = 0, 
              var::Symbol = promote_var(num,den)) 
     T = promote_type(eltype(num),eltype(den))
     return RationalTransferFunction{T}(Polynomial{T}(num.coeffs,var), Polynomial{T}(den.coeffs,var), Ts)
 end
-function rtf(num::Polynomial, den::Number; Ts::Union{Real,Nothing} = 0) 
+function rtf(num::Polynomial, den::Number; Ts::Real = 0) 
     T = promote_type(eltype(num),eltype(den))
     return RationalTransferFunction{T}(num, Polynomial(den,Polynomials.indeterminate(num)), Ts)
 end
-function rtf(num::Number, den::Polynomial; Ts::Union{Real,Nothing} = 0) 
+function rtf(num::Number, den::Polynomial; Ts::Real = 0) 
     T = promote_type(eltype(den),eltype(num))
     return RationalTransferFunction{T}(Polynomial(num,Polynomials.indeterminate(den)), den, Ts)
 end
-function rtf(num::Number, den::Number; Ts::Union{Real,Nothing} = 0, var::Symbol = :λ) 
+function rtf(num::Number, den::Number; Ts::Real = 0, var::Symbol = :s) 
     T = promote_type(eltype(num),eltype(den))
     return  RationalTransferFunction{T}(Polynomial{T}(num,var), Polynomial{T}(den,var), Ts)
 end
-function rtf(num::Number; Ts::Union{Real,Nothing} = nothing, var::Symbol = :λ) 
+function rtf(num::Number; Ts::Real = 0, var::Symbol = :s) 
     T = eltype(num)
     return RationalTransferFunction{T}(Polynomial{T}(num,var), Polynomial{T}(one(T),var), Ts)
 end
 """
-    r = rtf(f; Ts = nothing, var = :λ) 
+    r = rtf(f; Ts = f.Ts, var = f.var) 
 
 Set for the rational transfer function `r(λ) = f(λ)` the sampling time to `Ts` and variable name to `var`
 such that `r(λ) = f(λ)`, `r.Ts = Ts` (default `r.Ts = f.Ts`) and `r.var = var` (default `r.var = f.var`).
 """
-function rtf(f::RationalTransferFunction; Ts::Union{Real,Nothing} = f.Ts, var::Symbol = f.var)
+function rtf(f::RationalTransferFunction; Ts::Real = f.Ts, var::Symbol = f.var)
     T = eltype(f)
     return RationalTransferFunction{T}(Polynomial{T}(f.num.coeffs,var), Polynomial{T}(f.den.coeffs,var), Ts)
 end
 """
-    r = rtf(p; Ts = nothing, var = :λ) 
+    r = rtf(p; Ts = 0, var = Polynomials.indeterminate(p)) 
 
 Create for the polynomial `p(λ)`, sampling time `Ts` and variable `var`
-the rational transfer function `r(λ) = p(λ)` such that `r.Ts = Ts` (default `r.Ts = nothing`)
-and `r.var = var` (default  (default `r.var = Polynomials.indeterminate(f)`).
+the rational transfer function `r(λ) = p(λ)` such that `r.Ts = Ts` (default `r.Ts = 0`)
+and `r.var = var` (default  (default `r.var = Polynomials.indeterminate(p)`).
 `p(λ)` can be a real or complex number as well. 
 """
-function rtf(f::Polynomial; Ts::Union{Real,Nothing} = nothing, var::Symbol = Polynomials.indeterminate(f))
-    T = eltype(f)
-    return RationalTransferFunction{T}(Polynomial{T}(f.coeffs,var), Polynomial{T}(one(T),var), Ts)
+function rtf(p::Polynomial; Ts::Real = 0, var::Symbol = Polynomials.indeterminate(p))
+    T = eltype(p)
+    return RationalTransferFunction{T}(Polynomial{T}(p.coeffs,var), Polynomial{T}(one(T),var), Ts)
 end
 Base.eltype(sys::RationalTransferFunction) = eltype(sys.num)
 _eltype(R::RationalTransferFunction) = eltype(R.num)
 _eltype(R::AbstractVecOrMat{<:RationalTransferFunction}) = length(R) == 0 ? eltype(eltype(Polynomials.coeffs.(numpoly.(R)))) : eltype(R[1])
 _eltype(R::AbstractVecOrMat{<:Polynomial}) = length(R) == 0 ? eltype(eltype(Polynomials.coeffs.(R))) : eltype(R[1])
 """
-    r = rtf(var; Ts = nothing)
-    r = rtf('s') or r = rtf('z') 
-    r = rtf("s") or r = rtf("z") 
-    r = rtf(:s) or r = rtf(:z) 
+    r = rtf(var; Ts = 0.)
+    r = rtf('s'; Ts = 0.) or r = rtf('z'; Ts = -1.) 
+    r = rtf("s"; Ts = 0.) or r = rtf("z"; Ts = -1.) 
+    r = rtf(:s; Ts = 0.) or r = rtf(:z; Ts = -1.) 
 
 Create the rational transfer function `r(λ) = λ`, such that `r.var` and `r.Ts` are set as follows:
     (1) `r.var = :s` and `r.Ts = 0` if `var = 's'`, or `var = "s"` or `var = :s` ;
     (2) `r.var = :z` and `r.Ts = Ts` if `var = 'z'`, or `var = "z"` or `var = :z`;
-    (3) `r.var = var` and `r.Ts = Ts` (default `Ts = nothing`) otherwise.  
+    (3) `r.var = var` and `r.Ts = Ts` (default `Ts = 0.`) otherwise.  
 """
-function rtf(var::AbstractString; Ts::Union{Real,Nothing} = nothing)
-    if var == "s" 
-        isnothing(Ts) && (Ts = 0)
-        Ts == 0 ? (return rtf(Polynomial([0,1],:s),Ts=Ts)) : error("Ts must be zero for a continuous-time system")
-    elseif var == "z" 
-       isnothing(Ts) && (Ts = -1)
-       (Ts == -1 || Ts > 0) ? (return rtf(Polynomial([0,1],:z),Ts = Ts)) : error("Ts must be either a positive number or -1 (unspecified)")
+function rtf(::Type{T}, var::Union{AbstractString,Char,Symbol}; Ts::Union{Real,Missing} = missing) where T
+    if var == "s" || var == 's' || var === :s
+       ismissing(Ts) && (Ts = 0)
+       Ts == 0. ? (return rtf(Polynomial{T}([0,1],:s),Ts=Ts)) : error("Ts must be zero for a continuous-time system")
+    elseif var == "z" || var == 'z' || var === :z
+       ismissing(Ts) && (Ts = -1)
+       (Ts == -1 || Ts > 0) ? (return rtf(Polynomial{T}([0,1],:z),Ts = Ts)) : error("Ts must be either a positive number or -1 (unspecified)")
     else
-        isnothing(Ts) || Ts >= 0 || Ts == -1 || error("Ts must be either a positive number, 0 (continuous system), or -1 (unspecified)") 
-        return rtf(Polynomial([0,1],var),Ts = Ts) 
+       ismissing(Ts) && (Ts = 0.)
+       Ts >= 0 || Ts == -1 || error("Ts must be either a positive number, 0 (continuous system), or -1 (unspecified)") 
+       return rtf(Polynomial{T}([0,1],var),Ts = Ts) 
     end
 end
-function rtf(var::Char; Ts::Union{Real,Nothing} = nothing)
-    if var == 's' 
-        isnothing(Ts) && (Ts = 0)
-        Ts == 0 ? (return rtf(Polynomial([0,1],:s),Ts=Ts)) : error("Ts must be zero for a continuous-time system")
-    elseif var == 'z' 
-        isnothing(Ts) && (Ts = -1)
-        (Ts == -1 || Ts > 0) ? (return rtf(Polynomial([0,1],:z),Ts = Ts)) : error("Ts must be either a positive number or -1 (unspecified)")
-    else
-        isnothing(Ts) || Ts >= 0 || Ts == -1 || error("Ts must be either a positive number, 0 (continuous system), or -1 (unspecified)") 
-        return rtf(Polynomial([0,1],var),Ts = Ts) 
-    end
-end
-function rtf(var::Symbol; Ts::Union{Real,Nothing} = nothing)
-    if var === :s 
-        isnothing(Ts) && (Ts = 0)
-        Ts == 0 ? (return rtf(Polynomial([0,1],:s),Ts=Ts)) : error("Ts must be zero for a continuous-time system")
-    elseif var === :z 
-        isnothing(Ts) && (Ts = -1)
-        (Ts == -1 || Ts > 0) ? (return rtf(Polynomial([0,1],:z),Ts = Ts)) : error("Ts must be either a positive number or -1 (unspecified)")
-    else
-        isnothing(Ts) || Ts >= 0 || Ts == -1 || error("Ts must be either a positive number, 0 (continuous system), or -1 (unspecified)") 
-        return rtf(Polynomial([0,1],var),Ts = Ts) 
-    end
-end
-
+rtf(var::Union{AbstractString,Char,Symbol}; Ts::Union{Real,Missing} = missing) = rtf(Int, var; Ts = Ts)
 """
-    r = rtf(z, p, k; Ts = nothing, var = :λ) 
+    r = rtf(z, p, k; Ts = 0, var = :s) 
 
 Create from the roots (zeros) `z`, poles `p`, gain `k`, sampling time `Ts` and variable name `var`
 the rational transfer function `r(λ) = k*num(λ)/den(λ)`, where `num(λ)` and `den(λ)` are monic polynomials
-with roots equal `z` and `p`, respectively, and such that `r.Ts = Ts` (default `r.Ts = nothing`)
- and `r.var = var` (default `r.var = :λ` if `r.Ts = nothing`, or `r.var = :s` if `r.Ts = 0` or 
- `r.var = :z` if `r.Ts ≠ 0`). 
+with roots equal `z` and `p`, respectively, and such that `r.Ts = Ts` (default `r.Ts = 0`)
+ and `r.var = var` (default `r.var = :s` if `Ts = 0` or `r.var = :z` if `Ts ≠ 0`). 
 """
-function rtf(zer::Vector, pol::Vector, k::Number; Ts::Union{Real,Nothing} = nothing,
-             var::Symbol = isnothing(Ts) ? :λ : (Ts == 0 ? :s : :z) ) 
+function rtf(zer::Vector{<:Number}, pol::Vector{<:Number}, k::Number; Ts::Real = 0,
+             var::Symbol = (Ts == 0 ? :s : :z) )
+    Ts >= 0. || Ts == -1. || error("Ts must be either a positive number, 0 (continuous system), or -1 (unspecified)") 
     T = promote_type(eltype(zer),eltype(pol),eltype(k))
     reald = false   # check data correspond to real numerator and denominator
     if eltype(k) <: Real 
@@ -288,12 +263,12 @@ end
 function /(p1::Polynomial{T1,X}, p2::Polynomial{T2,X}) where {T1,T2,X}
     T = promote_type(T1, T2)
     var = Polynomials.indeterminate(p1)
-    return RationalTransferFunction{T}(Polynomial{T}(p1.coeffs,var), Polynomial{T}(p2.coeffs,var), nothing)
+    return RationalTransferFunction{T}(Polynomial{T}(p1.coeffs,var), Polynomial{T}(p2.coeffs,var), 0.)
 end
 function /(n::Number, p::Polynomial)
     T = promote_type(eltype(p), eltype(n))
     var = Polynomials.indeterminate(p)
-    return RationalTransferFunction{T}(Polynomial{T}(T(n),var), Polynomial{T}(p.coeffs,var), nothing)
+    return RationalTransferFunction{T}(Polynomial{T}(T(n),var), Polynomial{T}(p.coeffs,var), 0.)
 end
 
 function /(n::Number, f::RationalTransferFunction) 
@@ -353,9 +328,8 @@ end
 isapprox(f::RationalTransferFunction, n::Number) = isapprox(f.num, n * f.den ) 
 isapprox(n::Number, f::RationalTransferFunction) = isapprox(f.num, n * f.den ) 
 
-function ^(f::RationalTransferFunction{T}, n::Int) where T
-    T1 = promote_type(T, eltype(n))
-    return n >= 0 ? RationalTransferFunction{T}(f.num^n, f.den^n, f.Ts) : RationalTransferFunction{T}(f.den^n, f.num^n, f.Ts) 
+function ^(f::RationalTransferFunction{T,X}, n::Int) where {T,X}
+    return n >= 0 ? RationalTransferFunction{T,X}(f.num^n, f.den^n, f.Ts) : RationalTransferFunction{T,X}(f.den^n, f.num^n, f.Ts) 
 end
 
 """
@@ -377,10 +351,9 @@ Compute the adjoint `rt(λ)` of the rational transfer function `r(λ)` such that
 
     (1) `rt(λ) = conj(num(-λ))/conj(num(-λ))`, if `r.Ts = 0`; 
 
-    (2) `rt(λ) = conj(num(1/λ))/conj(num(1/λ))`, if `r.Ts = -1` or `r.Ts > 0`; 
-
-    (3) `rt(λ) = conj(num(λ))/conj(num(λ))`, if `r.Ts = nothing`. 
+    (2) `rt(λ) = conj(num(1/λ))/conj(num(1/λ))`, if `r.Ts = -1` or `r.Ts > 0`.
 """
+transpose(f::RationalTransferFunction) = f
 function adjoint(f::RationalTransferFunction) 
     if f.Ts == 0
        p1 = copy(conj(f.num.coeffs))
@@ -390,9 +363,6 @@ function adjoint(f::RationalTransferFunction)
        i2 = 2:2:length(p2)
        p2[i2] = -p2[i2]
        return RationalTransferFunction(Polynomial(p1,Polynomials.indeterminate(f.num)), Polynomial(p2,Polynomials.indeterminate(f.den)), f.Ts) 
-    elseif isnothing(f.Ts)
-       return RationalTransferFunction(Polynomial(conj(f.num.coeffs),Polynomials.indeterminate(f.num)), 
-              Polynomial(conj(f.den.coeffs),Polynomials.indeterminate(f.den)), f.Ts)    
     else
        m = degree(f.num)+1
        n = degree(f.den)+1
@@ -405,6 +375,8 @@ function adjoint(f::RationalTransferFunction)
        end         
     end
  end
+ transpose(R::VecOrMat{<:RationalTransferFunction}) = permutedims(R)
+ adjoint(R::VecOrMat{<:RationalTransferFunction}) = adjoint.(permutedims(R))
  """
     rinv = inv(r)
 
@@ -428,7 +400,7 @@ function order(r::RationalTransferFunction)
 end
 Base.promote_rule(::Type{RationalTransferFunction{T1,X}}, ::Type{T2}) where {T1 <:Number, T2<:Number, X} =
     RationalTransferFunction{promote_type(T1, T2),X}
-Base.convert(::Type{RationalTransferFunction{T}}, n::Number) where T = rtf(promote_type(T,eltype(n))(n), Ts = nothing)
+Base.convert(::Type{RationalTransferFunction{T}}, n::Number) where T = rtf(promote_type(T,eltype(n))(n), Ts = 0.)
 
 
 function promote_var(num::Polynomial, den::Polynomial)
@@ -442,27 +414,27 @@ function promote_var(num::Polynomial, den::Polynomial)
     elseif  n > 1
        var = Polynomials.indeterminate(den)
     else
-       var = :x   # use the default variable of Polynomials
+       var = :s   # use the default variable for continuous-time systems
     end
     return var
 end
-_zerortf(::Type{RationalTransferFunction{T,X}},Ts::Union{Real,Nothing} = 0,var::Symbol = :x) where T where X =
+_zerortf(::Type{RationalTransferFunction{T,X}},Ts::Real = 0,var::Symbol = :s) where {T,X} =
     RationalTransferFunction{T}(Polynomial{T}(zero(T),var), Polynomial{T}(one(T),var), Ts)
-_zerortf(::Type{RationalTransferFunction{T}},Ts::Union{Real,Nothing} = 0,var::Symbol = :x) where T =
+_zerortf(::Type{RationalTransferFunction{T}},Ts::Real = 0,var::Symbol = :s) where T =
     RationalTransferFunction{T}(Polynomial{T}(zero(T),var), Polynomial{T}(one(T),var), Ts)
-Base.zero(::Type{RationalTransferFunction})  = _zerortf(RationalTransferFunction{Float64},nothing,:x)
-Base.zero(::Type{RationalTransferFunction{T}}) where T  = _zerortf(RationalTransferFunction{T},nothing,:x)
+Base.zero(::Type{RationalTransferFunction})  = _zerortf(RationalTransferFunction{Float64},0.,:s)
+Base.zero(::Type{RationalTransferFunction{T}}) where T  = _zerortf(RationalTransferFunction{T},0.,:s)
 Base.zero(f::RationalTransferFunction) = _zerortf(typeof(f),f.Ts,f.var)
-Base.zero(::Type{RationalTransferFunction{T,X}}) where T where X  = _zerortf(RationalTransferFunction{T,X},nothing,:x)
+Base.zero(::Type{RationalTransferFunction{T,X}}) where T where X  = _zerortf(RationalTransferFunction{T,X},0.,:s)
 
-_onertf(::Type{RationalTransferFunction{T,X}},Ts::Union{Real,Nothing} = 0,var::Symbol = :x) where T where X =
+_onertf(::Type{RationalTransferFunction{T,X}},Ts::Real = 0,var::Symbol = :y) where {T,X} =
     RationalTransferFunction{T}(Polynomial{T}(one(T),var), Polynomial{T}(one(T),var), Ts)
-_onertf(::Type{RationalTransferFunction{T}},Ts::Union{Real,Nothing} = 0,var::Symbol = :x) where T where X =
+_onertf(::Type{RationalTransferFunction{T}},Ts::Real = 0,var::Symbol = :s) where T  =
     RationalTransferFunction{T}(Polynomial{T}(one(T),var), Polynomial{T}(one(T),var), Ts)
-Base.one(::Type{RationalTransferFunction})  = _onertf(RationalTransferFunction{Float64},nothing,:x)
-Base.one(::Type{RationalTransferFunction{T}}) where T  = _onertf(RationalTransferFunction{T},nothing,:x)
+Base.one(::Type{RationalTransferFunction})  = _onertf(RationalTransferFunction{Float64},0.,:s)
+Base.one(::Type{RationalTransferFunction{T}}) where T  = _onertf(RationalTransferFunction{T},0.,:s)
 Base.one(f::RationalTransferFunction) = _onertf(typeof(f),f.Ts,f.var)
-Base.one(::Type{RationalTransferFunction{T,X}}) where T where X  = _onertf(RationalTransferFunction{T,X},nothing,:x)
+Base.one(::Type{RationalTransferFunction{T,X}}) where T where X  = _onertf(RationalTransferFunction{T,X},0.,:s)
 
 """
      normalize(r; atol = 0, rtol = atol)
@@ -551,8 +523,7 @@ for a continuous-time system or `val = exp(im*fval*Ts)` for a discrete-time syst
 with `Ts` the system sampling time.  
 """
 function evalfr(R::VecOrMat{<:RationalTransferFunction}; fval::Number = 0) 
-    Ts = R[1].Ts
-    isnothing(Ts) && (Ts = 0)
+    length(R) > 0 ? Ts = R[1].Ts : Ts = 0
     val = Ts == 0 ? im*abs(fval) : exp(im*abs(fval*Ts))
     return pmeval(numpoly.(R),val) ./ pmeval(denpoly.(R),val)
 end
@@ -574,7 +545,6 @@ with `Ts` the system sampling time.
 """
 function evalfr(r::RationalTransferFunction; fval::Number = 0)
     Ts = r.Ts
-    isnothing(r.Ts) && (Ts = 0) 
     val = Ts == 0 ? im*abs(fval) : exp(im*abs(fval*Ts))
     return r.num(val) ./ r.den(val)
 end

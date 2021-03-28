@@ -1,4 +1,99 @@
 """
+
+     H = freqresp(sys, ω)
+
+Compute the frequency response `H` of the descriptor system `sys = (A-λE,B,C,D)` at the real frequencies `ω`. 
+    
+For a system with `p` outputs and `m` inputs, and for `N` frequency values in `ω`,
+`H` is a `p × m × N` array, where `H[:,:,i]` contains the `i`-th value of the frequency response computed as
+`C*((w[i]*E - A)^-1)*B + D`, where `w[i] = im*ω[i]` for a continuous-time system and `w[i] = exp(im*ω[i]*|Ts|)` 
+for a discrete-time system with sampling time `Ts`. 
+
+_Method:_ For an efficient evaluation of `C*((w[i]*E - A)^-1)*B + D` for many values of `w[i]`, a preliminary 
+orthogonal coordinate transformation is performed such that for the input-output equivalent transformed 
+system `sys = (At-λEt,Bt,Ct,Dt)`, the matrix `w[i]*Et - At` is upper Hessenberg. 
+This allows an efficient computation of the frequency response using the Hessenberg-form based 
+approach proposed in [1].
+
+_Reference:_
+
+[1] Laub, A.J., "Efficient Multivariable Frequency Response Computations",
+    IEEE Transactions on Automatic Control, AC-26 (1981), pp. 407-408.
+"""
+function freqresp(sys::DescriptorStateSpace{T}, ω::Union{AbstractVector{<:Real},Real}) where T
+    T1 = T <: BlasFloat ? T : promote_type(Float64,T) 
+    ONE = one(T1)
+    typeof(ω) <: Real && (ω = [ω])
+    a, e, b, c, d = dssdata(T1,sys)
+    Ts = abs(sys.Ts)
+    disc = !iszero(Ts)
+    # Create the complex frequency vector w
+    if disc
+        w = exp.(ω*(im*abs(sys.Ts)))
+    else
+        w = im*ω
+    end
+    desc = !(e == I)
+    if desc
+        # Reduce (A,E) to (generalized) upper-Hessenberg form for
+        # fast frequency response computation 
+        at = copy(a)
+        et = copy(e)
+        bt = copy(b)
+        ct = copy(c)
+        # first reduce E to upper triangular form 
+        _, tau = LinearAlgebra.LAPACK.geqrf!(et)
+        T <: Complex ? tran = 'C' : tran = 'T'
+        LinearAlgebra.LAPACK.ormqr!('L', tran, et, tau, at)
+        LinearAlgebra.LAPACK.ormqr!('L', tran, et, tau, bt)
+        # reduce A to Hessenberg form and keep E upper triangular
+        _, _, Q, Z = MatrixPencils.gghrd!('I', 'I',  1, sys.nx, at, et, similar(at),similar(et))
+        if T <: Complex 
+           bc = Q'*bt; cc = c*Z; ac = at; ec = et; dc = d;
+        else
+           bc = complex(Q'*bt); cc = complex(c*Z); ac = complex(at); ec = complex(et); dc = complex(d);
+        end
+    else
+        # Reduce A to upper Hessenberg form for
+        # fast frequency response computation 
+        Ha = hessenberg(a)
+        ac = Ha.H
+        if T <: Complex 
+           bc = Ha.Q'*b; cc = c*Ha.Q; dc = d; 
+        else
+           bc = complex(Ha.Q'*b); cc = complex(c*Ha.Q); dc = complex(d);
+        end
+    end
+    N = length(w)
+    H = similar(dc, eltype(dc), sys.ny, sys.nu, N)
+    if VERSION < v"1.3.0-DEV.349"
+        ac = complex(ac)
+        for i = 1:N
+            if isinf(ω[i])
+                # exceptional call to evalfr
+                H[:,:,i] = evalfr(sys,fval=Inf)
+            else
+                desc ? H[:,:,i] = dc+cc*((w[i]*ec-ac)\bc) : H[:,:,i] = dc+cc*(w[i]*I-ac)\bc 
+            end
+        end
+    else  
+        bct = similar(bc) 
+        for i = 1:N
+            if isinf(ω[i])
+               # exceptional call to evalfr
+               H[:,:,i] = evalfr(sys,fval=Inf)
+            else
+               Hi = view(H,:,:,i)
+               copyto!(Hi,dc)
+               copyto!(bct,bc)
+               desc ? ldiv!(UpperHessenberg(ac-w[i]*ec),bct) : ldiv!(ac,bct,shift = -w[i])
+               mul!(Hi,cc,bct,-ONE,ONE)
+            end
+        end
+    end
+    return H
+end
+"""
     nx = order(sys)
 
 Return the order `nx` of the descriptor system `sys` as the dimension of the state variable vector. 
@@ -299,7 +394,7 @@ in conjunction with parameters specified in `Ts`, `Tis`, `a`, `b`, `c`, and `d`:
 
     "lft"     - alias to "Moebius" (linear fractional transformation).   
 """
-function rtfbilin(type = "c2d"; Ts::Union{Real,Nothing,Missing} = missing, Tsi::Union{Real,Nothing,Missing} = missing, 
+function rtfbilin(type = "c2d"; Ts::Union{Real,Missing} = missing, Tsi::Union{Real,Missing} = missing, 
                     a::Number = 1, b::Number = 0, c::Number = 0, d::Number = 1 )   
     s = rtf('s'); 
     type = lowercase(type)
@@ -332,9 +427,6 @@ function rtfbilin(type = "c2d"; Ts::Union{Real,Nothing,Missing} = missing, Tsi::
         ismissing(Ts) && (Ts = 0)
         if Ts == 0
             g = (a*s+b)/(c*s+d) 
-        elseif isnothing(Ts)
-            λ = rtf(:λ)
-            g = (a*λ+b)/(c*λ+d) 
         else
             z = rtf('z',Ts = Ts)
             g = (a*z+b)/(c*z+d) 
@@ -342,10 +434,7 @@ function rtfbilin(type = "c2d"; Ts::Union{Real,Nothing,Missing} = missing, Tsi::
         ismissing(Tsi) && (Tsi = 0)
         if Tsi == 0
             ginv = (d*s-b)/(-c*s+a)
-        elseif isnothing(Tsi)
-            λ = rtf(:λ)
-            ginv = (d*λ-b)/(-c*λ+a) 
-        else
+       else
             z = rtf('z',Ts = Tsi)
             ginv = (d*z-b)/(-c*z+a)
         end

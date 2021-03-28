@@ -1,4 +1,112 @@
 """
+    gnlcf(sys; fast = true, ss = false, 
+         atol = 0, atol1 = atol, atol2 = atol, rtol = n*ϵ) -> (sysn, sysm)
+
+Compute for the descriptor system `sys = (A-λE,B,C,D)`, the factors 
+`sysn = (An-λEn,Bn,Cn,Dn)` and `sysm = (An-λEn,Bm,Cn,Dm)` of its normalized
+right coprime factorization. If `sys`, `sysn` and `sysm`  
+have the transfer function matrices `G(λ)`, `N(λ)` and `M(λ)`, respectively, then
+`G(λ) = inv(M(λ))*N(λ)`, with `N(λ)` and `M(λ)` proper and stable transfer 
+function matrices and `[N(λ) M(λ)]` coinner. The resulting `En = I` if `ss = true`. 
+
+Pencil reduction algorithms are employed which perform rank decisions based on rank 
+revealing QR-decompositions with column pivoting 
+if `fast = true` or the more reliable SVD-decompositions if `fast = false`.
+
+The keyword arguments `atol1`, `atol2` and `rtol`, specify, respectively, 
+the absolute tolerance for the nonzero elements of `A`, `B`, `C` and `D`,
+the absolute tolerance for the nonzero elements of `E`,   
+and the relative tolerance for the nonzero elements of `A`, `E`, `B`, `C` and `D`.  
+The default relative tolerance is `n*ϵ`, where `ϵ` is the machine epsilon of the element type of `A` 
+and `n` is the order of the system `sys`.
+The keyword argument `atol` can be used to simultaneously set `atol1 = atol`, `atol2 = atol`.
+
+_Method:_ Pencil reduction algorithms are employed to determine the coinner coimage space `R(λ)` of the 
+transfer function matrix `[G(λ) I]` using the dual of method described in [1], which is based on 
+the reduction algorithm of [2]. Then the factors `N(λ)` and `M(λ)` result from the partitioning of
+`R(λ)` as `R(λ) = [N(λ) M(λ)]`. 
+
+_References:_
+
+[1] Varga, A.
+    A note on computing the range of rational matrices. 
+    arXiv:1707.0048, [https://arxiv.org/abs/1707.0048](https://arxiv.org/abs/1707.004), 2017.
+
+[2] C. Oara.
+    Constructive solutions to spectral and inner–outer factorizations 
+    respect to the disk. Automatica,  41, pp. 1855–1866, 2005. 
+"""
+function gnlcf(sys::DescriptorStateSpace{T}; fast::Bool = true, ss::Bool = false,
+              atol::Real = zero(real(T)), atol1::Real = atol, atol2::Real = atol,  
+              rtol::Real = sys.nx*eps(real(float(one(T))))*iszero(max(atol1,atol2))) where T 
+
+   # compute the coinner coimage of [G(λ) I] 
+   p, m = size(sys)
+   sysr, = gcrange([sys I], zeros = "none", coinner = true, fast = fast, atol1 = atol1, atol2 = atol2, rtol = rtol)
+   
+   # compute a standard state-space realization if requested
+   ss && (sysr = gss2ss(sysr, Eshape = "ident", atol1 = atol1, atol2 = atol2, rtol = rtol)[1])
+   
+   # extract the factors N(λ) and M(λ)
+   return sysr[1:p,1:m], sysr[1:p,m+1:end]
+   
+   # end GNRCF
+end
+"""
+    gnrcf(sys; fast = true, ss = false, 
+         atol = 0, atol1 = atol, atol2 = atol, rtol = n*ϵ) -> (sysn, sysm)
+
+Compute for the descriptor system `sys = (A-λE,B,C,D)`, the factors 
+`sysn = (An-λEn,Bn,Cn,Dn)` and `sysm = (An-λEn,Bn,Cm,Dm)` of its normalized
+right coprime factorization. If `sys`, `sysn` and `sysm`  
+have the transfer function matrices `G(λ)`, `N(λ)` and `M(λ)`, respectively, then
+`G(λ) = N(λ)*inv(M(λ))`, with `N(λ)` and `M(λ)` proper and stable transfer 
+function matrices and `[N(λ);M(λ)]` inner. The resulting `En = I` if `ss = true`. 
+
+Pencil reduction algorithms are employed which perform rank decisions based on rank 
+revealing QR-decompositions with column pivoting 
+if `fast = true` or the more reliable SVD-decompositions if `fast = false`.
+
+The keyword arguments `atol1`, `atol2` and `rtol`, specify, respectively, 
+the absolute tolerance for the nonzero elements of `A`, `B`, `C` and `D`,
+the absolute tolerance for the nonzero elements of `E`,   
+and the relative tolerance for the nonzero elements of `A`, `E`, `B`, `C` and `D`.  
+The default relative tolerance is `n*ϵ`, where `ϵ` is the machine epsilon of the element type of `A` 
+and `n` is the order of the system `sys`.
+The keyword argument `atol` can be used to simultaneously set `atol1 = atol`, `atol2 = atol`.
+
+_Method:_ Pencil reduction algorithms are employed to determine the inner range space `R(λ)` of the 
+transfer function matrix `[G(λ); I]` using the method described in [1], which is based on 
+the reduction algorithm of [2]. Then the factors `N(λ)` and `M(λ)` result from the partitioning of
+`R(λ)` as `R(λ) = [N(λ);M(λ)]`. 
+
+_References:_
+
+[1] Varga, A.
+    A note on computing the range of rational matrices. 
+    arXiv:1707.0048, [https://arxiv.org/abs/1707.0048](https://arxiv.org/abs/1707.004), 2017.
+
+[2] C. Oara.
+    Constructive solutions to spectral and inner–outer factorizations 
+    respect to the disk. Automatica,  41, pp. 1855–1866, 2005. 
+"""
+function gnrcf(sys::DescriptorStateSpace{T}; fast::Bool = true, ss::Bool = false,
+              atol::Real = zero(real(T)), atol1::Real = atol, atol2::Real = atol,  
+              rtol::Real = sys.nx*eps(real(float(one(T))))*iszero(max(atol1,atol2))) where T 
+
+   # compute the inner range of [G(λ);I] 
+   p, m = size(sys)
+   sysr, = grange([sys;I], zeros = "none", inner = true, fast = fast, atol1 = atol1,atol2 = atol2, rtol = rtol)
+   
+   # compute a standard state-space realization if requested
+   ss && (sysr = gss2ss(sysr, Eshape = "ident", atol1 = atol1, atol2 = atol2, rtol = rtol)[1])
+   
+   # extract the factors N(λ) and M(λ)
+   return sysr[1:p,1:m], sysr[p+1:end,1:m]
+   
+   # end GNRCF
+end
+"""
     goifac(sys; atol = 0, atol1 = atol, atol2 = atol, atol3 = atol, rtol, 
            fast = true, minphase = true, offset = sqrt(ϵ)) -> (sysi, syso, info)
 

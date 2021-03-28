@@ -71,4 +71,4 @@ This is a rapidly evolving software project for which new functionality will be 
 
 ## Supplementary information
 
-Supplementary information on the existing and planned functionality is also available in the documentation of the [`DSTOLS`](https://bitbucket.org/DSVarga/dstools/src/master/) collection available on [arXiv](https://arxiv.org/abs/1707.07140).
+Supplementary information on the existing and planned functionality is also available in the documentation of the [`DSTOOLS`](https://bitbucket.org/DSVarga/dstools/src/master/) collection available on [arXiv](https://arxiv.org/abs/1707.07140).

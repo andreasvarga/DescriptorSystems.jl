@@ -13,6 +13,7 @@
 * **[`gh2norm`](@ref)**  `H2` norm of a descriptor system.
 * **[`glinfnorm`](@ref)**  `L∞` norm of a descriptor system.
 * **[`ghinfnorm`](@ref)**  `H∞` norm of a descriptor system.
+* **[`gnugap`](@ref)**  `ν-gap` distance between two descriptor systems.
 
 ```@docs
 isregular
@@ -28,4 +29,5 @@ gl2norm
 gh2norm
 glinfnorm
 ghinfnorm
+gnugap
 ```

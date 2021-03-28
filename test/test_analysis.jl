@@ -735,4 +735,161 @@ end # Ty
 end # glinfnorm
 
 
+@testset "gnugap" begin
+
+
+## Examples from the Vinnicombe's book, p. 115
+s = rtf('s'); N = 3;
+sys = (dss(100/(2*s+1)), dss(100/(2*s-1)), dss(100/(s+1)^2))
+distgap = zeros(N); 
+for j = 1:N
+    distgap[j], = gnugap(sys[1],sys[j],atol=1.e-7);
+end
+@test norm(distgap-[0,0.02,0.8988]) <0.001
+
+## Examples from the Vinnicombe's book, p. 125
+s = rtf('s'); 
+sys1 = dss(1/(s+0.2));                               # P1
+sys2 = dss((s+0.1)^2/(s-0.2)/(s^2+0.1*s+0.01));      # P2
+nugap, fpeak = gnugap(sys2,sys1,atol=1.e-7)
+@test abs(nugap-0.403) < 0.0001 && abs(fpeak-0.32) < 0.01
+
+
+## Examples from the Vinnicombe's book, p. 160 with wno ~= 0
+s = rtf('s'); N = 3;
+sys = (dss(0.3*(s-1)/(s^2+1)), dss(0.3*(s-1)/(s^2+2)), dss(0.3*(s-1)*(s-2)/(s^2+2)/(s-sqrt(2))))
+distgap = zeros(N); 
+for j = 1:N
+    distgap[j], = gnugap(sys[1],sys[j],atol=1.e-7);
+end
+
+@test norm(distgap-[0,1,1]) < 1.e-6
+
+## Examples from the Vinnicombe's book, p. 201
+s = rtf('s');
+sys1 = dss(1/s^2);    # P1
+sys2 = dss(1/s);      # P2
+nugap, fpeak = gnugap(sys2,sys1,atol=1.e-7)
+@test nugap ≈ 1/sqrt(2) && fpeak ≈ 1
+
+
+## Examples from the Vinnicombe's book, p. 202  nugap = 1/sqt(2) for epsi>0
+s = rtf('s'); epsi = 0.01;
+sys1 = dss([1/s; 1/(s+epsi)]);    # P1
+sys2 = dss([1/s; 1/s]);           # P2
+nugap, = gnugap(sys2,sys1,atol=1.e-7)
+@test nugap ≈ 1/sqrt(2) 
+
+## Examples from the Vinnicombe's book, p. 202  modified 
+#  realization of sys2 is not stabilizable
+s = rtf('s'); epsi = 0.01;
+sys1 = dss([1/s^2; 1/(s+epsi)]);    # P1
+sys2 = dss([1/s^2; 1/s]);           # P2
+nugap, = gnugap(sys2,sys1,atol=1.e-7)
+@test nugap < epsi
+
+## Examples from the Vinnicombe's book, p. 202  modified 
+#  realization of sys2 is not stabilizable
+s = rtf('s'); epsi = 0.01;
+sys1 = dss([s^2+epsi; (s+epsi)]);    # P1
+sys2 = dss([s^2; s]);           # P2
+nugap, = gnugap(sys2,sys1,atol=1.e-7)
+@test nugap < sqrt(2)*epsi
+
+## 
+z = rtf('z');
+sys1 = dss(1/z); sys2 = dss(0.5/z);
+nugap, = gnugap(sys1,sys2,atol=1.e-6)
+@test nugap ≈ 0.316227766016838
+
+## 
+z = rtf('z');
+sys1 = dss(1/z); sys2 = dss(0.5/z^2);
+nugap, = gnugap(sys1,sys2,atol=1.e-6)
+@test nugap ≈ 0.948683298050514
+
+## ν-gap = 1
+s = rtf('s');
+sys1 = dss((s+1)/(s+2)); sys2 = dss(-1);
+nugap, = gnugap(sys1,sys2,atol=1.e-7)
+@test nugap == 1
+
+
+## gapmetric produces the wrong result nugap = 0
+sys1 = dss(1); sys2 = dss(-1);
+nugap, = gnugap(sys1,sys2,atol=1.e-5)
+@test nugap == 1
+
+## ν-gap = 1 
+sys1 = rss(3,2,2); sys1.D[:,:] = eye(2); sys2 = -inv(sys1)';
+nugap, fpeak = gnugap(sys1,sys2,atol=1.e-6)
+@test nugap == 1
+
+
+n = 5; m = 3; p = 2;
+
+Ty = Float64; fast = true; 
+Ty = Complex{Float64}; fast = true; 
+rtolinf = 0.000001
+for Ty in (Float64, Complex{Float64})
+
+for fast in (true, false)
+
+## nugap = 0
+sys = rss(n,p,m, T = Ty); 
+@time nugap, fpeak = gnugap(sys,sys,fast = fast, atol = 1.e-7)
+@test nugap < 1.e-10
+
+sys = rss(n,p,m,T = Ty, disc=true); 
+@time nugap, fpeak = gnugap(sys,sys, fast = fast, atol = 1.e-7)
+@test nugap < 1.e-10
+
+sys = rdss(n,p,m,T = Ty); 
+@time nugap, fpeak = gnugap(sys,sys,fast = fast, atol = 1.e-7)
+@test nugap < 1.e-10
+
+sys = rdss(n,p,m,T = Ty, disc=true); 
+@time nugap, fpeak = gnugap(sys,sys, fast = fast, atol = 1.e-7)
+@test nugap < 1.e-10
+
+sys = rss(n,p,m, T = Ty); 
+@time nugap, fpeak = gnugap(sys,sys,fast = fast, atol = 1.e-7, freq = collect(range(0.1, 0.3, length=5)))
+@test maximum(nugap) < 1.e-10
+
+sys = rss(n,p,m,T = Ty, disc=true); 
+@time nugap, fpeak = gnugap(sys, sys, fast = fast, atol = 1.e-7, freq = collect(range(0.1, 0.3, length=5)))
+@test maximum(nugap) < 1.e-10
+
+sys = rdss(n,p,m,T = Ty); 
+@time nugap, fpeak = gnugap(sys, sys,fast = fast, atol = 1.e-7, freq = collect(range(0.1, 0.3, length=5)))
+@test maximum(nugap) < 1.e-10
+
+sys = rdss(n,p,m,T = Ty, disc=true); 
+@time nugap, fpeak = gnugap(sys, sys, fast = fast, atol = 1.e-7, freq = collect(range(0.1, 0.3, length=5)))
+@test maximum(nugap) < 1.e-10
+
+sys1 = rss(n,p,m,T = Ty); sys1d = sys1*0.001/glinfnorm(sys1)[1]; sys2 = sys1+sys1d;
+@time nugap, fpeak = gnugap(sys2,sys1,fast = fast, atol = 1.e-7)
+@time nugap1, fpeak1 = gnugap(sys2,sys1,fast = fast, atol = 1.e-7,freq=fpeak)
+@test nugap ≈ nugap1[1] &&  nugap < 0.01
+
+sys1 = rss(n,p,m,T = Ty); sys1d = rss(3,2,3,stable=true,T = Ty); sys2 = sys1+sys1d*0.001/glinfnorm(sys1d)[1];
+@time nugap, fpeak = gnugap(sys2,sys1,fast = fast, atol = 1.e-7)
+@time nugap1, fpeak1 = gnugap(sys2,sys1,fast = fast, atol = 1.e-7,freq=fpeak)
+@test nugap ≈ nugap1[1] &&  nugap < 0.01
+
+@time nugap, fpeek = gnugap(sys1,sys2,fast = fast, atol=1.e-7)
+sysd1 = gbilin(sys1,rtfbilin("c2d")[1])[1]; sysd2 = gbilin(sys2,rtfbilin("c2d")[1])[1]; 
+@time nugap1, fpeak1 = gnugap(sysd2,sysd1,fast = fast, atol=1.e-7)
+@test abs(nugap-nugap1) < 0.00001
+
+
+sysc1 = gbilin(sysd1,rtfbilin("d2c")[1])[1]; sysc2 = gbilin(sysd2,rtfbilin("d2c")[1])[1]; 
+nugap2, fpeak2 = gnugap(sysc2,sysc1,fast = fast, atol=1.e-7)
+@test abs(nugap-nugap2) < 0.00001
+
+end # fast
+end # Ty
+end # gnugap
+
 end # module

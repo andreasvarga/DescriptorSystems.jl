@@ -21,11 +21,11 @@ export confmap, rmconfmap, simplify, normalize, poles, gain, zpk, rtfbilin, nump
 export blockdiag, eye, rcond
 export gdual, ctranspose, inv, ldiv, rdiv
 export append, series, parallel, horzcat, vertcat
-export order, evalfr, dcgain, opnorm
+export order, evalfr, dcgain, opnorm, freqresp
 export gpole, gzero, gpoleinfo, gzeroinfo, gnrank, isregular, isproper, isstable, 
-       glinfnorm, ghinfnorm, gl2norm, gh2norm, ghanorm
+       glinfnorm, ghinfnorm, gl2norm, gh2norm, ghanorm, gnugap
 export gsdec, grnull, glnull, grange, gcrange, grsol, glsol, grmcover1, grmcover2, glmcover1, glmcover2
-export grcf, glcf, grcfid, glcfid, giofac, goifac
+export grcf, glcf, grcfid, glcfid, gnrcf, gnlcf, giofac, goifac
 # export PencilStateSpace, pss, pssdata
 
 

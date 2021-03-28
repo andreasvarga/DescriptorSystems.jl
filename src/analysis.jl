@@ -93,10 +93,12 @@ function gpole(SYS::DescriptorStateSpace{T}; fast = false, atol::Real = 0, atol1
        return isschur(A) ? ordeigvals(A) : MatrixPencils.eigvalsnosort(A)
     else
        E = copy_oftype(SYS.E,T1)
-       epsm = eps(float(one(real(T1))))
-       isschur(A,E) && rcond(UpperTriangular(E)) >= SYS.nx*epsm && (return ordeigvals(A,E)[1])
-       istriu(E) && rcond(UpperTriangular(E)) >= SYS.nx*epsm && (return MatrixPencils.eigvalsnosort(A,E))
-       rcond(E) >= SYS.nx*epsm && (return MatrixPencils.eigvalsnosort(A,E))
+       if norm(E,Inf) > atol2 
+          epsm = eps(float(one(real(T1))))
+          isschur(A,E) && rcond(UpperTriangular(E)) >= SYS.nx*epsm && (return ordeigvals(A,E)[1])
+          istriu(E) && rcond(UpperTriangular(E)) >= SYS.nx*epsm && (return MatrixPencils.eigvalsnosort(A,E))
+          rcond(E) >= SYS.nx*epsm && (return MatrixPencils.eigvalsnosort(A,E))
+       end
        # singular E
        poles, nip, krinfo = pzeros(A, E; fast = fast, atol1 = atol1, atol2 = atol2, rtol = rtol )
        check_reg && (SYS.nx == krinfo.nrank || error("the system has a singular pole pencil"))
@@ -197,7 +199,8 @@ function gzeroinfo(SYS::DescriptorStateSpace{T}; smarg::Real = SYS.Ts == 0 ? 0 :
     niev = sum(krinfo.id)
     nisev = niev == 0 ? 0 : krinfo.id[1]
     niz = sum(miz)
-    return val, (nfz = krinfo.nf, niev = niev, nisev = nisev, niz = niz, nfsz = nfsz, nfsbz = nfsbz, 
+    nfz = krinfo.nf
+    return val, (nfz = nfz, niev = niev, nisev = nisev, niz = niz, nfsz = nfsz, nfsbz = nfsbz, 
                  nfuz = nfuz, nrank = krinfo.nrank, miev = krinfo.id, miz = miz, 
                  rki = krinfo.rki, lki = krinfo.lki, regular = (sum(krinfo.rki) == 0 && sum(krinfo.lki) == 0),  
                  stable = (niz == 0 && nfsz == nfz))
@@ -306,15 +309,19 @@ function gpoleinfo(SYS::DescriptorStateSpace{T}; smarg::Real = SYS.Ts == 0 ? 0 :
                      rki = Int[], lki = Int[], regular = true, proper = true, stable = (nfsev == n))
     else
        E = copy_oftype(SYS.E,T1)
-       epsm = eps(float(one(real(T))))
-       if isschur(A,E) && rcond(UpperTriangular(E)) >= n*epsm
-          val = ordeigvals(A,E)[1]
-       elseif istriu(E) && rcond(UpperTriangular(E)) >= n*epsm  
-          val = MatrixPencils.eigvalsnosort(A,E)
-       elseif rcond(E) >= n*epsm 
-          val = MatrixPencils.eigvalsnosort(A,E)
+       if norm(E,Inf) > atol2 
+          epsm = eps(float(one(real(T))))
+          if isschur(A,E) && rcond(UpperTriangular(E)) >= n*epsm
+             val = ordeigvals(A,E)[1]
+          elseif istriu(E) && rcond(UpperTriangular(E)) >= n*epsm  
+             val = MatrixPencils.eigvalsnosort(A,E)
+          elseif rcond(E) >= n*epsm 
+             val = MatrixPencils.eigvalsnosort(A,E)
+          else
+             # singular E
+             val, mip, krinfo = pzeros(A, E; fast = fast, atol1 = atol1, atol2 = atol2, rtol = rtol )
+          end
        else
-          # singular E
           val, mip, krinfo = pzeros(A, E; fast = fast, atol1 = atol1, atol2 = atol2, rtol = rtol )
        end
        nfsev, nfsbev, nfuev = eigvals_info(val[isfinite.(val)], smarg, disc, offset)
@@ -1048,4 +1055,120 @@ function norminfd(a, e, b, c, d, ft0, Ts, tol)
        (lan0 < 2 || gmin < gmin0*(1+tol/10)) && (return gmin, fpeak/Ts)
        iter += 1
     end
-end    
+end  
+  
+"""   
+    gnugap(sys1, sys2; freq = ω, rtolinf = 0.00001, fast = true, offset = sqrt(ϵ), 
+           atol = 0, atol1 = atol, atol2 = atol, rtol = n*ϵ) -> (nugapdist, fpeak)
+
+Compute the ν-gap distance `nugapdist` between two descriptor systems `sys1 = (A1-λE1,B1,C1,D1)` and 
+`sys2 = (A2-λE2,B2,C2,D2)` and the corresponding frequency `fpeak` (in rad/TimeUnit), where the ν-gap 
+distance achieves its peak value. 
+
+If `freq = missing`, the resulting `nugapdist` satisfies `0 <= nugapdist <= 1`. 
+The value `nugapdist = 1` results, if the winding number is different of zero in which case `fpeak = []`. 
+
+If `freq = ω`, where `ω` is a given vector of real frequency values, the resulting `nugapdist` is a vector 
+of pointwise ν-gap distances of the dimension of `ω`, whose components satisfies `0 <= maximum(nugapdist) <= 1`. 
+In this case, `fpeak` is the frequency for which the pointwise distance achieves its peak value. 
+All components of `nugapdist` are set to 1 if the winding number is different of zero in which case `fpeak = []`.
+
+The stability boundary offset,  `β`, to be used to assess the finite zeros which belong to the
+boundary of the stability domain can be specified via the keyword parameter `offset = β`.
+Accordingly, for a continuous-time system, these are the finite zeros having 
+real parts within the interval `[-β,β]`, while for a discrete-time system, 
+these are the finite zeros having moduli within the interval `[1-β,1+β]`. 
+The default value used for `β` is `sqrt(ϵ)`, where `ϵ` is the working machine precision. 
+
+Pencil reduction algorithms are employed to compute range and coimage spaces 
+which perform rank decisions based on rank 
+revealing QR-decompositions with column pivoting 
+if `fast = true` or the more reliable SVD-decompositions if `fast = false`.
+
+The keyword arguments `atol1`, `atol2` and `rtol`, specify, respectively, 
+the absolute tolerance for the nonzero elements of `A1`, `A2`, `B1`, `B2`, `C1`, `C2`, `D1` and `D2`,
+the absolute tolerance for the nonzero elements of `E1` and `E2`,   
+and the relative tolerance for the nonzero elements of all above matrices.  
+The default relative tolerance is `n*ϵ`, where `ϵ` is the working machine epsilon 
+and `n` is the maximum of the orders of the systems `sys1` and `sys2`. 
+The keyword argument `atol` can be used to simultaneously set `atol1 = atol`, `atol2 = atol`. 
+
+The keyword argument `rtolinf` specifies the relative accuracy to be used 
+to compute the ν-gap as the infinity norm of the relevant system according to [1]. 
+The default value used for `rtolinf` is `0.00001`.
+   
+_Method:_ The evaluation of ν-gap uses the definition proposed in [1],
+extended to generalized LTI (descriptor) systems. The computation of winding number
+is based on enhancements covering zeros on the boundary of the 
+stability domain and infinite zeros.
+
+_References:_
+
+[1] G. Vinnicombe. Uncertainty and feedback: H∞ loop-shaping and the ν-gap metric. 
+    Imperial College Press, London, 2001. 
+"""   
+function gnugap(sys1::DescriptorStateSpace{T1},sys2::DescriptorStateSpace{T2}; freq::Union{AbstractVector{<:Real},Real,Missing} = missing,
+         fast::Bool = true, offset::Real = sqrt(eps(float(real(T1)))), rtolinf::Real = float(real(T1))(0.00001), 
+         atol::Real = zero(real(T1)), atol1::Real = atol, atol2::Real = atol,  
+         rtol::Real = max(sys1.nx,sys2.nx)*eps(real(float(one(T1))))*iszero(min(atol1,atol2)))  where {T1,T2} 
+   T = promote_type(T1,T2)
+   T <: BlasFloat || (T = promote_type(T,Float64))  
+   ONE = one(real(T))
+   
+   Ts = promote_Ts(sys1.Ts,sys2.Ts)
+   disc = (Ts != 0)
+   
+   ismissing(freq) ? nf = 0 : nf = length(freq)
+   
+   p, m = size(sys1)
+   (p,m) == size(sys2) || error("The systems sys1 and sys2 must have the same number of inputs and outputs")
+      
+   # compute the normalized coprime factorizations R1 = [N1;M1] and R2 = [N2;M2] 
+   R1 = grange([sys1;I], zeros = "none", inner = true, atol1 = atol1, atol2 = atol2, rtol = rtol, 
+               offset = offset, fast = fast)[1]; 
+   R2 = grange([sys2;I], zeros = "none", inner = true, atol1 = atol1, atol2 = atol2, rtol = rtol, 
+                offset = offset, fast = fast)[1]; 
+   
+   # check conditions on det(N2'*N1+M2'*M1) = det(R2'*R1)
+   syst = gir(R2'*R1, atol1 = atol1, atol2 = atol2, rtol = rtol, fast = fast);  
+   infoz = gzeroinfo(syst, offset = offset, atol1 = atol1, atol2 = atol2, rtol = rtol, fast = fast)[2];
+   # check invertibility and presence of zeros on the boundary of stability domain
+   if infoz.nrank != order(syst)+m || infoz.nfsbz > 0
+      return nf == 0 ? ONE : ones(nf), Float64[]
+   end
+   
+   # evaluate winding number 
+   infop = gpoleinfo(syst,offset = offset, atol1 = atol1, atol2 = atol2, rtol = rtol, fast = fast)[2];
+   wno = infoz.nfuz - infop.nfuev + infoz.niz - infop.nip
+   # check condition on winding number 
+   if wno != 0
+      # nonzero winding number
+      return nf == 0 ? ONE : ones(nf), Float64[]
+   end
+   
+   # compute the normalized left coprime factorization L1 = [ N1t M1t]
+   L1 = gcrange([sys1 I], zeros = "none", coinner = true, atol1 = atol1, atol2 = atol2, rtol = rtol, 
+                offset = offset, fast = fast)[1]; 
+   # compute the underlying system to compute the nu-gap distance 
+   # using the definition of Vinnicombe
+   syst = L1*[zeros(T,m,p) -I; I zeros(T,p,m)]*R2
+   if ismissing(freq)
+      # compute the ν-gap using the definition of Vinnicombe
+      nugapdist, fpeak = ghinfnorm(syst; rtolinf = rtolinf, fast = fast, offset = offset, 
+                                  atol1 = atol1, atol2 = atol2, rtol = rtol) 
+   else 
+      H = freqresp(syst,freq); nugapdist = zeros(nf)
+      tmax = opnorm(H[:,:,1]); fpeak = freq[1]
+      nugapdist[1] = tmax
+      for i = 2:nf
+          temp = opnorm(H[:,:,i])
+          nugapdist[i] = temp;
+          if tmax < temp
+             tmax = temp; fpeak = freq[i]
+          end
+      end          
+   end
+   return nugapdist, fpeak 
+end
+   
+   

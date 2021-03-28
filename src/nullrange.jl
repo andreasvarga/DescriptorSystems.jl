@@ -1,4 +1,251 @@
 """
+    gcrange(sys; zeros = "none", coinner = false, atol = 0, atol1 = atol, atol2 = atol, atol3 = atol, rtol, 
+           fast = true, offset = sqrt(ϵ)) -> (sysr, sysx, info)
+
+Compute for the descriptor system `sys = (A-λE,B,C,D)` with the transfer function matrix `G(λ)`, 
+the proper descriptor system `sysr = (Ar-λEr,Br,Cr,Dr)` with a full row rank 
+transfer function matrix `R(λ)` such that `Coimage(G(λ)) = Coimage(R(λ))` and the  
+descriptor system `sysx = (A-λE,B,Cx,Dx)` with the full column rank transfer function matrix `X(λ)`,
+which satisfies
+   
+     G(λ) = X(λ)*R(λ) ,
+
+representing a full rank factorization of `G(λ)`.  
+The number of rows of `R(λ)` is the normal rank `r` of `G(λ)`. 
+The rows of `R(λ)` form a rational basis of the coimage space of the rational matrix `G(λ)`. 
+A selected set of zeros of `G(λ)` are included as zeros of `R(λ)`. 
+
+The resulting named triple `ìnfo` contains `(nrank, nfuz, niuz) `, where `ìnfo.nrank = r`, 
+the normal rank of `G(λ)`, `ìnfo.nfuz` is the number of finite zeros of `sys` on 
+the boundary of the stability domain `Cs`, and `ìnfo.niuz` is the number of infinite zeros of `sys` in 
+the continuous-time case and is set to `0` in the discrete-time case. 
+
+The following options can be selected via the keyword parameter `zeros` for which zeros of `G(λ)` 
+to be included in `R(λ)`:
+
+     "none"       - include no zeros (default) 
+     "all"        - include all zeros of `sys`
+     "unstable"   - include all unstable zeros of `sys`
+     "s-unstable" - include all strictly unstable zeros of `sys`, both finite and infinite
+     "stable"     - include all stable zeros of `sys`
+     "finite"     - include all finite zeros of `sys`
+     "infinite"   - include all infinite zeros of `sys`
+
+If `coinner = true`, the resulting basis `R(λ)` is _coinner_, i.e., `R(λ)*R(λ)' = I`, where `R(s)' = transpose(R(-s))` for a 
+continuous-time system with `λ = s` and `R(z)' = transpose(R(1/z))` for a discrete-time system with `λ = z`. 
+This option can be used only in conjunction with `zeros = "none"` or `zeros = "unstable"`. 
+
+For a continuous-time system `sys`, the stability domain `Cs` is defined as the set of 
+complex numbers with real parts at most `-β`, 
+while for a discrete-time system `sys`, `Cs` is the set of complex numbers with 
+moduli at most `1-β` (i.e., the interior of a disc of radius `1-β` centered in the origin). 
+The boundary offset `β` to be used to assess the stability of zeros and their number 
+on the boundary of `Cs` can be specified via the keyword parameter `offset = β`.
+Accordingly, for a continuous-time system, 
+the boundary of `Cs` contains the complex numbers with real parts within the interval `[-β,β]`, 
+while for a discrete-time system, the boundary of `Cs` contains
+the complex numbers with moduli within the interval `[1-β,1+β]`. 
+The default value used for `β` is `sqrt(ϵ)`, where `ϵ` is the working machine precision. 
+
+The keyword arguments `atol1`, `atol2` and `rtol`, specify, respectively, 
+the absolute tolerance for the nonzero elements of `A`, `B`, `C` and `D`,
+the absolute tolerance for the nonzero elements of `E`, 
+and the relative tolerance for the nonzero elements of `A`, `E`, `B`, `C` and `D`.  
+The default relative tolerance is `n*ϵ`, where `ϵ` is the working machine epsilon 
+and `n` is the order of the system `sys`. The keyword argument `atol` can be used 
+to simultaneously set `atol1 = atol`, `atol2 = atol`, `atol3 = atol`. 
+
+For the assessment of zeros, the dual system pencil `transpose([A-λE B; C D])` is reduced to a 
+special Kronecker-like form (see [2]). In this reduction, the 
+performed rank decisions are based on rank revealing QR-decompositions with column pivoting 
+if `fast = true` or the more reliable SVD-decompositions if `fast = false`.
+
+_Method:_  The range computation method described in [1], is applied to the
+dual descriptor system realization corresponding to the transpose of the 
+rational matrix `G(λ)`. The underlying pencil reduction algorithm of [2], 
+has been adapted to deal with several zero selection options. The computation of the involved 
+Kronecker-like form is based on the algorithm of [3].
+
+_References:_
+
+[1] Varga, A.
+    A note on computing the range of rational matrices. 
+    arXiv:1707.0048, [https://arxiv.org/abs/1707.0048](https://arxiv.org/abs/1707.004), 2017.
+
+[2] C. Oara.
+    Constructive solutions to spectral and inner–outer factorizations 
+    respect to the disk. Automatica,  41, pp. 1855–1866, 2005. 
+
+[3] C. Oara and P. Van Dooren. 
+    An improved algorithm for the computation of structural invariants of a system pencil and related geometric aspects. 
+    Syst. Control Lett., 30:39–48, 1997.
+"""
+function gcrange(sys::DescriptorStateSpace{T}; zeros = "none", coinner::Bool = false, 
+                 atol::Real = zero(real(T)), atol1::Real = atol, atol2::Real = atol,  
+                 rtol::Real = sys.nx*eps(real(float(one(T))))*iszero(max(atol1,atol2)), 
+                 offset::Real = sqrt(eps(float(real(T)))), fast::Bool = true) where T  
+   sysr, sysx, info = grange(gdual(sys); zeros = zeros, inner = coinner, offset = offset, 
+                      atol = atol, atol1 = atol1, atol2 = atol2, rtol = rtol, fast = fast)
+   return gdual(sysr), gdual(sysx), info
+end
+"""
+    grange(sys; zeros = "none", atol = 0, atol1 = atol, atol2 = atol, atol3 = atol, rtol, 
+           fast = true, offset = sqrt(ϵ)) -> (sysr, sysx, info)
+
+Compute for the descriptor system `sys = (A-λE,B,C,D)` with the transfer function matrix `G(λ)`, 
+the proper descriptor system `sysr = (Ar-λEr,Br,Cr,Dr)` with a full column rank 
+transfer function matrix `R(λ)` such that `Range(G(λ)) = Range(R(λ))` and the  
+descriptor system `sysx = (A-λE,B,Cx,Dx)` with the full row rank transfer function matrix `X(λ)`,
+which satisfies
+   
+     G(λ) = R(λ)*X(λ) ,
+
+representing a full rank factorization of `G(λ)`.  
+The number of columns of `R(λ)` is the normal rank `r` of `G(λ)`. 
+The columns of `R(λ)` form a rational basis of the range (or image) space of the rational matrix `G(λ)`. 
+A selected set of zeros of `G(λ)` are included as zeros of `R(λ)`. 
+
+The resulting named triple `ìnfo` contains `(nrank, nfuz, niuz) `, where `ìnfo.nrank = r`, 
+the normal rank of `G(λ)`, `ìnfo.nfuz` is the number of finite zeros of `sys` on 
+the boundary of the stability domain `Cs`, and `ìnfo.niuz` is the number of infinite zeros of `sys` in 
+the continuous-time case and is set to `0` in the discrete-time case. 
+
+Depending on the value of the keyword parameter `zeros`, the following options can be selected 
+for the zeros of `G(λ)` to be included in `R(λ)`:
+
+     "none"       - include no zeros (default) 
+     "all"        - include all zeros of `sys`
+     "unstable"   - include all unstable zeros of `sys`
+     "s-unstable" - include all strictly unstable zeros of `sys`, both finite and infinite
+     "stable"     - include all stable zeros of `sys`
+     "finite"     - include all finite zeros of `sys`
+     "infinite"   - include all infinite zeros of `sys`
+
+If `inner = true`, the resulting basis `R(λ)` is _inner_, i.e., `R(λ)'*R(λ) = I`, where `R(s)' = transpose(R(-s))` for a 
+continuous-time system with `λ = s` and `R(z)' = transpose(R(1/z))` for a discrete-time system with `λ = z`. 
+This option can be used only in conjunction with `zeros = "none"` or `zeros = "unstable"`. 
+
+For a continuous-time system `sys`, the stability domain `Cs` is defined as the set of 
+complex numbers with real parts at most `-β`, 
+while for a discrete-time system `sys`, `Cs` is the set of complex numbers with 
+moduli at most `1-β` (i.e., the interior of a disc of radius `1-β` centered in the origin). 
+The boundary offset  `β` to be used to assess the stability of zeros and their number 
+on the boundary of `Cs` can be specified via the keyword parameter `offset = β`.
+Accordingly, for a continuous-time system, 
+the boundary of `Cs` contains the complex numbers with real parts within the interval `[-β,β]`, 
+while for a discrete-time system, the boundary of `Cs` contains
+the complex numbers with moduli within the interval `[1-β,1+β]`. 
+The default value used for `β` is `sqrt(ϵ)`, where `ϵ` is the working machine precision. 
+
+The keyword arguments `atol1`, `atol2` and `rtol`, specify, respectively, 
+the absolute tolerance for the nonzero elements of `A`, `B`, `C` and `D`,
+the absolute tolerance for the nonzero elements of `E`,   
+and the relative tolerance for the nonzero elements of `A`, `E`, `B`, `C` and `D`.  
+The default relative tolerance is `n*ϵ`, where `ϵ` is the working machine epsilon 
+and `n` is the order of the system `sys`. The keyword argument `atol` can be used 
+to simultaneously set `atol1 = atol`, `atol2 = atol`. 
+
+For the assessment of zeros, the system pencil `[A-λE B; C D]` is reduced to a 
+special Kronecker-like form (see [2]). In this reduction, the 
+performed rank decisions are based on rank revealing QR-decompositions with column pivoting 
+if `fast = true` or the more reliable SVD-decompositions if `fast = false`.
+
+_Method:_  The range computation method is described in [1] and is based on 
+the reduction algorithm of [2], which has been adapted to deal with 
+several zero selection options. The computation of the involved 
+Kronecker-like form is based on the algorithm of [3].
+
+_References:_
+
+[1] Varga, A.
+    A note on computing the range of rational matrices. 
+    arXiv:1707.0048, [https://arxiv.org/abs/1707.0048](https://arxiv.org/abs/1707.004), 2017.
+
+[2] C. Oara.
+    Constructive solutions to spectral and inner–outer factorizations 
+    respect to the disk. Automatica,  41, pp. 1855–1866, 2005. 
+
+[3] C. Oara and P. Van Dooren. 
+    An improved algorithm for the computation of structural invariants of a system pencil and related geometric aspects. 
+    Syst. Control Lett., 30:39–48, 1997.
+"""
+function grange(sys::DescriptorStateSpace{T}; zeros = "none", inner::Bool = false, 
+                atol::Real = zero(real(T)), atol1::Real = atol, atol2::Real = atol, 
+                rtol::Real = sys.nx*eps(real(float(one(T))))*iszero(max(atol1,atol2)), 
+                offset::Real = sqrt(eps(float(real(T)))), fast::Bool = true) where T 
+
+   disc = !iszero(sys.Ts)
+
+   # enforce controllability of sys
+   sys = gir(sys, atol1 = atol1, atol2 = atol2, obs = false) 
+
+   #  Reduce the system matrix pencil to the special Kronecker-like form
+   #
+   #                 ( Arg-λ*Erg     *        *   *   )
+   #                 (   0        Abl-λ*Ebl  Bbl  *   )
+   #       At-λ*Et = (   0           0        0   Bn  )
+   #                 (--------------------------------)
+   #                 (   0          Cbl      Dbl  *   )
+   #
+   # where the subpencil
+   #                           ( Abl-λ*Ebl  Bbl )
+   #                           (   Cbl      Ddl )
+   #
+   # is full column rank, the pair (Abl-λ*Ebl,Bbl) is stabilizable, and
+   # Abl-λ*Ebl contains either no zeros of sys if 
+   # zeros = "none", or contains zeros according to the specified option in zeros.  
+   
+   
+   At, Et, _, Z, dimsc, nmszer, nizer = gsklf(dssdata(sys)...; disc = disc, 
+                jobopt = zeros,  
+                offset = offset, fast = fast, atol1 = atol1, atol2 = atol2, rtol = rtol, 
+                withQ = false, withZ = true)  
+   
+   n, m = size(sys.B); p = size(sys.D,1);
+
+   # form the reduced system (Abl-λ*Ebl,Bbl,Cbl,Dbl)         
+   nr = dimsc[1]; nric = dimsc[2]; mric = dimsc[3]; nsinf = dimsc[4]; 
+   il = n-nsinf-nric+1:n-nsinf; jal = nr+1:nr+nric; jbl = nr+nric+1:nr+nric+mric; icl = n+1:n+p
+   # A = At[il,jal]; E = Et[il,jal]; B = At[il,jbl]; C = At[icl,jal]; D = At[icl,jbl];
+   A = view(At,il,jal); E = view(Et,il,jal); B = view(At,il,jbl); C = view(At,icl,jal); D = view(At,icl,jbl)
+
+   if inner && (zeros == "none" || zeros == "unstable")
+      # move unstable zeros to stable positions and compress the reduced system to one
+      # with full row rank transfer function matrix
+      if disc
+         # X, _,F, = gared(A,E,B,D'*D,C'*C,C'*D); 
+         X, _,F, = try 
+            gared(A,E,B,D'*D,C'*C,C'*D) 
+         catch err
+            findfirst("dichotomic",string(err)) === nothing ? error("$err") : 
+               error("Solution of the DARE failed: Symplectic pencil has eigenvalues on the unit circle")            
+         end
+         H = cholesky(Hermitian(D'*D+B'*X*B)).U 
+      else
+         # X, _, F, = garec(A,E,B,D'*D,C'*C,C'*D); 
+         X, _, F, = try 
+            garec(A,E,B,D'*D,C'*C,C'*D) 
+         catch err
+            findfirst("dichotomic",string(err)) === nothing ? error("$err") :
+               error("Solution of the CARE failed: Hamiltonian pencil has jw-axis eigenvalues") 
+         end
+         H = qr(D).R[1:mric,:]
+      end
+      # construct the inner basis
+      sysr = dss(A-B*F, E, B/H, C-D*F, D/H, Ts = sys.Ts)
+      # construct the full row rank factor
+      CDt = [H*F H]*Z[:,nr+1:n+m-nsinf]' 
+      sysx = dss(sys.A, sys.E, sys.B, CDt[:,1:n], CDt[:,n+1:n+m], Ts = sys.Ts);
+   else
+      sysr = dss(A, E, B, C, D, Ts = sys.Ts)
+      sysx = dss(sys.A, sys.E, sys.B, Z[1:n,jbl]', Z[n+1:n+m,jbl]', Ts = sys.Ts);
+   end
+   info = (nrank = mric, nfuz = nmszer, niuz = nizer)
+
+   return sysr, sysx, info
+
+end
+"""
     glnull(sys; polynomial = false, simple = false, coinner = false, fast = true, poles = missing, sdeg = missing,  
            atol = 0, atol1 = atol, atol2 = atol, rtol, offset = sqrt(ϵ) ) -> (syslnull, info)
 

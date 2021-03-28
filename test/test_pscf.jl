@@ -8,9 +8,9 @@ using Polynomials
 using Test
 
 
-@testset "grcf and glcf" begin
+@testset "grcf/gnrcf and glcf/gnlcf" begin
 
-@testset "grcf" begin
+@testset "grcf/gnrcf" begin
 
 sys = rdss(0,0,0);
 @time sysn, sysm = grcf(sys);
@@ -45,7 +45,7 @@ s = Polynomial([0, 1],'s'); z = Polynomial([0, 1],'z');     # define the complex
 # Gc = [s^2 s/(s+1); 0 1/s]     # define the 2-by-2 improper Gc(s)
 Nc = [s^2 s; 0 1]; Dc = [1 (s+1); 1 s]; 
 sysc = dss(Nc,Dc);             # build continuous-time descriptor system realization
-sysn, sysm = grcf(sysc, evals = [-2,-3,-4], sdeg = -0.99, mindeg = true, mininf = true);
+@time sysn, sysm = grcf(sysc, evals = [-2,-3,-4], sdeg = -0.99, mindeg = true, mininf = true);
 @test gnrank(sysc*sysm-sysn,atol=1.e-7) == 0 &&   
       isproper(sysm) && isproper(sysn) && 
       isstable(sysm,atol=1.e-7) && 
@@ -55,7 +55,7 @@ sysn, sysm = grcf(sysc, evals = [-2,-3,-4], sdeg = -0.99, mindeg = true, mininf 
 
 #test pole assignment feature
 sysc = dss(A = diagm(rand(3)),B = rand(3,2), C = rand(2,3));  
-sysn, sysm = grcf(sysc, evals = [-2+im,-4,-2-im], mindeg = true, mininf = true);
+@time sysn, sysm = grcf(sysc, evals = [-2+im,-4,-2-im], mindeg = true, mininf = true);
 @test gnrank(sysc*sysm-sysn,atol=1.e-7) == 0 &&   
       isproper(sysm) && isproper(sysn) && 
       isstable(sysm,atol=1.e-7) && 
@@ -66,7 +66,7 @@ sysn, sysm = grcf(sysc, evals = [-2+im,-4,-2-im], mindeg = true, mininf = true);
 
 
 sysc = sysn'; gpole(sysc)   
-sysn, sysm = grcf(sysc, evals = [-2+im,-4,-2-im], mindeg = true, mininf = true);
+@time sysn, sysm = grcf(sysc, evals = [-2+im,-4,-2-im], mindeg = true, mininf = true);
 @test gnrank(sysc*sysm-sysn,atol=1.e-7) == 0 &&   
       isproper(sysm) && isproper(sysn) && 
       isstable(sysm,atol=1.e-7) && 
@@ -78,7 +78,7 @@ sysn, sysm = grcf(sysc, evals = [-2+im,-4,-2-im], mindeg = true, mininf = true);
 e = rand(3,3)
 sysc = dss(A = e*diagm(rand(3)), E = e, B = rand(3,2), C = rand(2,3));   
 
-sysn, sysm = grcf(sysc, evals = [-2+im,-4,-2-im], mindeg = true, mininf = true);
+@time sysn, sysm = grcf(sysc, evals = [-2+im,-4,-2-im], mindeg = true, mininf = true);
 @test gnrank(sysc*sysm-sysn,atol=1.e-7) == 0 &&   
       isproper(sysm) && isproper(sysn) && 
       isstable(sysm,atol=1.e-7) && 
@@ -88,7 +88,7 @@ sysn, sysm = grcf(sysc, evals = [-2+im,-4,-2-im], mindeg = true, mininf = true);
       sort(imag(gpole(sysm))) ≈ sort([1,-1,0]) 
 
 sysc = sysn';   
-sysn, sysm = grcf(sysc, evals = [-2+im,-4,-2-im], mindeg = true, mininf = true);
+@time sysn, sysm = grcf(sysc, evals = [-2+im,-4,-2-im], mindeg = true, mininf = true);
 @test gnrank(sysc*sysm-sysn,atol=1.e-7) == 0 &&   
       isproper(sysm) && isproper(sysn) && 
       isstable(sysm,atol=1.e-7) && 
@@ -99,7 +99,7 @@ sysn, sysm = grcf(sysc, evals = [-2+im,-4,-2-im], mindeg = true, mininf = true);
 
 # enforce interchange of 1x1 and 2x2 blocks
 sysc = dss(A = [1 100 0 1;0 2 3 1; 0 -3 2 0; 0 0 0 3], B = rand(4,2), C = rand(2,4) );  
-sysn, sysm = grcf(sysc, evals = [-2+im,-4+2im,-4-2im,-2-im], mindeg = true, mininf = true);
+@time sysn, sysm = grcf(sysc, evals = [-2+im,-4+2im,-4-2im,-2-im], mindeg = true, mininf = true);
 @test gnrank(sysc*sysm-sysn,atol=1.e-7) == 0 &&   
       isproper(sysm) && isproper(sysn) && 
       isstable(sysm,atol=1.e-7) && 
@@ -109,7 +109,7 @@ sysn, sysm = grcf(sysc, evals = [-2+im,-4+2im,-4-2im,-2-im], mindeg = true, mini
       sort(imag(gpole(sysm))) ≈ sort([1,-1,2,-2]) 
 
 sysc = dss(A = [1 100 0 1;0 2 3 1; 0 -3 2 0; 0 0 0 3], E = 2*eye(4),  B = rand(4,2), C = rand(2,4) );  
-sysn, sysm = grcf(sysc, evals = [-2+im,-4+2im,-4-2im,-2-im], mindeg = true, mininf = true);
+@time sysn, sysm = grcf(sysc, evals = [-2+im,-4+2im,-4-2im,-2-im], mindeg = true, mininf = true);
 @test gnrank(sysc*sysm-sysn,atol=1.e-7) == 0 &&   
       isproper(sysm) && isproper(sysn) && 
       isstable(sysm,atol=1.e-7) && 
@@ -124,7 +124,7 @@ Nd = [z^2 z; 0 1]; Dd = [1 z-2; 1 z];
 # build LTI (nonminimal) descriptor realizations of Gc(s) and Gd(z) 
 sysd = dss(Nd,Dd,Ts = 1);      # build discrete-time descriptor system realization
 
-sysn, sysm = grcf(sysd);
+@time sysn, sysm = grcf(sysd);
 @test gnrank(sysd*sysm-sysn,atol=1.e-7) == 0  &&    #  Gd(z)*M(z)-N(z) = 0
       isproper(sysm) & isproper(sysn)  &&  
       isstable(sysm,atol=1.e-7) && 
@@ -140,7 +140,7 @@ gd = [(s+2) (s+2) (s+2);
     (s+2) (s+1)*(s+2) (s+1)*(s+2)]; 
 sys = dss(gn,gd,minimal = true, atol = 1.e-7); 
 
-sysn, sysm = grcf(sys,mindeg=true);
+@time sysn, sysm = grcf(sys,mindeg=true);
 @test gnrank(sys*sysm-sysn,atol=1.e-7) == 0  &&    
       isproper(sysm) & isproper(sysn)  &&  
       isstable(sysm,atol=1.e-7) && 
@@ -149,7 +149,7 @@ sysn, sysm = grcf(sys,mindeg=true);
       order(sysm) == 0
 
 
-sysn, sysm = grcf(sys',sdeg=-0.5);
+@time sysn, sysm = grcf(sys',sdeg=-0.5);
 @test gnrank(sys'*sysm-sysn,atol=1.e-7) == 0  &&    
       isproper(sysm) & isproper(sysn)  &&  
       isstable(sysm,atol=1.e-7) && 
@@ -164,9 +164,9 @@ gn = [(s-1) s 1;
 gd = [(s-2) (s+2) (s+2);
     1 (s+1)^2 (s+1)^2;
     (s+2) (s-1)*(s+2) (s+1)*(s-2)];
-
 sys = dss(gn,gd,minimal = true, atol = 1.e-7); 
-sysn, sysm = grcf(sys,mindeg = true, atol = 1.e-7);
+
+@time sysn, sysm = grcf(sys,mindeg = true, atol = 1.e-7);
 @test gnrank(sys*sysm-sysn,atol=1.e-7) == 0  &&    
       isproper(sysm) & isproper(sysn)  &&  
       isstable(sysm,atol=1.e-7) && 
@@ -174,6 +174,13 @@ sysn, sysm = grcf(sys,mindeg = true, atol = 1.e-7);
       isempty(gzero(gminreal([sysn;sysm],atol=1.e-7))) &&
       order(sysm) == 3
 
+@time sysn, sysm = gnrcf(sys,atol = 1.e-7);
+@test gnrank(sys*sysm-sysn,atol=1.e-7) == 0  &&    
+      isproper(sysm) & isproper(sysn)  &&  
+      isstable(sysm,atol=1.e-7) && 
+      isstable(sysn,atol=1.e-7)  &&
+      isempty(gzero(gminreal([sysn;sysm],atol=1.e-7))) &&
+      iszero(sysn'*sysn+sysm'*sysm-I,atol=1.e-7)
 
 z = Polynomial([0, 1],'z')
 g = [z^2+z+1 4*z^2+3*z+2 2*z^2-2;
@@ -187,6 +194,15 @@ sysn, sysm = grcf(sys,mindeg = true,atol=1.e-7,atol3=1.e-7);
       isstable(sysm,atol=1.e-7) && 
       isstable(sysn,atol=1.e-7)  &&
       isempty(gzero(gminreal([sysn;sysm],atol=1.e-7))) 
+
+@time sysn, sysm = gnrcf(sys, ss = true, atol = 1.e-7);
+@test gnrank(sys*sysm-sysn,atol=1.e-7) == 0  &&    
+      isproper(sysm) & isproper(sysn)  &&  
+      isstable(sysm,atol=1.e-7) && 
+      isstable(sysn,atol=1.e-7)  &&
+      isempty(gzero(gminreal([sysn;sysm],atol=1.e-7))) &&
+      iszero(sysn'*sysn+sysm'*sysm-I,atol=1.e-7)
+
 
 z = Polynomial([0, 1],'z')
 # Eigenvalue(s) on the unit circle 
@@ -376,9 +392,9 @@ sys = rdss(n,p,m,T = Ty,disc=true, nfuc = 5);
 end
 end
 
-end # grcfid
+end # grcf/gnrcf
 
-@testset "glcf" begin
+@testset "glcf/gnlcf" begin
 
 sys = rdss(0,0,0);
 @time sysn, sysm = glcf(sys);
@@ -387,6 +403,66 @@ sys = rdss(0,0,0);
       isstable(sysm,atol=1.e-7) && 
       isstable(sysn,atol=1.e-7)  &&
       isempty(gzero(gminreal([sysn sysm])))
+
+s = Polynomial([0, 1],'s'); 
+gn = [(s-1) s 1;
+    0 (s-2) (s-2);
+    (s-1) (s^2+2*s-2) (2*s-1)]; 
+gd = [(s-2) (s+2) (s+2);
+    1 (s+1)^2 (s+1)^2;
+    (s+2) (s-1)*(s+2) (s+1)*(s-2)];
+sys = dss(gn,gd,minimal = true, atol = 1.e-7); 
+
+@time sysn, sysm = glcf(sys,mindeg = true, atol = 1.e-7);
+@test gnrank(sysm*sys-sysn,atol=1.e-7) == 0  &&    
+      isproper(sysm) & isproper(sysn)  &&  
+      isstable(sysm,atol=1.e-7) && 
+      isstable(sysn,atol=1.e-7)  &&
+      isempty(gzero(gminreal([sysn sysm],atol=1.e-7))) &&
+      order(sysm) == 3
+
+@time sysn, sysm = gnlcf(sys,atol = 1.e-7);
+@test gnrank(sysm*sys-sysn,atol=1.e-7) == 0  &&    
+      isproper(sysm) & isproper(sysn)  &&  
+      isstable(sysm,atol=1.e-7) && 
+      isstable(sysn,atol=1.e-7)  &&
+      isempty(gzero(gminreal([sysn sysm],atol=1.e-7))) &&
+      iszero(sysn*sysn'+sysm*sysm'-I,atol=1.e-7)
+
+z = Polynomial([0, 1],'z')
+g = [z^2+z+1 4*z^2+3*z+2 2*z^2-2;
+    z 4*z-1 2*z-2;
+    z^2 4*z^2-z 2*z^2-2*z];
+sys = dss(g,minimal = true, atol = 1.e-7,Ts = 1); 
+
+sysn, sysm = glcf(sys,mindeg = true,atol=1.e-7,atol3=1.e-7);
+@test gnrank(sysm*sys-sysn,atol=1.e-7) == 0  &&    #  Gd(z)*M(z)-N(z) = 0
+      isproper(sysm) & isproper(sysn)  &&  
+      isstable(sysm,atol=1.e-7) && 
+      isstable(sysn,atol=1.e-7)  &&
+      isempty(gzero(gminreal([sysn sysm],atol=1.e-7))) 
+
+@time sysn, sysm = gnlcf(sys, ss = true, atol = 1.e-7);
+@test gnrank(sysm*sys-sysn,atol=1.e-7) == 0  &&    
+      isproper(sysm) & isproper(sysn)  &&  
+      isstable(sysm,atol=1.e-7) && 
+      isstable(sysn,atol=1.e-7)  &&
+      isempty(gzero(gminreal([sysn sysm],atol=1.e-7))) &&
+      iszero(sysn*sysn'+sysm*sysm'-I,atol=1.e-7)
+
+
+z = Polynomial([0, 1],'z')
+# Eigenvalue(s) on the unit circle 
+gn = 1
+gd = z-1
+sys = dss(gn,gd,Ts = 1)
+sysn, sysm = grcf(sys)  
+@test gnrank(sys*sysm-sysn,atol=1.e-7) == 0  &&    #  Gd(z)*M(z)-N(z) = 0
+      isproper(sysm) & isproper(sysn)  &&  
+      isstable(sysm,atol=1.e-7) && 
+      isstable(sysn,atol=1.e-7)  &&
+      isempty(gzero(gminreal([sysn;sysm],atol=1.e-7))) 
+
 
 fast = true; Ty = Complex{Float64}; #Ty = Float64     
 n = 5; p = 3; m = 2; 
@@ -469,7 +545,7 @@ sys = rdss(n,p,m,T = Ty,disc=true, nfuo = 5);
 end
 end
 
-end # glcf
+end # glcf/gnlcf
 
 
 end #test

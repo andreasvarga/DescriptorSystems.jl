@@ -1,12 +1,10 @@
-function promote_Ts(Ts1::Union{Real,Nothing}, Ts2::Union{Real,Nothing})
-    isnothing(Ts1) && (return Ts2)
-    isnothing(Ts2) && (return Ts1)
+function promote_Ts(Ts1::Real, Ts2::Real)
     Ts1 == Ts2 && (return Ts1)  
     Ts1 == -1 && (Ts2 > 0 ? (return Ts2) : error("Sampling time mismatch"))
     Ts2 == -1 && (Ts1 > 0 ? (return Ts1) : error("Sampling time mismatch"))
     error("Sampling time mismatch")
- end
- """
+end
+"""
      sys = series(sys1, sys2) 
      sys = sys2*sys1
 

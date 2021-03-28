@@ -32,7 +32,7 @@ s = Polynomial([0,1],:s)
 @test convert(RationalTransferFunction{Float64},5) == rtf(5.)
 @test DescriptorSystems.promote_var(a*s+b,Polynomial(1)) == :s && 
       DescriptorSystems.promote_var(Polynomial(1),a*s+b) == :s && 
-      DescriptorSystems.promote_var(Polynomial(1),Polynomial(1)) == :x 
+      DescriptorSystems.promote_var(Polynomial(1),Polynomial(1)) == :s 
 @test zero(RationalTransferFunction) == rtf(0) && 
       zero(RationalTransferFunction{Float64}) == rtf(0.) &&
       zero(sys) == rtf(0.) && zero(sys) == 0 && zero(sys) == Polynomial(0) &&
@@ -115,7 +115,7 @@ sys1 = rtf((a*z+b)/(c*z+d),Ts=1)
 @time t = rtf('z',Ts=2)
 @test t == rtf("z",Ts=2) &&  t == rtf(:z,Ts=2) && t.var == :z && t.Ts == 2
 @time t = rtf('λ')
-@test t == rtf("λ") &&  t == rtf(:λ) && t.var == :λ && isnothing(t.Ts)
+@test t == rtf("λ") &&  t == rtf(:λ) && t.var == :λ 
 
 a = 1; b = 2; c = 3; d = 4;
 sys = rtf(Polynomial([b, a],:s), Polynomial([d, c],:s), Ts = 0)
@@ -193,7 +193,6 @@ n   = 3.
 @test r1*n ≈ n*r1 ≈ rtf(Polynomial([-3, 3]), Polynomial([1, 1]))
 @test r1/n ≈ inv(n/r1) ≈ rtf(Polynomial([-1, 1]), Polynomial([3, 3])) ≈ rtf(Polynomial([-1, 1]/3), Polynomial([1, 1]))
 
-
 # bilinear transformation
 a = 1; b = 2; c = 3; d = 4;
 @time sys = rtf(Polynomial([b, a],:s), Polynomial([d, c],:s), Ts = 0)
@@ -230,12 +229,7 @@ g, gi = rtfbilin("beuler",Ts = 0.01);
 @test confmap(g,gi) == s
 @test confmap(gi,g) == s
 
-@time g, gi = rtfbilin("Moebius", Ts = nothing, Tsi = nothing, a = 1, b = 2, c = 3, d = 4);
-@test confmap(g,gi) == λ
-@test confmap(gi,g) == λ
-
 @test_throws ErrorException rtfbilin("ddd")
-
 
 
 # normalization
@@ -252,16 +246,15 @@ sys = rtf(Polynomial([b, a],:s), Polynomial([d, c],:s), Ts = 0)
 
 # manipulation of rational matrices
 
-
 # s and z rational functions
 s = rtf('s'); z = rtf('z');     # define the complex variables s and z  
-Gc = [s^2 s/(s+1); 0 1/s] 
-Gd = [z^2 z/(z-2); 0 1/z] 
+@time Gc = [s^2 s/(s+1); 0 1/s] 
+@time Gd = [z^2 z/(z-2); 0 1/z] 
 
 # s and z polynomials
 s = Polynomial([0, 1],'s'); z = Polynomial([0, 1],'z');  
-Gc1 = [s^2 s/(s+1); 0 1/s] 
-Gd1 = [z^2 z/(z-2); 0 1/z] 
+@time Gc1 = [s^2 s/(s+1); 0 1/s] 
+@time Gd1 = [z^2 z/(z-2); 0 1/z] 
 
 @test all( Gc .== rtf.(Gc1,Ts = Gc[1].Ts,var=:s))
 @test all( Gd .== rtf.(Gd1,Ts = Gd[1].Ts,var=:z))
@@ -275,11 +268,13 @@ Gd1 = [z^2 z/(z-2); 0 1/z]
 
 # concatenations
 s = rtf('s'); z = rtf('z');     # define the complex variables s and z  
-Gc = [s^2 s/(s+1); 0 1/s] 
-Gd = [z^2 z/(z-2); 0 1/z] 
+@time Gc = [s^2 s/(s+1); 0 1/s] 
+@time Gd = [z^2 z/(z-2); 0 1/z] 
 @test all([s^2 s/(s+1)] .== Gc[1:1,:])
 @test all([s/(s+1); 1/s] .== Gc[:,2:2])
-@test all([s^2 s/(s+1) I] .==[s^2 s/(s+1) 1])
+@time Gc1 = [s^2 s/(s+1) I]
+@time Gc2 = [s^2 s/(s+1) 1]
+@test all(Gc1 .== Gc2)
 @test all([s^2; s/(s+1); I] .==[s^2; s/(s+1); 1])
 @test all([[s^2; s/(s+1)]; I] .==[s^2; s/(s+1); 1])
 

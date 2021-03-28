@@ -417,4 +417,29 @@ end # polynomial system matrix realizations
 
 end # realization tools
 
+@testset "Frequency response" begin
+
+w = collect(LinRange(.1,100,1000));
+sys = rss(50,4,3);
+@time H = freqresp(sys,w);
+@time begin for i = 1:1000 H[:,:,i] -= evalfr(sys,fval=w[i]); end end
+@test norm(H,Inf) < 1.e-7
+
+sys = rss(50,4,3,disc=true);
+@time H = freqresp(sys,w);
+@time begin for i = 1:1000 H[:,:,i] -= evalfr(sys,fval=w[i]); end end
+@test norm(H,Inf) < 1.e-7
+
+sys = rdss(50,4,3);
+@time H = freqresp(sys,w);
+@time begin for i = 1:1000 H[:,:,i] -= evalfr(sys,fval=w[i]); end end
+@test norm(H,Inf) < 1.e-7
+
+sys = rdss(50,4,3,disc=true);
+@time H = freqresp(sys,w);
+@time begin for i = 1:1000 H[:,:,i] -= evalfr(sys,fval=w[i]); end end
+@test norm(H,Inf) < 1.e-7
+
+end #freqresp
+
 end #module
