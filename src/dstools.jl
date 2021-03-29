@@ -67,13 +67,13 @@ function freqresp(sys::DescriptorStateSpace{T}, ω::Union{AbstractVector{<:Real}
     N = length(w)
     H = similar(dc, eltype(dc), sys.ny, sys.nu, N)
     if VERSION < v"1.3.0-DEV.349"
-        ac = complex(ac)
+        ac = complex(Matrix(ac))
         for i = 1:N
             if isinf(ω[i])
                 # exceptional call to evalfr
                 H[:,:,i] = evalfr(sys,fval=Inf)
             else
-                desc ? H[:,:,i] = dc+cc*((w[i]*ec-ac)\bc) : H[:,:,i] = dc+cc*(w[i]*I-ac)\bc 
+                desc ? (H[:,:,i] = dc+cc*((w[i]*ec-ac)\bc)) : (H[:,:,i] = dc+cc*((w[i]*I-ac)\bc)) 
             end
         end
     else  
