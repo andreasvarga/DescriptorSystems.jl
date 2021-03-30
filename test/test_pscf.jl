@@ -8,6 +8,7 @@ using Polynomials
 using Test
 
 
+println("Test_pscf")
 @testset "grcf/gnrcf and glcf/gnlcf" begin
 
 @testset "grcf/gnrcf" begin

@@ -1,4 +1,184 @@
 """
+     sysf = glsfg(sys, γ; fast = true, stabilize = true, offset = β, 
+                  atol = 0, atol1 = atol, atol2 = atol, rtol = n*ϵ) 
+
+Compute for the descriptor system `sys = (A-λE,B,C,D)` with the transfer function matrices `G(λ)`
+and ``{\\small γ > \\|G(λ)\\|_∞}``, the minimum-phase right spectral factor `sysf = (Af-λEf,Bf,Cf,Df)`
+with the transfer-function matrix `F(λ)`, such that `F(λ)*F(λ)' = γ^2*I-G(λ)*G(λ)'`.
+If `stabilize = true` (the default), a preliminary stabilization of `sys` is performed. 
+In this case, `sys` must not have poles on the imaginary-axis in the continuous-time case or 
+on the unit circle in the discrete-time case.
+If `stabilize = false`, then no preliminary stabilization is performed. In this case, `sys` must be stable.
+
+To assess the presence of poles on the boundary of the stability domain `Cs`, a boundary offset  `β` 
+can be specified via the keyword parameter `offset = β`. 
+Accordingly, for a continuous-time system, 
+the boundary of `Cs` contains the complex numbers with real parts within the interval `[-β,β]`, 
+while for a discrete-time system, then the boundary of `Cs` contains
+the complex numbers with moduli within the interval `[1-β,1+β]`. 
+The default value used for `β` is `sqrt(ϵ)`, where `ϵ` is the working machine precision. 
+
+If `stabilize = true`, a preliminary separation of finite and infinite eigenvalues of `A-λE`is performed 
+using rank decisions based on rank revealing QR-decompositions with column pivoting 
+if `fast = true` or the more reliable SVD-decompositions if `fast = false`.
+
+The keyword arguments `atol1`, `atol2`, `atol3`, and `rtol`, specify, respectively, 
+the absolute tolerance for the nonzero elements of `A`, 
+the absolute tolerance for the nonzero elements of `E`, 
+the absolute tolerance for the nonzero elements of `C`,  
+and the relative tolerance for the nonzero elements of `A`, `E` and `C`.  
+The default relative tolerance is `n*ϵ`, where `ϵ` is the working machine epsilon. 
+The keyword argument `atol` can be used 
+to simultaneously set `atol1 = atol`, `atol2 = atol`, `atol3 = atol`.
+
+_Method:_ Extensions of the factorization approaches of [1] are used.
+
+_References:_
+
+[1] K. Zhou, J. C. Doyle, and K. Glover. Robust and Optimal Control. Prentice Hall, 1996.
+"""
+function glsfg(sys::DescriptorStateSpace{T},γ::Real; stabilize::Bool = true, 
+               offset::Real = sqrt(eps(float(real(T)))), atol::Real = zero(real(T)), 
+               atol1::Real = atol, atol2::Real = atol, atol3::Real = atol, 
+               rtol::Real = sys.nx*eps(real(float(one(T))))*iszero(max(atol1,atol2,atol3)), 
+               fast::Bool = true) where T 
+
+   # Compute the RCF with inner denominator if stabilize = true
+   stabilize && (sys = grcfid(sys; mininf = true, fast = fast, offset = offset, 
+                          atol1 = atol1, atol2 = atol2, atol3 = atol3, rtol = rtol)[1])
+
+   epsm2 = sqrt(eps(float(real(T))))
+
+   if sys.E != I && (norm(sys.E,Inf) < atol2 || rcond(sys.E) < epsm2 )
+      sys = gss2ss(sys; atol1 = atol1, atol2 = atol2, rtol = rtol)
+      sys.E != I && rcond(sys.E) < epsm2 && error("Improper input system sys")
+   end
+   a, e, b, c, d = dssdata(sys)
+   discr = (sys.Ts != 0)
+   
+   # Compute the stabilizing solution of the corresponding Riccati equation
+   p, n = size(c)
+   r = γ*γ*I-d*d' 
+   
+   if n > 0
+      if discr
+         xric, _, kric, = gared(a', e', c', -r, b*b', b*d'; rtol = rtol); #fric = -fric; 
+         SF = schur(xric)
+         rdiag = Diagonal(sqrt.(max.(real.(SF.values),0)))
+         SV = svd([d c*SF.Z*rdiag],full=true)
+      else
+         _, _, kric, = garec(a', e', c', -r, b*b', b*d'; rtol = rtol); #fric = -fric; 
+         SV = svd(d,full=true)
+      end
+   else
+      SV = svd(d,full=true)
+      if !isempty(SV.S) && SV.S[1] > abs(γ)
+         error("The condition γ > ||sys||∞ is not fulfilled")
+      end
+      kric = zeros(T,p,n)
+   end
+   
+   # compute square-root factor
+   s = SV.S
+   rsq = [s;zeros(eltype(s),p-length(s))]
+   rsqrt = SV.U*Diagonal(sqrt.(max.(γ*γ .- rsq.^2,0)))
+   
+   # assemble the spectral factor
+   sysf = dss(a, e, kric'*rsqrt, c, rsqrt, Ts = sys.Ts)
+
+   # end GLSFG
+end
+"""
+     sysf = grsfg(sys, γ; fast = true, stabilize = true, offset = β, 
+                  atol = 0, atol1 = atol, atol2 = atol, rtol = n*ϵ) 
+
+Compute for the descriptor system `sys = (A-λE,B,C,D)` with the transfer function matrices `G(λ)`
+and ``{\\small γ > \\|G(λ)\\|_∞}``, the minimum-phase right spectral factor `sysf = (Af-λEf,Bf,Cf,Df)`
+with the transfer-function matrix `F(λ)`, such that `F(λ)'*F(λ) = γ^2*I-G(λ)'*G(λ)`.
+If `stabilize = true` (the default), a preliminary stabilization of `sys` is performed. 
+In this case, `sys` must not have poles on the imaginary-axis in the continuous-time case or 
+on the unit circle in the discrete-time case.
+If `stabilize = false`, then no preliminary stabilization is performed. In this case, `sys` must be stable.
+
+To assess the presence of poles on the boundary of the stability domain `Cs`, a boundary offset  `β` 
+can be specified via the keyword parameter `offset = β`. 
+Accordingly, for a continuous-time system, 
+the boundary of `Cs` contains the complex numbers with real parts within the interval `[-β,β]`, 
+while for a discrete-time system, then the boundary of `Cs` contains
+the complex numbers with moduli within the interval `[1-β,1+β]`. 
+The default value used for `β` is `sqrt(ϵ)`, where `ϵ` is the working machine precision. 
+
+If `stabilize = true`, a preliminary separation of finite and infinite eigenvalues of `A-λE`is performed 
+using rank decisions based on rank revealing QR-decompositions with column pivoting 
+if `fast = true` or the more reliable SVD-decompositions if `fast = false`.
+
+The keyword arguments `atol1`, `atol2`, `atol3`, and `rtol`, specify, respectively, 
+the absolute tolerance for the nonzero elements of `A`, 
+the absolute tolerance for the nonzero elements of `E`, 
+the absolute tolerance for the nonzero elements of `C`,  
+and the relative tolerance for the nonzero elements of `A`, `E` and `C`.  
+The default relative tolerance is `n*ϵ`, where `ϵ` is the working machine epsilon. 
+The keyword argument `atol` can be used 
+to simultaneously set `atol1 = atol`, `atol2 = atol`, `atol3 = atol`.
+
+_Method:_ Extensions of the factorization approaches of [1] are used.
+
+_References:_
+
+[1] K. Zhou, J. C. Doyle, and K. Glover. Robust and Optimal Control. Prentice Hall, 1996.
+"""
+function grsfg(sys::DescriptorStateSpace{T},γ::Real; stabilize::Bool = true, 
+               offset::Real = sqrt(eps(float(real(T)))), atol::Real = zero(real(T)), 
+               atol1::Real = atol, atol2::Real = atol, atol3::Real = atol, 
+               rtol::Real = sys.nx*eps(real(float(one(T))))*iszero(max(atol1,atol2,atol3)), 
+               fast::Bool = true) where T 
+
+   # Compute the LCF with inner denominator if stabilize = true
+   stabilize && (sys = glcfid(sys; mininf = true, fast = fast, offset = offset, 
+                          atol1 = atol1, atol2 = atol2, atol3 = atol3, rtol = rtol)[1])
+
+   epsm2 = sqrt(eps(float(real(T))))
+
+   if sys.E != I && (norm(sys.E,Inf) < atol2 || rcond(sys.E) < epsm2 )
+      sys = gss2ss(sys; atol1 = atol1, atol2 = atol2, rtol = rtol)
+      sys.E != I && rcond(sys.E) < epsm2 && error("Improper input system sys")
+   end
+   a, e, b, c, d = dssdata(sys)
+   discr = (sys.Ts != 0)
+   
+   # Compute the stabilizing solution of the corresponding Riccati equation
+   n, m = size(b)
+   r = γ*γ*I-d'*d 
+   
+   if n > 0
+      if discr
+         xric, _, fric, = gared(a, e, b, -r, c'*c, c'*d; rtol = rtol); #fric = -fric; 
+         SF = schur(xric)
+         rdiag = Diagonal(sqrt.(max.(real.(SF.values),0)))
+         SV = svd([d;rdiag*SF.Z'*b],full=true)
+      else
+         _, _, fric, = garec(a, e, b, -r, c'*c, c'*d; rtol = rtol); #fric = -fric; 
+         SV = svd(d,full=true)
+      end
+   else
+      SV = svd(d,full=true)
+      if !isempty(SV.S) && SV.S[1] > abs(γ)
+         error("The condition γ > ||sys||∞ is not fulfilled")
+      end
+      fric = zeros(T,m,n);
+   end
+   
+   # compute square-root factor
+   s = SV.S
+   rsq = [s;zeros(eltype(s),m-length(s))]
+   rsqrt = Diagonal(sqrt.(max.(γ*γ .- rsq.^2,0)))*SV.Vt
+   
+   # assemble the spectral factor
+   sysf = dss(a, e, b, rsqrt*fric, rsqrt, Ts = sys.Ts)
+
+   # end GRSFG
+end
+"""
     gnlcf(sys; fast = true, ss = false, 
          atol = 0, atol1 = atol, atol2 = atol, rtol = n*ϵ) -> (sysn, sysm)
 

@@ -7,6 +7,7 @@ using LinearAlgebra
 using Polynomials
 using Test
 
+println("Test_covers")
 @testset "covers " begin
 
 @testset "grmcover1" begin

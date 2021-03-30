@@ -7,6 +7,7 @@ using LinearAlgebra
 using Polynomials
 using Test
 
+println("Test_ordred")
 @testset "Order Reduction Tools" begin
 
 @testset "gss2ss" begin
@@ -374,7 +375,7 @@ nfuc = 3; nfuo = 4;
 sys = rdss(n, p, m; T = Ty, nfuc = 3, nfuo = 4);
 
 @time sys1  = gminreal(sys, atol = 1.e-7, fast = fast);
-@test iszero(sys-sys1, atol = 1.e-7) && order(sys)-order(sys1) == nfuc+nfuo
+@test iszero(sys-sys1, atol = 1.e-7) && order(sys)-order(sys1) == nfuc+nfuo #fails in Julia 1.2
 
 @time sys1  = gir(sys, atol = 1.e-7, fast = fast);
 @test iszero(sys-sys1, atol = 1.e-7) && order(sys)-order(sys1) == nfuc+nfuo

@@ -6,6 +6,8 @@ using Polynomials
 using Test
 using DescriptorSystems
 
+println("Test_rtf")
+
 @testset "test_rtf" begin
 
 # two polynomial entries

@@ -8,6 +8,8 @@
 * **[`gnlcf`](@ref)**   Normalized left coprime factorization.
 * **[`giofac`](@ref)**   Inner-outer/QR-like factorization.
 * **[`goifac`](@ref)**   Co-outer-co-inner/RQ-like factorization.
+* **[`grsfg`](@ref)**   Right spectral factorization of `γ^2*I-G'*G`. 
+* **[`glsfg`](@ref)**   Left spectral factorization of `γ^2*I-G*G'`. 
 
 ```@docs
 grcf
@@ -18,4 +20,6 @@ gnrcf
 gnlcf
 giofac
 goifac
+grsfg
+glsfg
 ```

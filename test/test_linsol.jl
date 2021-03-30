@@ -8,6 +8,7 @@ using Polynomials
 using Test
 
 
+println("Test_linsol")
 @testset "linsol " begin
 
 @testset "grsol" begin

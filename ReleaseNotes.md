@@ -2,7 +2,7 @@
 
 ## Version 0.5.0
 
-This minor release includes new functions for advanced manipulation of transfer function matrices via their descriptor system realizations, such as, the computation of range and coimage, the computation of normalized coprime factorizations, the efficient computation of the frequency responses and the computation of the ν-gap distance between two systems. The definition of the rational transfer function object has been simplified to have only field with concrete types.  
+This minor release includes new functions for advanced manipulation of transfer function matrices via their descriptor system realizations, such as, the computation of range and coimage, the computation of normalized coprime factorizations, the computation of special spectral factorizations, the efficient computation of the frequency responses and the computation of the ν-gap distance between two systems. The definition of the rational transfer function object has been simplified to have only field with concrete types.  
 
 ## Version 0.4.3
 

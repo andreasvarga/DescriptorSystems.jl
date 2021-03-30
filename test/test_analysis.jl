@@ -7,7 +7,7 @@ using LinearAlgebra
 using Polynomials
 using Test
 
-
+println("Test_analysis")
 @testset "zeros, rank, poles" begin
 
 # test example for SLICOT subroutine AB08ND
@@ -164,7 +164,7 @@ sys = dss(A,E,B,C,D);
       info.regular && !info.proper && !info.stable 
 
 
-@test gnrank(sys, fastrank = true) == 3 && gnrank(sys, fastrank = false) == 3
+@test gnrank(sys, fastrank = true) == 3 && gnrank(sys, fastrank = false) == 3 #fails in Julia 1.3
 
 @test gnrank(sys[:,1], fastrank = true) == 1 && gnrank(sys[:,1], fastrank = false) == 1
 

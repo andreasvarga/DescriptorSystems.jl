@@ -7,7 +7,7 @@ using LinearAlgebra
 using Polynomials
 using Test
 
-
+println("Test_cfid")
 @testset "grcfid and glcfid" begin
 
 @testset "grcfid" begin

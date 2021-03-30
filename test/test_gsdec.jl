@@ -8,6 +8,7 @@ using Polynomials
 using Test
 
 
+println("Test_gsdec")
 @testset "gsdec " begin
 
 sys = rdss(0,0,0);

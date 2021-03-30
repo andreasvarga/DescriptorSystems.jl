@@ -5,6 +5,7 @@ using LinearAlgebra
 using MatrixPencils
 using Test
 
+println("Test_dss")
 
 @testset "test_dss" begin
 # SCALARS

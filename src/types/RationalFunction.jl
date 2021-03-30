@@ -134,10 +134,18 @@ the rational transfer function `r(λ) = p(λ)` such that `r.Ts = Ts` (default `r
 and `r.var = var` (default  (default `r.var = Polynomials.indeterminate(p)`).
 `p(λ)` can be a real or complex number as well. 
 """
-function rtf(p::Polynomial; Ts::Real = 0, var::Symbol = Polynomials.indeterminate(p))
-    T = eltype(p)
-    return RationalTransferFunction{T}(Polynomial{T}(p.coeffs,var), Polynomial{T}(one(T),var), Ts)
+function rtf(p::Polynomial{T,X}; Ts::Real = 0, var::Symbol = Polynomials.indeterminate(p)) where {T,X}
+    #T = eltype(p)
+    #return RationalTransferFunction{T}(Polynomial{T}(p.coeffs,var), Polynomial{T}(one(T),var), Ts)
+    #return RationalTransferFunction{T,var}(Polynomial{T,var}(p.coeffs), Polynomial{T,var}(one(T)), Ts)
+    return RationalTransferFunction{T,var}(Polynomial{T,var}(p.coeffs), Polynomial{T,var}(one(T)), Ts)
 end
+# function rtf(p::Polynomial; Ts::Real = 0, var::Symbol = Polynomials.indeterminate(p))
+#     T = eltype(p)
+#     #return RationalTransferFunction{T}(Polynomial{T}(p.coeffs,var), Polynomial{T}(one(T),var), Ts)
+#     #return RationalTransferFunction{T,var}(Polynomial{T,var}(p.coeffs), Polynomial{T,var}(one(T)), Ts)
+#     return RationalTransferFunction{T,var}(p, Polynomial{T,var}(one(T)), Ts)
+# end
 Base.eltype(sys::RationalTransferFunction) = eltype(sys.num)
 _eltype(R::RationalTransferFunction) = eltype(R.num)
 _eltype(R::AbstractVecOrMat{<:RationalTransferFunction}) = length(R) == 0 ? eltype(eltype(Polynomials.coeffs.(numpoly.(R)))) : eltype(R[1])
@@ -353,7 +361,6 @@ Compute the adjoint `rt(λ)` of the rational transfer function `r(λ)` such that
 
     (2) `rt(λ) = conj(num(1/λ))/conj(num(1/λ))`, if `r.Ts = -1` or `r.Ts > 0`.
 """
-transpose(f::RationalTransferFunction) = f
 function adjoint(f::RationalTransferFunction) 
     if f.Ts == 0
        p1 = copy(conj(f.num.coeffs))
@@ -374,10 +381,11 @@ function adjoint(f::RationalTransferFunction)
          return RationalTransferFunction(Polynomial([zeros(eltype(p1),n-m); p1],Polynomials.indeterminate(f.num)), Polynomial(p2,Polynomials.indeterminate(f.den)), f.Ts) 
        end         
     end
- end
- transpose(R::VecOrMat{<:RationalTransferFunction}) = permutedims(R)
- adjoint(R::VecOrMat{<:RationalTransferFunction}) = adjoint.(permutedims(R))
- """
+end
+transpose(f::RationalTransferFunction) = f
+transpose(R::VecOrMat{<:RationalTransferFunction}) = permutedims(R)
+adjoint(R::VecOrMat{<:RationalTransferFunction}) = adjoint.(permutedims(R))
+"""
     rinv = inv(r)
 
 Build the inverse `rinv` of a nonzero rational transfer function `r` such that `rinv(λ) = 1/r(λ)`. 

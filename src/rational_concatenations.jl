@@ -2,17 +2,18 @@
 
 # scalar elements
 # conversions to rational transfer functions
-promote_to_rtf_(n::Int, ::Type{T}, var::Symbol, A::Number, Ts::Real) where {T} = rtf(Polynomial{T}(T(A),var), Ts = Ts)
-#promote_to_rtf_(n::Int, ::Type{T}, var::Symbol, A::Polynomial, Ts::Real) where {T} = rtf(Polynomial{T}(T.(A.coeffs), var), Polynomial{T}(one(T), var), Ts = Ts)
-promote_to_rtf_(n::Int, ::Type{T}, var::Symbol, A::RationalTransferFunction, Ts::Real) where {T} = 
-     (T == eltype(A) && Ts == A.Ts && var == A.var) ? A : rtf(Polynomial{T}(T.(A.num.coeffs), var), Polynomial{T}(T.(A.den.coeffs), var), Ts = Ts)
-promote_to_rtfs(Ts::Real, var::Symbol, n, k, ::Type{T}, A) where {T} = (promote_to_rtf_(n[k], T, var, A, Ts),)
-promote_to_rtfs(Ts::Real, var::Symbol, n, k, ::Type{T}, A, B) where {T} =
-    (promote_to_rtf_(n[k], T, var, A, Ts), promote_to_rtf_(n[k+1], T, var, B, Ts))
-promote_to_rtfs(Ts::Real, var::Symbol, n, k, ::Type{T}, A, B, C) where {T} =
-    (promote_to_rtf_(n[k], T, var, A, Ts), promote_to_rtf_(n[k+1], T, var, B, Ts), promote_to_rtf_(n[k+2], T, var, C, Ts))
-promote_to_rtfs(Ts::Real, var::Symbol, n, k, ::Type{T}, A, B, Cs...) where {T} =
-    (promote_to_rtf_(n[k], T, var, A, Ts), promote_to_rtf_(n[k+1], T, var, B, Ts), promote_to_rtfs(Ts, var, n, k+2, T, Cs...)...)
+promote_to_rtf_(::Type{T}, var::Symbol, A::Number, Ts::Float64) where {T} = RationalTransferFunction{T,var}(Polynomial{T,var}(A), Polynomial{T,var}(one(T)), Ts)
+#promote_to_rtf_(::Type{T}, var::Symbol, A::Polynomial, Ts::Float64) where {T} = rtf(Polynomial{T}(T.(A.coeffs), var), Polynomial{T}(one(T), var), Ts = Ts)
+promote_to_rtf_(::Type{T}, var::Symbol, A::RationalTransferFunction, Ts::Float64) where {T} = 
+(T == eltype(A) && Ts == A.Ts && var == A.var) ? A : RationalTransferFunction{T,var}(Polynomial{T,var}(A.num.coeffs), Polynomial{T,var}(A.den.coeffs), Ts)
+#(T == eltype(A) && Ts == A.Ts && var == A.var) ? A : rtf(Polynomial{T}(T.(A.num.coeffs), var), Polynomial{T}(T.(A.den.coeffs), var), Ts = Ts)
+promote_to_rtfs(Ts::Real, var::Symbol, ::Type{T}, A) where {T} = (promote_to_rtf_(T, var, A, Ts),)
+promote_to_rtfs(Ts::Real, var::Symbol, ::Type{T}, A, B) where {T} =
+    (promote_to_rtf_(T, var, A, Ts), promote_to_rtf_(T, var, B, Ts))
+promote_to_rtfs(Ts::Real, var::Symbol, ::Type{T}, A, B, C) where {T} =
+    (promote_to_rtf_(T, var, A, Ts), promote_to_rtf_(T, var, B, Ts), promote_to_rtf_(T, var, C, Ts))
+promote_to_rtfs(Ts::Real, var::Symbol, ::Type{T}, A, B, Cs...) where {T} =
+    (promote_to_rtf_(T, var, A, Ts), promote_to_rtf_(T, var, B, Ts), promote_to_rtfs(Ts, var, T, Cs...)...)
 
 
 # function Base.hcat(A::Union{AbstractRationalTransferFunction,Number}...) 
@@ -36,7 +37,7 @@ function Base.hvcat(rows::Tuple{Vararg{Int}}, A::RationalTransferFunction...)
     var = promote_rtf_var(A...)
     Ts = promote_rtf_SamplingTime(A...)
     
-    hvcat_fill(Matrix{RationalTransferFunction{T,var}}(undef, nr, nc), promote_to_rtfs(Ts, var, fill(1,length(A)), 1, T, A...))
+    hvcat_fill(Matrix{RationalTransferFunction{T,var}}(undef, nr, nc), promote_to_rtfs(Ts, var, T, A...))
 end
 
 function Base.hvcat(rows::Tuple{Vararg{Int}}, A::Union{RationalTransferFunction,Number}...)
@@ -47,7 +48,7 @@ function Base.hvcat(rows::Tuple{Vararg{Int}}, A::Union{RationalTransferFunction,
     var = promote_rtf_var(A...)
     Ts = promote_rtf_SamplingTime(A...)
     
-    hvcat_fill(Matrix{RationalTransferFunction{T,var}}(undef, nr, nc), promote_to_rtfs(Ts, var, fill(1,length(A)), 1, T, A...))
+    hvcat_fill(Matrix{RationalTransferFunction{T,var}}(undef, nr, nc), promote_to_rtfs(Ts, var, T, A...))
 end
 # function Base.hvcat(rows::Tuple{Vararg{Int}}, A::Union{RationalTransferFunction,Polynomial,Number}...)
 #     nr = length(rows)
@@ -226,8 +227,10 @@ function _vcat(::Type{T},A::AbstractVecOrMat...) where T
     end
     return B
 end
-function Base.hvcat(rows::Tuple{Vararg{Int}}, A::Union{AbstractVecOrMat{T1},AbstractVecOrMat{T2},AbstractVecOrMat{T3},RationalTransferFunction,UniformScaling}...) where 
-    {T1 <: RationalTransferFunction, T2 <: Polynomial, T3 <: Number}
+# function Base.hvcat(rows::Tuple{Vararg{Int}}, A::Union{AbstractVecOrMat{T1},AbstractVecOrMat{T2},AbstractVecOrMat{T3},RationalTransferFunction,UniformScaling}...) where 
+#     {T1 <: RationalTransferFunction, T2 <: Polynomial, T3 <: Number}
+function Base.hvcat(rows::Tuple{Vararg{Int}}, A::Union{AbstractVecOrMat{T1},AbstractVecOrMat{T3},RationalTransferFunction,UniformScaling}...) where 
+    {T1 <: RationalTransferFunction, T3 <: Number}
     nr = length(rows)
     sum(rows) == length(A) || throw(ArgumentError("mismatch between row sizes and number of arguments"))
     n = fill(-1, length(A))

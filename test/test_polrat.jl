@@ -7,6 +7,7 @@ using LinearAlgebra
 using Polynomials
 using Test
 
+println("Test_polrat")
 @testset "Polynomial and rational matrix realizations" begin
 
 @testset "Polynomial matrix realizations" begin

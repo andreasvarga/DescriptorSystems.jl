@@ -7,6 +7,7 @@ using LinearAlgebra
 using Polynomials
 using Test
 
+println("Test_conversions")
 
 @testset "gbilin" begin
 

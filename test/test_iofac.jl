@@ -6,12 +6,62 @@ using MatrixPencils
 using LinearAlgebra
 using Polynomials
 using Test
-#using JLD 
 
-# two examples which fails for unknown reasons#
-#sys = load("test.jld","sys")
-#load("test1.jld","sysl")
+println("Test_iofac")
+@testset "grsfg and grsfg" begin
 
+sys = rss(0,2,3); 
+g = glinfnorm(sys)[1]*1.001
+@time sysf = grsfg(sys,g)
+@test iszero(sysf'*sysf+sys'*sys-g*g*I,atol=1.e-7)
+
+@time sysf = glsfg(sys,g)
+@test iszero(sysf*sysf'+sys*sys'-g*g*I,atol=1.e-7)
+
+
+# Error: Norm(sys) < g
+@test_throws ErrorException sysf = grsfg(sys,0.5*g)
+@test_throws ErrorException sysf = glsfg(sys,0.5*g)
+
+# Eigenvalue(s) on the imaginary axis
+s = rtf('s');
+sys = dss(1/s);
+@test_throws ErrorException sysf = grsfg(sys,1)
+@test_throws ErrorException sysf = glsfg(sys,1)
+
+# Improper continuous-system 
+s = rtf('s');
+sys = dss(s);
+@test_throws ErrorException sysf = grsfg(sys,1)
+@test_throws ErrorException sysf = glsfg(sys,1)
+
+
+s = rtf('s');
+sys = [(s-1)/(s+2) s/(s+2) 1/(s+2);
+    0 (s-2)/(s+1)^2 (s-2)/(s+1)^2;
+    (s-1)/(s+2) (s^2+2*s-2)/(s+1)/(s+2) (2*s-1)/(s+1)/(s+2)]; 
+sys = gir(dss(sys),atol=1.e-7); 
+g = glinfnorm(sys)[1]*1.001
+
+sysf = grsfg(sys,g,stabilize=false)
+@test iszero(sysf'*sysf+sys'*sys-g*g*I,atol=1.e-7)
+@time sysf = glsfg(sys,g,stabilize=false)
+@test iszero(sysf*sysf'+sys*sys'-g*g*I,atol=1.e-7)
+
+z = rtf('z');
+sys = [z^2+z+1 4*z^2+3*z+2 2*z^2-2;
+    z 4*z-1 2*z-2;
+    z^2 4*z^2-z 2*z^2-2*z]; 
+
+sys = gir(dss(sys),atol=1.e-7); 
+g = glinfnorm(sys)[1]*1.001
+
+sysf = grsfg(sys,g)
+@test iszero(sysf'*sysf+sys'*sys-g*g*I,atol=1.e-7)
+@time sysf = glsfg(sys,g)
+@test iszero(sysf*sysf'+sys*sys'-g*g*I,atol=1.e-7)
+
+end # grsfg & glsfg
 
 @testset "giofac and goifac" begin
 

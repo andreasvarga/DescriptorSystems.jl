@@ -7,7 +7,7 @@ using MatrixPencils
 using Test
 
 
-
+println("Test_connections")
 @testset "test_connections" begin
 
 @testset "Standard state space" begin
