@@ -25,7 +25,7 @@ and the relative tolerance for the nonzero elements of `A`, `B`, `C`, `D` and `E
 The default relative tolerance is `n*ϵ`, where `ϵ` is the working machine epsilon. 
 The keyword argument `atol` can be used to simultaneously set `atol1 = atol` and `atol2 = atol`. 
 """
-function gnrank(SYS::AbstractDescriptorStateSpace; fastrank = true, atol::Real = 0, atol1::Real = atol, atol2::Real = atol, rtol::Real = 0 ) 
+function gnrank(SYS::DescriptorStateSpace; fastrank = true, atol::Real = 0, atol1::Real = atol, atol2::Real = atol, rtol::Real = 0 ) 
     return max(0,sprank(dssdata(SYS)..., atol1 = atol1, atol2 = atol2, rtol = rtol, fastrank = fastrank) - SYS.nx)
 end
 """
@@ -53,7 +53,7 @@ The default relative tolerance is `n*ϵ`, where `n` is the size of `A`, and `ϵ`
 working machine epsilon. 
 The keyword argument `atol` can be used to simultaneously set `atol1 = atol` and `atol2 = atol`. 
 """
-function gzero(SYS::AbstractDescriptorStateSpace;fast = false, atol::Real = 0, atol1::Real = atol, atol2::Real = atol, 
+function gzero(SYS::DescriptorStateSpace;fast = false, atol::Real = 0, atol1::Real = atol, atol2::Real = atol, 
     rtol::Real = SYS.nx*eps(real(float(one(real(eltype(SYS.A)))))*iszero(min(atol1,atol2))) ) 
     # pzeros([SYS.A SYS.B; SYS.C SYS.D], [SYS.E zeros(SYS.nx,SYS.nu); zeros(SYS.ny,SYS.nx+SYS.nu)]; fast = fast, atol1 = atol1,
     # atol2 = atol2, rtol = rtol )[1]
@@ -598,8 +598,8 @@ function gl2norm(sys::DescriptorStateSpace{T}; h2norm::Bool = false, fast::Bool 
        
     if  sys.E == I
         # quick return for a non-dynamic system or continuous-time system with nonzero D
-        size(sys.A,1) == 0 && (return disc ? norm(sys.D) : (iszero(sys.D) ? zero(real(T1)) : Inf))
-        disc || norm(sys.D) <= atolinf || (return Inf)
+        size(sys.A,1) == 0 && (return disc ? norm(sys.D) : (norm(sys.D,Inf) <= atolinf ? zero(real(T1)) : Inf))
+        disc || norm(sys.D,Inf) <= atolinf || (return Inf)
         if h2norm
             # compute the H2-norm
             # reduce the system to Schur coordinate form
@@ -626,7 +626,7 @@ function gl2norm(sys::DescriptorStateSpace{T}; h2norm::Bool = false, fast::Bool 
            # check properness for a continuous-time system
            disc || rcond(sys.E) >= n*eps(float(real(T1))) || (return Inf)
         end
-        size(sys.A,1) == 0 && (return disc ? norm(sys.D) : (iszero(sys.D) ? zero(real(T1)) : Inf))
+        size(sys.A,1) == 0 && (return disc ? norm(sys.D) : (norm(sys.D,Inf) <= atolinf ? zero(real(T1)) : Inf))
         disc || norm(sys.D) <= atolinf || (return Inf)
         if h2norm
             # compute the H2-norm
@@ -725,12 +725,17 @@ function glinfnorm(sys::DescriptorStateSpace{T}; hinfnorm::Bool = false, rtolinf
                    rtol::Real = sys.nx*eps(real(float(one(T))))*iszero(min(atol1,atol2)))  where T 
     
     T1 = T <: BlasFloat ? T : promote_type(Float64,T) 
+    ZERO = real(T1)(0)
+
+    # detect zero case
+    iszero(sys, atol1 = atol1, atol2 = atol2, rtol = rtol) && (return ZERO, ZERO)
+
+    # quick exit in constant case  
+    sys.nx == 0 && (return opnorm(sys.D), ZERO)
+
     β = abs(offset)
     Ts = abs(sys.Ts)
     disc = !iszero(Ts)
-
-    # quick exit in constant case  
-    sys.nx == 0 && (return opnorm(sys.D), real(T1)(0))
 
     # eliminate simple infinite eigenvalues in the continuous-time case with singular E
     if disc || sys.E == I || rcond(sys.E) >= sys.nx*eps(float(real(T1)))
@@ -744,9 +749,11 @@ function glinfnorm(sys::DescriptorStateSpace{T}; hinfnorm::Bool = false, rtolinf
     # quick exit in constant case  
     n == 0 && (return opnorm(D), real(T1)(0))
 
+
     # check properness in continuous-time case
     disc || E == I || rcond(E) >= n*eps(float(real(T1))) || (return Inf, Inf)
     
+    # check for poles on the boundary of the stability domain
     E == I ? ft = eigvals(A) : ft = eigvals(A,E); ft = ft[isfinite.(ft)]
     if disc
         hinfnorm && all(abs.(ft) .> 1-β) && (return Inf, NaN)
@@ -760,6 +767,7 @@ function glinfnorm(sys::DescriptorStateSpace{T}; hinfnorm::Bool = false, rtolinf
         end
     end
     
+    # compute L∞-norm according to system type
     disc ? (return norminfd(A, E, B, C, D, ft, Ts, rtolinf)) : 
            (return norminfc(A, E, B, C, D, ft, rtolinf))
     # end GLINFNORM
@@ -770,6 +778,7 @@ function norminfc(a, e, b, c, d, ft0, tol)
 
     # Tolerance for jw-axis mode detection
     T = eltype(a)
+    compl = T <: Complex
     TR = real(T)
     epsm = eps(TR)
     toljw1 = 100 * epsm;       # for simple roots
@@ -789,12 +798,12 @@ function norminfc(a, e, b, c, d, ft0, tol)
        ct = copy(c)
        # first reduce E to upper triangular form 
        _, tau = LinearAlgebra.LAPACK.geqrf!(et)
-       T <: Complex ? tran = 'C' : tran = 'T'
+       compl ? tran = 'C' : tran = 'T'
        LinearAlgebra.LAPACK.ormqr!('L', tran, et, tau, at)
        LinearAlgebra.LAPACK.ormqr!('L', tran, et, tau, bt)
        # reduce A to Hessenberg form and keep E upper triangular
        _, _, Q, Z = MatrixPencils.gghrd!('I', 'I',  1, nx, at, et, similar(at),similar(et))
-       if T <: Complex 
+       if compl 
           bc = Q'*bt; cc = c*Z; ac = at; ec = et; dc = d;
        else
           bc = complex(Q'*bt); cc = complex(c*Z); ac = complex(at); ec = complex(et); dc = complex(d);
@@ -804,7 +813,7 @@ function norminfc(a, e, b, c, d, ft0, tol)
        # fast frequency response computation 
        Ha = hessenberg(a)
        ac = Ha.H
-       if T <: Complex 
+       if compl 
           bc = Ha.Q'*b; cc = c*Ha.Q; dc = d; 
        else
           bc = complex(Ha.Q'*b); cc = complex(c*Ha.Q); dc = complex(d);
@@ -814,18 +823,21 @@ function norminfc(a, e, b, c, d, ft0, tol)
     # Build a new vector TESTFRQ of test frequencies containing the peaking
     # frequency for each mode (or an approximation thereof for non-resonant modes).
     # Add frequency w = 0 and set GMIN = || D || and FPEAK to infinity
-    ar2 = abs.(real(ft0));  # magnitudes of real parts of test frequencies
+    # ar2 = abs.(real(ft0));  # magnitudes of real parts of test frequencies
     w0 = abs.(ft0);         # fundamental frequencies
     
-    ikeep = (imag.(ft0) .>= 0) .& ( w0 .> 0)
-    offset2 = max.(0.25,max.(1 .- 2 .*(ar2[ikeep]./w0[ikeep]).^2))
-    testfrq = [[0]; w0[ikeep].*sqrt.(offset2)]
+   #  ikeep = (imag.(ft0) .>= 0) .& ( w0 .> 0)
+   #  offset2 = max.(0.25,max.(1 .- 2 .*(ar2[ikeep]./w0[ikeep]).^2))
+   #  temp = w0[ikeep].*sqrt.(offset2)
+   #  compl ? testfrq = [-temp; [0]; temp] : testfrq = [[0]; temp]
+    compl ? testfrq = [-w0; [0]; w0] : testfrq = [[0]; w0]
+
     gmin = opnorm(d)
     fpeak = Inf
 
     if VERSION < v"1.3.0-DEV.349"
        # Compute lower estimate GMIN as max. gain over the selected frequencies
-       ac = complex(ac)
+       ac = complex(Matrix{T}(ac))
        for i = 1:length(testfrq)
            w = testfrq[i];
            desc ? gw = opnorm(dc+cc*(((im*w)*ec-ac)\bc)) : gw = opnorm(dc+cc*(((im*w)*I-ac)\bc)) 
@@ -842,7 +854,7 @@ function norminfc(a, e, b, c, d, ft0, tol)
        end
     end
     gmin == 0 && (return TR(0), TR(0))
-    
+   
     # modified gamma iterations (Bruinsma-Steinbuch algorithm) start:
     iter = 1;
     while iter < 30
@@ -854,7 +866,7 @@ function norminfc(a, e, b, c, d, ft0, tol)
        h2 = [c zeros(T,ny,nx) ; zeros(T,nu,nx) -b'; a zeros(T,nx,nx) ; zeros(T,nx,nx) -a']
        j2 = [zeros(T,ny+nu,2*nx); e zeros(T,nx,nx) ; zeros(T,nx,nx) e']
        _, tau = LinearAlgebra.LAPACK.geqrf!(h1)
-       T <: Complex ? tran = 'C' : tran = 'T'
+       compl ? tran = 'C' : tran = 'T'
        LinearAlgebra.LAPACK.ormqr!('L',tran,h1,tau,h2)
        LinearAlgebra.LAPACK.ormqr!('L',tran,h1,tau,j2)
        i2 = ny+nu+1:ny+nu+2*nx
@@ -871,7 +883,8 @@ function norminfc(a, e, b, c, d, ft0, tol)
        # Compute frequencies where gain G is attained and
        # generate new test frequencies
        ws = imag(jweig);
-       ws = unique(max.(epsm,ws[ws.> 0]))
+       #ws = unique(max.(epsm,ws[ws.> 0]))
+       compl ? ws = unique(sort(ws)) : ws = unique(sort(max.(epsm,ws[ws.> 0])))
        lws0 = length(ws);
        if lws0 == 0
           # No jw-axis eigenvalues for G = GMIN*(1+TOL): we're done
@@ -884,18 +897,19 @@ function norminfc(a, e, b, c, d, ft0, tol)
        # Form the vector of mid-points and compute
        # gain at new test frequencies
        gmin0 = gmin;   # save current lower bound
-       ws = sqrt.(ws[1:lws-1].*ws[2:lws])
+       #ws = sqrt.(ws[1:lws-1].*ws[2:lws])
+       #ws = (ws[1:lws-1].+ ws[2:lws])/2
        if VERSION < v"1.3.0-DEV.349"
          # Compute lower estimate GMIN as max. gain over the selected frequencies
          for i = 1:lws-1
-            w = ws[i]
+            w = (ws[i]+ws[i+1])/2
             desc ? gw = opnorm(dc+cc*(((im*w)*ec-ac)\bc)) : gw = opnorm(dc+cc*(((im*w)*I-ac)\bc)) 
             gw > gmin && (gmin = gw;  fpeak = w)
          end
        else  
          # Compute lower estimate GMIN as max. gain over the selected frequencies
          for i = 1:lws-1
-             w = ws[i]
+             w = (ws[i]+ws[i+1])/2
              bct = copy(bc)
              desc ? ldiv!(UpperHessenberg(ac-(im*w)*ec),bct) : ldiv!(ac,bct,shift = -im*w)
              gw = opnorm(dc-cc*bct)
@@ -909,154 +923,319 @@ function norminfc(a, e, b, c, d, ft0, tol)
        iter += 1
     end #while  
 end  
-function norminfd(a, e, b, c, d, ft0, Ts, tol)
-    # Discrete-time L∞ norm computation
-    # It is assumed that A-λE has no eigenvalues on the unit circle
+# function norminfd(a, e, b, c, d, ft0, Ts, tol)
+#     # Discrete-time L∞ norm computation
+#     # It is assumed that A-λE has no eigenvalues on the unit circle
 
-    # Tolerance for detection of unit circle modes
-    T = eltype(a)
-    TR = real(T)
-    epsm = eps(TR)
-    toluc1 = 100 * epsm       # for simple roots
-    toluc2 = 10 * sqrt(epsm)  # for double root
+#     # Tolerance for detection of unit circle modes
+#     T = eltype(a)
+#     compl = T <: Complex
+#     TR = real(T)
+#     epsm = eps(TR)
+#     toluc1 = 100 * epsm       # for simple roots
+#     toluc2 = 10 * sqrt(epsm)  # for double root
     
-    # Problem dimensions
-    nx = size(a,1);
-    ny, nu = size(d)
-    desc = e != I
+#     # Problem dimensions
+#     nx = size(a,1);
+#     ny, nu = size(d)
+#     desc = e != I
        
-    if desc
-       # Reduce (A,E) to (generalized) upper-Hessenberg form for
-       # fast frequency response computation 
-       at = copy(a)
-       et = copy(e)
-       bt = copy(b)
-       ct = copy(c)
-       # first reduce E to upper triangular form 
-       _, tau = LinearAlgebra.LAPACK.geqrf!(et)
-       T <: Complex ? tran = 'C' : tran = 'T'
-       LinearAlgebra.LAPACK.ormqr!('L', tran, et, tau, at)
-       LinearAlgebra.LAPACK.ormqr!('L', tran, et, tau, bt)
-       # reduce A to Hessenberg form and keep E upper triangular
-       _, _, Q, Z = MatrixPencils.gghrd!('I', 'I',  1, nx, at, et, similar(at),similar(et))
-       if T <: Complex 
-          bc = Q'*bt; cc = c*Z; ac = at; ec = et; dc = d;
-       else
-          bc = complex(Q'*bt); cc = complex(c*Z); ac = complex(at); ec = complex(et); dc = complex(d);
-       end
-    else
-       # Reduce A to upper Hessenberg form for
-       # fast frequency response computation 
-       Ha = hessenberg(a)
-       ac = Ha.H
-       if T <: Complex 
-          bc = Ha.Q'*b; cc = c*Ha.Q; dc = d; 
-       else
-          bc = complex(Ha.Q'*b); cc = complex(c*Ha.Q); dc = complex(d);
-       end
-    end
+#     if desc
+#        # Reduce (A,E) to (generalized) upper-Hessenberg form for
+#        # fast frequency response computation 
+#        at = copy(a)
+#        et = copy(e)
+#        bt = copy(b)
+#        ct = copy(c)
+#        # first reduce E to upper triangular form 
+#        _, tau = LinearAlgebra.LAPACK.geqrf!(et)
+#        compl ? tran = 'C' : tran = 'T'
+#        LinearAlgebra.LAPACK.ormqr!('L', tran, et, tau, at)
+#        LinearAlgebra.LAPACK.ormqr!('L', tran, et, tau, bt)
+#        # reduce A to Hessenberg form and keep E upper triangular
+#        _, _, Q, Z = MatrixPencils.gghrd!('I', 'I',  1, nx, at, et, similar(at),similar(et))
+#        if compl 
+#           bc = Q'*bt; cc = c*Z; ac = at; ec = et; dc = d;
+#        else
+#           bc = complex(Q'*bt); cc = complex(c*Z); ac = complex(at); ec = complex(et); dc = complex(d);
+#        end
+#     else
+#        # Reduce A to upper Hessenberg form for
+#        # fast frequency response computation 
+#        Ha = hessenberg(a)
+#        ac = Ha.H
+#        if compl 
+#           bc = Ha.Q'*b; cc = c*Ha.Q; dc = d; 
+#        else
+#           bc = complex(Ha.Q'*b); cc = complex(c*Ha.Q); dc = complex(d);
+#        end
+#     end
     
-    # Build a new vector TESTFRQ of test frequencies containing the peaking
-    # frequency for each mode (or an approximation thereof for non-resonant modes).
-    sr = log.(complex(ft0[(ft0 .!= 0) .& (abs.(ft0) .<= pi/Ts)]));   # equivalent jw-axis modes
-    #sr = ft0[(ft0 .!= 0) .& (abs.(ft0) .<= pi/Ts)];   # equivalent jw-axis modes
-    asr2 = abs.(real(sr))   # magnitude of real parts
-    w0 = abs.(sr);           # fundamental frequencies
+#     # Build a new vector TESTFRQ of test frequencies containing the peaking
+#     # frequency for each mode (or an approximation thereof for non-resonant modes).
+#     sr = log.(complex(ft0[(ft0 .!= 0) .& (abs.(ft0) .<= pi/Ts)]));   # equivalent jw-axis modes
+#     #sr = ft0[(ft0 .!= 0) .& (abs.(ft0) .<= pi/Ts)];   # equivalent jw-axis modes
+#     asr2 = abs.(real(sr))   # magnitude of real parts
+#     w0 = abs.(sr);           # fundamental frequencies
+#     println("sr = $sr w0 = $w0 ")
+#     ikeep = (imag.(sr) .>= 0) .& ( w0 .> 0)
+#     testfrq = w0[ikeep].*sqrt.(max.(0.25,1 .- 2 .*(asr2[ikeep]./w0[ikeep]).^2))
 
-    ikeep = (imag.(sr) .>= 0) .& ( w0 .> 0)
-    testfrq = w0[ikeep].*sqrt.(max.(0.25,1 .- 2 .*(asr2[ikeep]./w0[ikeep]).^2))
-    
-    # Back to unit circle, and add z = exp(0) and z = exp(pi)
-    testz = [exp.(im*testfrq); [-1;1] ]
+#     #compl ? testfrq = [-w0; [0]; w0] : testfrq = [[0]; w0]
+
+#     println("testfrq = $testfrq")
+#     # Back to unit circle, and add z = exp(0) and z = exp(im*pi)
+#     testz = [exp.(im*testfrq); [-1;1] ]
    
-    gmin = 0
-    fpeak = 0
+#     gmin = 0
+#     fpeak = 0
     
-    # Compute lower estimate GMIN as max. gain over test frequencies
-    if VERSION < v"1.3.0-DEV.349"
-       # Compute lower estimate GMIN as max. gain over the selected frequencies
-       ac = complex(ac)
-       for i = 1:length(testz)
-           z = testz[i]
-           desc ? gw = opnorm(dc+cc*((z*ec-ac)\bc)) : gw = opnorm(dc+cc*((z*I-ac)\bc)) 
-           gw > gmin && (gmin = gw;  fpeak = abs(angle(z)))
-       end
-    else  
+#     # Compute lower estimate GMIN as max. gain over test frequencies
+#     if VERSION < v"1.3.0-DEV.349"
+#        # Compute lower estimate GMIN as max. gain over the selected frequencies
+#        ac = complex(Matrix{T}(ac))
+#        for i = 1:length(testfrq)
+#          z = testz[i]
+#          #z = exp(im*testfrq[i])
+#          desc ? gw = opnorm(dc+cc*((z*ec-ac)\bc)) : gw = opnorm(dc+cc*((z*I-ac)\bc)) 
+#            gw > gmin && (gmin = gw;  compl ? fpeak = angle(z) : fpeak = abs(angle(z)))
+#        end
+#     else  
+#       # Compute lower estimate GMIN as max. gain over the selected frequencies
+#       for i = 1:length(testfrq)
+#           z = testz[i]
+#           #z = exp(im*testfrq[i])
+#           bct = copy(bc)
+#           desc ? ldiv!(UpperHessenberg(ac-z*ec),bct) : ldiv!(ac,bct,shift = -z)
+#           gw = opnorm(dc-cc*bct)
+#           gw > gmin && (gmin = gw;  compl ? fpeak = angle(z) : fpeak = abs(angle(z)))
+#       end
+#     end
+#     println("gmin = $gmin  fpeak = $fpeak")
+#     gmin == 0 && (return TR(0), TR(0))
+    
+#     # Modified gamma iterations (Bruinsma-Steinbuch algorithm) starts:
+#     iter = 1;
+#     while iter < 30
+#        # Test if G = (1+TOL)*GMIN qualifies as upper bound
+#        g = (1+tol) * gmin;
+#        # Compute the finite eigenvalues of the symplectic pencil
+#        # deflate nu+ny simple infinite eigenvalues
+#        h1 = [a zeros(T,nx,nx+ny) b; zeros(T,nx,nx) e' zeros(nx,ny+nu)]
+#        h2 = [c zeros(T,ny,nx) g*I d; zeros(T,nu,nx) b' d' g*I]
+#        j1 = [e zeros(T,nx,nx+ny+nu); zeros(T,nx,nx) a' c' zeros(T,nx,nu) ]
+#        _, tau = LinearAlgebra.LAPACK.gerqf!(h2)
+#        compl ? tran = 'C' : tran = 'T'
+#        LinearAlgebra.LAPACK.ormrq!('R',tran,h2,tau,h1)
+#        LinearAlgebra.LAPACK.ormrq!('R',tran,h2,tau,j1)
+#        i1 = 1:(2*nx)
+#        heigs = eigvals!(view(h1,:,i1),view(j1,:,i1))
+#        heigs =  heigs[abs.(heigs) .< 1/toluc2]
+
+#        # Detect unit-circle eigenvalues
+#        mag = abs.(heigs)
+#        uceig = heigs[abs.(1 .- mag) .< toluc2 .+ toluc1*mag]
+#        println("mag = $mag uceig = $uceig ")
+    
+#        # Compute frequencies where gain G is attained and
+#        # generate new test frequencies
+#        ang = angle.(uceig);
+#        ang = unique(max.(epsm,ang[ang .> 0]))
+#        #ang = unique(sort(angle.(uceig)));
+#        println("uceig = $uceig ang = $ang")
+#        lan0 = length(ang);
+#        if lan0 == 0
+#           # No unit-circle eigenvalues for G = GMIN*(1+TOL): we're done
+#           return gmin, fpeak/Ts
+#         else
+#           lan0 == 1 && (ang = [ang;ang])   # correct pairing
+#           lan = length(ang)
+#        end
+    
+#        # Form the vector of mid-points and compute
+#        # gain at new test frequencies
+#        gmin0 = gmin;   # save current lower bound
+#        #testz = exp.(im*((ang[1:lan-1]+ang[2:lan])/2))
+#        if VERSION < v"1.3.0-DEV.349"
+#          # Compute lower estimate GMIN as max. gain over the selected frequencies
+#          for i = 1:lan-1
+#             #z = testz[i]
+#             z = exp(im*((ang[i]+ang[i+1])/2))
+#             desc ? gw = opnorm(dc+cc*((z*ec-ac)\bc)) : gw = opnorm(dc+cc*((z*I-ac)\bc)) 
+#             gw > gmin && (gmin = gw;  compl ? fpeak = angle(z) : fpeak = abs(angle(z)))
+#          end
+#       else  
+#          # Compute lower estimate GMIN as max. gain over the selected frequencies
+#          for i = 1:lan-1
+#             #z = testz[i]
+#             z = exp(im*((ang[i]+ang[i+1])/2))
+#             bct = copy(bc)
+#             desc ? ldiv!(UpperHessenberg(ac-z*ec),bct) : ldiv!(ac,bct,shift = -z)
+#             gw = opnorm(dc-cc*bct)
+#             gw > gmin && (gmin = gw;  compl ? fpeak = angle(z) : fpeak = abs(angle(z)))
+#          end
+#        end
+        
+#        # If lower bound has not improved, exit (safeguard against undetected
+#        # unit-circle eigenvalues).
+#        (lan0 < 2 || gmin < gmin0*(1+tol/10)) && (return gmin, fpeak/Ts)
+#        iter += 1
+#     end
+# end  
+function norminfd(a, e, b, c, d, ft0, Ts, tol)
+   # Discrete-time L∞ norm computation
+   # It is assumed that A-λE has no eigenvalues on the unit circle
+
+   # Tolerance for detection of unit circle modes
+   T = eltype(a)
+   compl = T <: Complex
+   TR = real(T)
+   epsm = eps(TR)
+   toluc1 = 100 * epsm       # for simple roots
+   toluc2 = 10 * sqrt(epsm)  # for double root
+   
+   # Problem dimensions
+   nx = size(a,1);
+   ny, nu = size(d)
+   desc = e != I
+      
+   if desc
+      # Reduce (A,E) to (generalized) upper-Hessenberg form for
+      # fast frequency response computation 
+      at = copy(a)
+      et = copy(e)
+      bt = copy(b)
+      ct = copy(c)
+      # first reduce E to upper triangular form 
+      _, tau = LinearAlgebra.LAPACK.geqrf!(et)
+      compl ? tran = 'C' : tran = 'T'
+      LinearAlgebra.LAPACK.ormqr!('L', tran, et, tau, at)
+      LinearAlgebra.LAPACK.ormqr!('L', tran, et, tau, bt)
+      # reduce A to Hessenberg form and keep E upper triangular
+      _, _, Q, Z = MatrixPencils.gghrd!('I', 'I',  1, nx, at, et, similar(at),similar(et))
+      if compl 
+         bc = Q'*bt; cc = c*Z; ac = at; ec = et; dc = d;
+      else
+         bc = complex(Q'*bt); cc = complex(c*Z); ac = complex(at); ec = complex(et); dc = complex(d);
+      end
+   else
+      # Reduce A to upper Hessenberg form for
+      # fast frequency response computation 
+      Ha = hessenberg(a)
+      ac = Ha.H
+      if compl 
+         bc = Ha.Q'*b; cc = c*Ha.Q; dc = d; 
+      else
+         bc = complex(Ha.Q'*b); cc = complex(c*Ha.Q); dc = complex(d);
+      end
+   end
+   
+   # Build a new vector TESTFRQ of test frequencies containing the peaking
+   # frequency for each mode (or an approximation thereof for non-resonant modes).
+   sr = log.(complex(ft0[(ft0 .!= 0) .& (abs.(ft0) .<= pi/Ts)]));   # equivalent jw-axis modes
+   #sr = ft0[(ft0 .!= 0) .& (abs.(ft0) .<= pi/Ts)];   # equivalent jw-axis modes
+   # asr2 = abs.(real(sr))   # magnitude of real parts
+   w0 = abs.(sr);           # fundamental frequencies
+
+   # ikeep = (imag.(sr) .>= 0) .& ( w0 .> 0)
+   # testfrq = w0[ikeep].*sqrt.(max.(0.25,1 .- 2 .*(asr2[ikeep]./w0[ikeep]).^2))
+   compl ? testfrq = [-w0; [0]; w0] : testfrq = [[0]; w0]
+   
+   # Back to unit circle, and add z = exp(0) and z = exp(pi)
+   testz = [exp.(im*testfrq); [-1] ]
+  
+   gmin = 0
+   fpeak = 0
+   
+   # Compute lower estimate GMIN as max. gain over test frequencies
+   if VERSION < v"1.3.0-DEV.349"
       # Compute lower estimate GMIN as max. gain over the selected frequencies
+      ac = complex(ac)
       for i = 1:length(testz)
           z = testz[i]
-          bct = copy(bc)
-          desc ? ldiv!(UpperHessenberg(ac-z*ec),bct) : ldiv!(ac,bct,shift = -z)
-          gw = opnorm(dc-cc*bct)
-          gw > gmin && (gmin = gw;  fpeak = abs(angle(z)))
+          desc ? gw = opnorm(dc+cc*((z*ec-ac)\bc)) : gw = opnorm(dc+cc*((z*I-ac)\bc)) 
+          gw > gmin && (gmin = gw;  compl ? fpeak = angle(z) : fpeak = abs(angle(z)))
       end
-    end
-    gmin == 0 && (return TR(0), TR(0))
-    
-    # Modified gamma iterations (Bruinsma-Steinbuch algorithm) starts:
-    iter = 1;
-    while iter < 30
-       # Test if G = (1+TOL)*GMIN qualifies as upper bound
-       g = (1+tol) * gmin;
-       # Compute the finite eigenvalues of the symplectic pencil
-       # deflate nu+ny simple infinite eigenvalues
-       h1 = [a zeros(T,nx,nx+ny) b; zeros(T,nx,nx) e' zeros(nx,ny+nu)]
-       h2 = [c zeros(T,ny,nx) g*I d; zeros(T,nu,nx) b' d' g*I]
-       j1 = [e zeros(T,nx,nx+ny+nu); zeros(T,nx,nx) a' c' zeros(T,nx,nu) ]
-       _, tau = LinearAlgebra.LAPACK.gerqf!(h2)
-       T <: Complex ? tran = 'C' : tran = 'T'
-       LinearAlgebra.LAPACK.ormrq!('R',tran,h2,tau,h1)
-       LinearAlgebra.LAPACK.ormrq!('R',tran,h2,tau,j1)
-       i1 = 1:(2*nx)
-       heigs = eigvals!(view(h1,:,i1),view(j1,:,i1))
-       heigs =  heigs[abs.(heigs) .< 1/toluc2]
+   else  
+     # Compute lower estimate GMIN as max. gain over the selected frequencies
+     for i = 1:length(testz)
+         z = testz[i]
+         bct = copy(bc)
+         desc ? ldiv!(UpperHessenberg(ac-z*ec),bct) : ldiv!(ac,bct,shift = -z)
+         gw = opnorm(dc-cc*bct)
+         gw > gmin && (gmin = gw;  compl ? fpeak = angle(z) : fpeak = abs(angle(z)))
+     end
+   end
+   gmin == 0 && (return TR(0), TR(0))
 
-       # Detect unit-circle eigenvalues
-       mag = abs.(heigs)
-       uceig = heigs[abs.(1 .- mag) .< toluc2 .+ toluc1*mag]
-    
-       # Compute frequencies where gain G is attained and
-       # generate new test frequencies
-       ang = angle.(uceig);
-       ang = unique(max.(epsm,ang[ang .> 0]))
-       lan0 = length(ang);
-       if lan0 == 0
-          # No unit-circle eigenvalues for G = GMIN*(1+TOL): we're done
-          return gmin, fpeak/Ts
-        else
-          lan0 == 1 && (ang = [ang;ang])   # correct pairing
-          lan = length(ang)
-       end
-    
-       # Form the vector of mid-points and compute
-       # gain at new test frequencies
-       gmin0 = gmin;   # save current lower bound
-       testz = exp.(im*((ang[1:lan-1]+ang[2:lan])/2))
-       if VERSION < v"1.3.0-DEV.349"
-         # Compute lower estimate GMIN as max. gain over the selected frequencies
-         for i = 1:lan-1
-             z = testz[i]
-             desc ? gw = opnorm(dc+cc*((z*ec-ac)\bc)) : gw = opnorm(dc+cc*((z*I-ac)\bc)) 
-             gw > gmin && (gmin = gw;  fpeak = abs(angle(z)))
-         end
-      else  
-         # Compute lower estimate GMIN as max. gain over the selected frequencies
-         for i = 1:lan-1
-            z = testz[i]
+   # gmin = 0.001
+   
+   # Modified gamma iterations (Bruinsma-Steinbuch algorithm) starts:
+   iter = 1;
+   while iter < 30
+      # Test if G = (1+TOL)*GMIN qualifies as upper bound
+      g = (1+tol) * gmin;
+      # Compute the finite eigenvalues of the symplectic pencil
+      # deflate nu+ny simple infinite eigenvalues
+      h1 = [a zeros(T,nx,nx+ny) b; zeros(T,nx,nx) e' zeros(nx,ny+nu)]
+      h2 = [c zeros(T,ny,nx) g*I d; zeros(T,nu,nx) b' d' g*I]
+      j1 = [e zeros(T,nx,nx+ny+nu); zeros(T,nx,nx) a' c' zeros(T,nx,nu) ]
+      _, tau = LinearAlgebra.LAPACK.gerqf!(h2)
+      compl ? tran = 'C' : tran = 'T'
+      LinearAlgebra.LAPACK.ormrq!('R',tran,h2,tau,h1)
+      LinearAlgebra.LAPACK.ormrq!('R',tran,h2,tau,j1)
+      i1 = 1:(2*nx)
+      heigs = eigvals!(view(h1,:,i1),view(j1,:,i1))
+      heigs =  heigs[abs.(heigs) .< 1/toluc2]
+
+      # Detect unit-circle eigenvalues
+      mag = abs.(heigs)
+      uceig = heigs[abs.(1 .- mag) .< toluc2 .+ toluc1*mag]
+   
+      # Compute frequencies where gain G is attained and
+      # generate new test frequencies
+      ang = sort(angle.(uceig));
+      ang = compl ? unique(ang) : unique(max.(epsm,ang[ang .> 0]))
+      lan0 = length(ang);
+      if lan0 == 0
+         # No unit-circle eigenvalues for G = GMIN*(1+TOL): we're done
+         return gmin, fpeak/Ts
+       else
+         lan0 == 1 && (ang = [ang;ang])   # correct pairing
+         lan = length(ang)
+      end
+   
+      # Form the vector of mid-points and compute
+      # gain at new test frequencies
+      gmin0 = gmin;   # save current lower bound
+      #testz = exp.(im*((ang[1:lan-1]+ang[2:lan])/2))
+      if VERSION < v"1.3.0-DEV.349"
+        # Compute lower estimate GMIN as max. gain over the selected frequencies
+        for i = 1:lan-1
+            #z = testz[i]
+            z = exp(im*((ang[i]+ang[i+1])/2))
+            desc ? gw = opnorm(dc+cc*((z*ec-ac)\bc)) : gw = opnorm(dc+cc*((z*I-ac)\bc)) 
+            gw > gmin && (gmin = gw;  compl ? fpeak = angle(z) : fpeak = abs(angle(z)))
+        end
+     else  
+        # Compute lower estimate GMIN as max. gain over the selected frequencies
+        for i = 1:lan-1
+            #z = testz[i]
+            z = exp(im*((ang[i]+ang[i+1])/2))
             bct = copy(bc)
             desc ? ldiv!(UpperHessenberg(ac-z*ec),bct) : ldiv!(ac,bct,shift = -z)
             gw = opnorm(dc-cc*bct)
-            gw > gmin && (gmin = gw;  fpeak = abs(angle(z)))
-         end
-       end
-        
-       # If lower bound has not improved, exit (safeguard against undetected
-       # unit-circle eigenvalues).
-       (lan0 < 2 || gmin < gmin0*(1+tol/10)) && (return gmin, fpeak/Ts)
-       iter += 1
-    end
+            gw > gmin && (gmin = gw;  compl ? fpeak = angle(z) : fpeak = abs(angle(z)))
+        end
+      end
+       
+      # If lower bound has not improved, exit (safeguard against undetected
+      # unit-circle eigenvalues).
+      (lan0 < 2 || gmin < gmin0*(1+tol/10)) && (return gmin, fpeak/Ts)
+      iter += 1
+   end
 end  
-  
+ 
 """   
     gnugap(sys1, sys2; freq = ω, rtolinf = 0.00001, fast = true, offset = sqrt(ϵ), 
            atol = 0, atol1 = atol, atol2 = atol, rtol = n*ϵ) -> (nugapdist, fpeak)

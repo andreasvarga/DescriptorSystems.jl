@@ -97,6 +97,7 @@ The available functions in the `DescriptorSystems.jl` package cover both standar
 * **[`gh2norm`](@ref)**  `H2` norm of a descriptor system.
 * **[`glinfnorm`](@ref)**  `L∞` norm of a descriptor system.
 * **[`ghinfnorm`](@ref)**  `H∞` norm of a descriptor system.
+* **[`gnugap`](@ref)**  `ν-gap` distance between two descriptor systems.
 
 **Factorization of descriptor systems**
 
@@ -104,14 +105,20 @@ The available functions in the `DescriptorSystems.jl` package cover both standar
 * **[`glcf`](@ref)**   Left coprime factorization with proper and stable factors.
 * **[`grcfid`](@ref)**   Right coprime factorization with inner denominator.
 * **[`glcfid`](@ref)**   Left coprime factorization with inner denominator.
+* **[`gnrcf`](@ref)**  Normalized right coprime factorization.
+* **[`gnlcf`](@ref)**   Normalized left coprime factorization.
 * **[`giofac`](@ref)**   Inner-outer/QR-like factorization.
 * **[`goifac`](@ref)**   Co-outer-co-inner/RQ-like factorization.
+* **[`grsfg`](@ref)**   Right spectral factorization of `γ^2*I-G'*G`. 
+* **[`glsfg`](@ref)**   Left spectral factorization of `γ^2*I-G*G'`. 
 
 **Advanced operations on transfer function matrices**
 
 * **[`gsdec`](@ref)**  Additive spectral decompositions.
 * **[`grnull`](@ref)**   Right nullspace basis of a transfer function matrix.
 * **[`glnull`](@ref)**   Left nullspace basis of a transfer function matrix.
+* **[`grange`](@ref)**   Range space basis of a transfer function matrix. 
+* **[`gcrange`](@ref)**  Coimage space basis of a transfer function matrix. 
 * **[`grsol`](@ref)**   Solution of the linear rational matrix equation `G(λ)*X(λ) = F(λ)`.
 * **[`glsol`](@ref)**   Solution of the linear rational matrix equation `X(λ)*G(λ) = F(λ)`.
 * **[`grmcover1`](@ref)**  Right minimum dynamic cover of Type 1 based order reduction.
@@ -119,9 +126,17 @@ The available functions in the `DescriptorSystems.jl` package cover both standar
 * **[`grmcover2`](@ref)**  Right minimum dynamic cover of Type 2 based order reduction.
 * **[`glmcover2`](@ref)**  Left minimum dynamic cover of Type 2 based order reduction.
 
+**Solution of model-matching problems**
+
+* **[`gnehari`](@ref)**  Generalized Nehari approximation.
+* **[`glinfldp`](@ref)**  Solution of the least distance problem.
+* **[`grasol`](@ref)**   Approximate solution of the linear rational matrix equation `G(λ)*X(λ) = F(λ)`.
+* **[`glasol`](@ref)**   Approximate solution of the linear rational matrix equation `X(λ)*G(λ) = F(λ)`.
+
 ## Future plans
 
-This is a rapidly evolving software project for which new functionality will be frequently added.
+The targeted v1.0 will additionally include functions for several basic conversions to/from input-output representations as well as functions for time-response and frequency response computation.
+Later future developments will address support for several new classes of generalized LTI systems types and for polynomial system models.
 
 ## [Release Notes](https://github.com/andreasvarga/DescriptorSystems.jl/blob/main/ReleaseNotes.md)
 

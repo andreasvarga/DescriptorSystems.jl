@@ -64,7 +64,7 @@ function append(systems::(DST where DST<:DescriptorStateSpace)...)
 end
 
 
-function append(A::Union{AbstractDescriptorStateSpace,AbstractNumOrArray,UniformScaling}...)
+function append(A::Union{DescriptorStateSpace,AbstractNumOrArray,UniformScaling}...)
     for a in A
         isa(a, UniformScaling) && @warn "All UniformScaling objects in append are set to scalars"
         require_one_based_indexing(a)
@@ -74,7 +74,7 @@ function append(A::Union{AbstractDescriptorStateSpace,AbstractNumOrArray,Uniform
 end
 
 
-function hcat(SYS1 :: AbstractDescriptorStateSpace, SYS2 :: AbstractDescriptorStateSpace)
+function hcat(SYS1 :: DescriptorStateSpace, SYS2 :: DescriptorStateSpace)
     ny = SYS1.ny
     ny == size(SYS2, 1) ||  error("The systems must have the same output dimension")
     T = promote_type(eltype(SYS1), eltype(SYS2))
@@ -95,10 +95,10 @@ function hcat(SYS1 :: AbstractDescriptorStateSpace, SYS2 :: AbstractDescriptorSt
     D = [ T.(SYS1.D) T.(SYS2.D)]
     return DescriptorStateSpace{T}(A, E, B, C, D, Ts)
 end
-hcat(SYS :: AbstractDescriptorStateSpace, MAT :: AbstractNumOrArray) = hcat(SYS,dss(MAT,Ts=SYS.Ts))
-hcat(MAT :: AbstractNumOrArray, SYS :: AbstractDescriptorStateSpace) = hcat(dss(MAT,Ts=SYS.Ts),SYS)
-hcat(SYS :: AbstractDescriptorStateSpace, MAT :: UniformScaling) = hcat(SYS,dss(Matrix{promote_type(eltype(SYS),eltype(MAT))}(MAT,SYS.ny,SYS.ny),Ts=SYS.Ts))
-hcat(MAT :: UniformScaling, SYS :: AbstractDescriptorStateSpace) = hcat(dss(Matrix{promote_type(eltype(SYS),eltype(MAT))}(MAT,SYS.ny,SYS.ny),Ts=SYS.Ts),SYS)
+hcat(SYS :: DescriptorStateSpace, MAT :: AbstractNumOrArray) = hcat(SYS,dss(MAT,Ts=SYS.Ts))
+hcat(MAT :: AbstractNumOrArray, SYS :: DescriptorStateSpace) = hcat(dss(MAT,Ts=SYS.Ts),SYS)
+hcat(SYS :: DescriptorStateSpace, MAT :: UniformScaling) = hcat(SYS,dss(Matrix{promote_type(eltype(SYS),eltype(MAT))}(MAT,SYS.ny,SYS.ny),Ts=SYS.Ts))
+hcat(MAT :: UniformScaling, SYS :: DescriptorStateSpace) = hcat(dss(Matrix{promote_type(eltype(SYS),eltype(MAT))}(MAT,SYS.ny,SYS.ny),Ts=SYS.Ts),SYS)
 
 function isadss(DST :: Union{DescriptorStateSpace,AbstractNumOrArray,UniformScaling}...)
     # pick the index i of first system
@@ -120,7 +120,7 @@ concatenation of their transfer function matrices.
 Concatenation of systems with constant matrices, vectors, or scalars having the same row dimensions 
 or with UniformScalings is also supported.  
 """
-horzcat(systems::Union{DST,AbstractNumOrArray,UniformScaling}...) where DST <: AbstractDescriptorStateSpace = hcat(systems...)
+horzcat(systems::Union{DST,AbstractNumOrArray,UniformScaling}...) where DST <: DescriptorStateSpace = hcat(systems...)
 function Base.hcat(systems::DST...) where DST <: DescriptorStateSpace
     # Perform checks
     T = promote_type(eltype.(systems)...)
@@ -155,7 +155,7 @@ concatenation of their transfer function matrices.
 Concatenation of systems with constant matrices, vectors, or scalars having the same column dimensions 
 or with UniformScalings is also supported.  
 """
-vertcat(systems::Union{DST,AbstractNumOrArray,UniformScaling}...) where DST <: AbstractDescriptorStateSpace = vcat(systems...)
+vertcat(systems::Union{DST,AbstractNumOrArray,UniformScaling}...) where DST <: DescriptorStateSpace = vcat(systems...)
 
 function Base.vcat(systems::DST...) where DST <: DescriptorStateSpace
     # Perform checks
@@ -201,14 +201,14 @@ function vcat(SYS1 :: DescriptorStateSpace, SYS2 :: DescriptorStateSpace)
     return DescriptorStateSpace{T}(A, E, B, C, D, Ts)
 end
 
-vcat(SYS :: AbstractDescriptorStateSpace, MAT :: AbstractNumOrArray) = vcat(SYS,dss(MAT,Ts=SYS.Ts))
-vcat(MAT :: AbstractNumOrArray, SYS :: AbstractDescriptorStateSpace) = vcat(dss(MAT,Ts=SYS.Ts),SYS)
-vcat(SYS :: AbstractDescriptorStateSpace, MAT :: UniformScaling) = vcat(SYS,dss(Matrix{promote_type(eltype(SYS),eltype(MAT))}(MAT,SYS.nu,SYS.nu),Ts=SYS.Ts))
-vcat(MAT :: UniformScaling, SYS :: AbstractDescriptorStateSpace) = vcat(dss(Matrix{promote_type(eltype(SYS),eltype(MAT))}(MAT,SYS.nu,SYS.nu),Ts=SYS.Ts),SYS)
+vcat(SYS :: DescriptorStateSpace, MAT :: AbstractNumOrArray) = vcat(SYS,dss(MAT,Ts=SYS.Ts))
+vcat(MAT :: AbstractNumOrArray, SYS :: DescriptorStateSpace) = vcat(dss(MAT,Ts=SYS.Ts),SYS)
+vcat(SYS :: DescriptorStateSpace, MAT :: UniformScaling) = vcat(SYS,dss(Matrix{promote_type(eltype(SYS),eltype(MAT))}(MAT,SYS.nu,SYS.nu),Ts=SYS.Ts))
+vcat(MAT :: UniformScaling, SYS :: DescriptorStateSpace) = vcat(dss(Matrix{promote_type(eltype(SYS),eltype(MAT))}(MAT,SYS.nu,SYS.nu),Ts=SYS.Ts),SYS)
 
 for (f,dim,name) in ((:hcat,1,"rows"), (:vcat,2,"cols"))
     @eval begin
-        function $f(A::Union{AbstractDescriptorStateSpace,AbstractNumOrArray,UniformScaling}...)
+        function $f(A::Union{DescriptorStateSpace,AbstractNumOrArray,UniformScaling}...)
             n = -1
             for a in A
                 if !isa(a, UniformScaling)
@@ -231,7 +231,7 @@ for (f,dim,name) in ((:hcat,1,"rows"), (:vcat,2,"cols"))
     end
 end
 
-function Base.hvcat(rows :: Tuple{Vararg{Int}}, DST :: AbstractDescriptorStateSpace...)
+function Base.hvcat(rows :: Tuple{Vararg{Int}}, DST :: DescriptorStateSpace...)
     j2 = rows[1]
     sys = hcat(DST[1:j2]...)
     for i = 2:length(rows)
@@ -243,7 +243,7 @@ function Base.hvcat(rows :: Tuple{Vararg{Int}}, DST :: AbstractDescriptorStateSp
 end
 
 
-function Base.hvcat(rows::Tuple{Vararg{Int}}, A::Union{AbstractDescriptorStateSpace,AbstractNumOrArray,UniformScaling}...)
+function Base.hvcat(rows::Tuple{Vararg{Int}}, A::Union{DescriptorStateSpace,AbstractNumOrArray,UniformScaling}...)
     require_one_based_indexing(A...)
     nr = length(rows)
     sum(rows) == length(A) || throw(ArgumentError("mismatch between row sizes and number of arguments"))

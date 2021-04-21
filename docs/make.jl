@@ -16,8 +16,9 @@ makedocs(
         "order_reduction.md",
         "analysis.md",
         "factorizations.md",
-        "advanced_operations.md"
-     ],
+        "advanced_operations.md",
+        "model_matching.md"
+        ],
      "Utilities" => [
         "dstools.md"
      ],

@@ -61,6 +61,13 @@ sysf = grsfg(sys,g)
 @time sysf = glsfg(sys,g)
 @test iszero(sysf*sysf'+sys*sys'-g*g*I,atol=1.e-7)
 
+sys = rdss(5,4,3,id = ones(Int,2))
+g = glinfnorm(sys)[1]*1.001
+sysf = grsfg(sys,g,atol=1.e-7)
+@test iszero(sysf'*sysf+sys'*sys-g*g*I,atol=1.e-7)
+@time sysf = glsfg(sys,g,atol=1.e-7)
+@test iszero(sysf*sysf'+sys*sys'-g*g*I,atol=1.e-7)
+
 end # grsfg & glsfg
 
 @testset "giofac and goifac" begin

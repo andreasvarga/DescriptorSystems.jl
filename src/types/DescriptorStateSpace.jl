@@ -1,7 +1,7 @@
 const AbstractNumOrArray = Union{AbstractVecOrMat,Number}
 """ 
-    DescriptorStateSpace{T}(A::AbstractMatrix{T}, E::Union{AbstractMatrix{T},UniformScaling}, 
-                            B::AbstractMatrix{T}, C::AbstractMatrix{T}, D::AbstractMatrix{T},  
+    DescriptorStateSpace{T}(A::Matrix{T}, E::Union{Matrix{T},UniformScaling}, 
+                            B::Matrix{T}, C::Matrix{T}, D::Matrix{T},  
                             Ts::Real) where T <: Number
 
 Construct a descriptor state-space model from a quintuple of matrices `(A,E,B,C,D)` and a sampling time `Ts`.
@@ -30,29 +30,29 @@ defined by the 4-tuple `SYS = (A-λE,B,C,D)`, then:
 
 `SYS.nu` is the system input vector dimension `nu`. 
 """
-struct DescriptorStateSpace{T} <: AbstractDescriptorStateSpace
-    A::AbstractMatrix{T}
-    E::Union{AbstractMatrix{T},UniformScaling}
-    B::AbstractVecOrMat{T}
-    C::AbstractMatrix{T}
-    D::AbstractVecOrMat{T}
-    Ts::Real
+struct DescriptorStateSpace{T} <: AbstractLTISystem
+    A::Matrix{T}
+    E::Union{Matrix{T},UniformScaling}
+    B::Matrix{T}
+    C::Matrix{T}
+    D::Matrix{T}
+    Ts::Float64
     nx::Int
     nu::Int
     ny::Int
-    function DescriptorStateSpace{T}(A::AbstractMatrix{T}, E::Union{AbstractMatrix{T},UniformScaling}, 
-                                     B::AbstractMatrix{T}, C::AbstractMatrix{T}, D::AbstractMatrix{T},  Ts::Real) where T 
+    function DescriptorStateSpace{T}(A::Matrix{T}, E::Union{Matrix{T},UniformScaling}, 
+                                     B::Matrix{T}, C::Matrix{T}, D::Matrix{T},  Ts::Real) where T 
         nx, nu, ny = dss_validation(A, E, B, C, D, Ts)
-        new{T}(A, E, B, C, D, Ts, nx, nu, ny)
+        new{T}(A, E, B, C, D, Float64(Ts), nx, nu, ny)
     end
 end
-function dss_validation(A::AbstractMatrix{T}, E::Union{AbstractMatrix{T},UniformScaling}, 
-                        B::AbstractMatrix{T}, C::AbstractMatrix{T}, D::AbstractMatrix{T},  Ts::Real) where T
+function dss_validation(A::Matrix{T}, E::Union{Matrix{T},UniformScaling}, 
+                        B::Matrix{T}, C::Matrix{T}, D::Matrix{T},  Ts::Real) where T
     nx = LinearAlgebra.checksquare(A)
     (ny, nu) = size(D)
     
     # Validate dimensions
-    if typeof(E) <: AbstractMatrix
+    if typeof(E) <: Matrix
        nx == LinearAlgebra.checksquare(E) || error("A and E must have the same size")
     end
     size(B, 1) == nx ||  error("B must have the same row size as A")
@@ -70,9 +70,9 @@ end
 # Base.size(sys::AbstractDescriptorStateSpace) = size(sys.D) 
 # Base.length(sys::AbstractDescriptorStateSpace) = length(sys.D) 
 # Base.size(sys::AbstractDescriptorStateSpace, d::Integer) = d <= 2 ? size(sys)[d] : 1
-Base.eltype(sys::AbstractDescriptorStateSpace) = eltype(sys.A)
+Base.eltype(sys::DescriptorStateSpace) = eltype(sys.A)
 
-function Base.getindex(sys::DST, inds...) where DST <: AbstractDescriptorStateSpace
+function Base.getindex(sys::DST, inds...) where DST <: DescriptorStateSpace
     size(inds, 1) != 2 &&
         error("Must specify 2 indices to index descriptor state-space model")
     rows, cols = index2range(inds...) 
@@ -82,26 +82,25 @@ index2range(ind1, ind2) = (index2range(ind1), index2range(ind2))
 index2range(ind::T) where {T<:Number} = ind:ind
 index2range(ind::T) where {T<:AbstractArray} = ind
 index2range(ind::Colon) = ind
-function Base.lastindex(sys::DST, dim::Int) where DST <: AbstractDescriptorStateSpace
+function Base.lastindex(sys::DST, dim::Int) where DST <: DescriptorStateSpace
     lastindex(sys.D,dim)
 end
 
 # Basic Operations
-function ==(sys1::DST1, sys2::DST2) where {DST1<:AbstractDescriptorStateSpace, DST2<:AbstractDescriptorStateSpace}
+function ==(sys1::DST1, sys2::DST2) where {DST1<:DescriptorStateSpace, DST2<:DescriptorStateSpace}
     # fieldnames(DST1) == fieldnames(DST2) || (return false)
     return all(getfield(sys1, f) == getfield(sys2, f) for f in fieldnames(DST1))
 end
 
 function isapprox(sys1::DST1, sys2::DST2; atol = zero(real(eltype(sys1))), 
                   rtol = rtol::Real =  ((max(size(sys1.A)...))+1)*eps(real(float(one(real(eltype(sys1))))))*iszero(atol)) where 
-                  {DST1<:AbstractDescriptorStateSpace,DST2<:AbstractDescriptorStateSpace}
+                  {DST1<:DescriptorStateSpace,DST2<:DescriptorStateSpace}
     #fieldnames(DST1) == fieldnames(DST2) || (return false)
     return all(isapprox(getfield(sys1, f), getfield(sys2, f); atol = atol, rtol = rtol) for f in fieldnames(DST1))
 end
 
 # sum sys1+sys2
 function +(sys1::DescriptorStateSpace{T1}, sys2::DescriptorStateSpace{T2}) where {T1,T2}
-#function +(sys1::AbstractDescriptorStateSpace, sys2::AbstractDescriptorStateSpace) 
     #Ensure systems have same dimensions and sampling times
     size(sys1) == size(sys2) || error("The systems have different shapes.")
     Ts = promote_Ts(sys1.Ts,sys2.Ts)
@@ -152,15 +151,15 @@ function -(sys::DescriptorStateSpace{T}) where T
     return DescriptorStateSpace{T}(sys.A, sys.E, sys.B, -sys.C, -sys.D, sys.Ts)
 end
 # sys+mat and mat+sys
-function +(sys::DescriptorStateSpace{T1}, mat::AbstractVecOrMat{T2}) where {T1,T2}
-    p, m = typeof(mat) <: AbstractVector ? (length(mat),1) : size(mat)
+function +(sys::DescriptorStateSpace{T1}, mat::VecOrMat{T2}) where {T1,T2}
+    p, m = typeof(mat) <: Vector ? (length(mat),1) : size(mat)
     size(sys) == (p, m) || error("The input-output dimensions of system does not match the shape of matrix.")
     T = promote_type(T1, T2)
     return DescriptorStateSpace{T}(copy_oftype(sys.A,T), sys.E == I ? I : copy_oftype(sys.E,T),
                                    copy_oftype(sys.B,T), copy_oftype(sys.C,T), 
                                    copy_oftype(sys.D,T) + mat, sys.Ts)
 end
-+(mat::AbstractVecOrMat{T1}, sys::DescriptorStateSpace{T2}) where {T1,T2} = +(sys,mat)
++(mat::VecOrMat{T1}, sys::DescriptorStateSpace{T2}) where {T1,T2} = +(sys,mat)
 # sys+I and I+sys
 function +(sys::DescriptorStateSpace{T1}, mat::UniformScaling{T2}) where {T1,T2}
     size(sys,1) == size(sys,2) || error("The system must have the same number of inputs and outputs")
@@ -171,15 +170,15 @@ function +(sys::DescriptorStateSpace{T1}, mat::UniformScaling{T2}) where {T1,T2}
 end
 
 # sys-mat and mat-sys
-function -(sys::DescriptorStateSpace{T1}, mat::AbstractVecOrMat{T2}) where {T1,T2}
-    p, m = typeof(mat) <: AbstractVector ? (length(mat),1) : size(mat)
+function -(sys::DescriptorStateSpace{T1}, mat::VecOrMat{T2}) where {T1,T2}
+    p, m = typeof(mat) <: Vector ? (length(mat),1) : size(mat)
     size(sys) == (p, m) || error("The input-output dimensions of system does not match the shape of matrix.")
     T = promote_type(T1, T2)
     return DescriptorStateSpace{T}(copy_oftype(sys.A,T), sys.E == I ? I : copy_oftype(sys.E,T),
                                    copy_oftype(sys.B,T), copy_oftype(sys.C,T), 
                                    copy_oftype(sys.D,T) - mat, sys.Ts)
 end
--(mat::AbstractVecOrMat{T1}, sys::DescriptorStateSpace{T2}) where {T1,T2} = +(-sys,mat)
+-(mat::VecOrMat{T1}, sys::DescriptorStateSpace{T2}) where {T1,T2} = +(-sys,mat)
 
 # sys-I and I-sys
 function -(sys::DescriptorStateSpace{T1}, mat::UniformScaling{T2}) where {T1,T2}
@@ -225,8 +224,8 @@ function *(sys1::DescriptorStateSpace{T1}, sys2::DescriptorStateSpace{T2}) where
     return DescriptorStateSpace{T}(A, E, B, C, D, Ts)
 end
 # sys*mat
-function *(sys::DescriptorStateSpace{T1}, mat::AbstractVecOrMat{T2}) where {T1,T2}
-    p, m = typeof(mat) <: AbstractVector ? (length(mat),1) : size(mat)
+function *(sys::DescriptorStateSpace{T1}, mat::VecOrMat{T2}) where {T1,T2}
+    p, m = typeof(mat) <: Vector ? (length(mat),1) : size(mat)
     sys.nu == p || error("The input dimension of system does not match the number of rows of the matrix.")
     T = promote_type(T1, T2)
     return DescriptorStateSpace{T}(copy_oftype(sys.A,T), 
@@ -235,8 +234,8 @@ function *(sys::DescriptorStateSpace{T1}, mat::AbstractVecOrMat{T2}) where {T1,T
                                    copy_oftype(sys.D,T)*to_matrix(T,mat), sys.Ts)
 end
 # mat*sys
-function *(mat::AbstractVecOrMat{T1}, sys::DescriptorStateSpace{T2}) where {T1,T2}
-    p, m = typeof(mat) <: AbstractVector ? (length(mat),1) : size(mat)
+function *(mat::VecOrMat{T1}, sys::DescriptorStateSpace{T2}) where {T1,T2}
+    p, m = typeof(mat) <: Vector ? (length(mat),1) : size(mat)
     sys.ny == m || error("The output dimension of system does not match the number of columns of the matrix.")
     T = promote_type(T1, T2)
     return DescriptorStateSpace{T}(copy_oftype(sys.A,T), 
@@ -260,18 +259,18 @@ function *(sys::DescriptorStateSpace{T},s::Union{UniformScaling,Number}) where T
 end
 
 # right division sys1/sys2 = sys1*inv(sys2)
-/(n::Union{UniformScaling,Number}, sys::AbstractDescriptorStateSpace) = n*inv(sys)
-/(sys::AbstractDescriptorStateSpace, n::Number) = sys*(1/n)
-/(sys::AbstractDescriptorStateSpace, n::UniformScaling) = sys*(1/n.λ)
+/(n::Union{UniformScaling,Number}, sys::DescriptorStateSpace) = n*inv(sys)
+/(sys::DescriptorStateSpace, n::Number) = sys*(1/n)
+/(sys::DescriptorStateSpace, n::UniformScaling) = sys*(1/n.λ)
 
 # left division sys1\sys2 = inv(sys1)*sys2
-\(n::Number, sys::AbstractDescriptorStateSpace) = (1/n)*sys
-\(n::UniformScaling, sys::AbstractDescriptorStateSpace) = (1/n.λ)*sys
-\(sys::AbstractDescriptorStateSpace, n::Union{UniformScaling,Number}) = inv(sys)*n
+\(n::Number, sys::DescriptorStateSpace) = (1/n)*sys
+\(n::UniformScaling, sys::DescriptorStateSpace) = (1/n.λ)*sys
+\(sys::DescriptorStateSpace, n::Union{UniformScaling,Number}) = inv(sys)*n
 
 # display sys
-Base.print(io::IO, sys::AbstractDescriptorStateSpace) = show(io, sys)
-Base.show(io::IO, sys::AbstractDescriptorStateSpace) = show(io, MIME("text/plain"), sys)
+Base.print(io::IO, sys::DescriptorStateSpace) = show(io, sys)
+Base.show(io::IO, sys::DescriptorStateSpace) = show(io, MIME("text/plain"), sys)
 
 function Base.show(io::IO, mime::MIME{Symbol("text/plain")}, sys::DescriptorStateSpace)
     summary(io, sys); println(io)

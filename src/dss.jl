@@ -57,15 +57,15 @@ function dss(A::AbstractNumOrArray, E::Union{AbstractNumOrArray,UniformScaling},
     T = promote_type(eltype(A), E == I ? Bool : eltype(E), eltype(B), eltype(C), eltype(D))
     check_reg && E != I && !MatrixPencils.isregular(to_matrix(T,A), to_matrix(T,E), atol1 = atol1, atol2 = atol2, rtol = rtol ) && 
                             error("The pencil A-λE is not regular")
-    p = typeof(C) <: Union{AbstractVector,Number} ? (size(A,1) <= 1 ? size(C,1) : 1) : size(C,1)                        
-    m = typeof(B) <: Union{AbstractVector,Number} ? 1 : size(B,2)                        
+    p = typeof(C) <: Union{Vector,Number} ? (size(A,1) <= 1 ? size(C,1) : 1) : size(C,1)                        
+    m = typeof(B) <: Union{Vector,Number} ? 1 : size(B,2)                        
     return DescriptorStateSpace{T}(to_matrix(T,A), E == I ? I : to_matrix(T,E), to_matrix(T,B), to_matrix(T,C,p <=1), 
                                    typeof(D) <: Number && iszero(D) ? zeros(T,p,m) : p <=1 ? to_matrix(T,D,m > p) : to_matrix(T,D), Ts)
 end
 function dss(A::AbstractNumOrArray, B::AbstractNumOrArray, C::AbstractNumOrArray, D::AbstractNumOrArray; Ts::Real = 0) 
     T = promote_type(eltype(A),eltype(B),eltype(C),eltype(D))
-    p = typeof(C) <: Union{AbstractVector,Number} ? (size(A,1) <= 1 ? size(C,1) : 1) : size(C,1)                        
-    m = typeof(B) <: Union{AbstractVector,Number} ? 1 : size(B,2)                        
+    p = typeof(C) <: Union{Vector,Number} ? (size(A,1) <= 1 ? size(C,1) : 1) : size(C,1)                        
+    m = typeof(B) <: Union{Vector,Number} ? 1 : size(B,2)                        
     return DescriptorStateSpace{T}(to_matrix(T,A), I, to_matrix(T,B), to_matrix(T,C,p <=1), 
                                    typeof(D) <: Number && iszero(D) ? zeros(T,p,m) : p <=1 ? to_matrix(T,D,m > p) : to_matrix(T,D), Ts)
 end
@@ -127,8 +127,8 @@ for the nonzero elements of `F`, `G` and `H`. The default relative tolerance is 
 of `A`, and `ϵ` is the machine epsilon of the element type of `A`.
 The keyword argument `atol` can be used to simultaneously set `atol1 = atol`, `atol2 = atol` and `atol3 = atol`. 
 """
-function dss(A::AbstractMatrix, E::Union{AbstractMatrix,UniformScaling}, B::AbstractMatrix, F::Union{AbstractMatrix,Missing},
-             C::AbstractMatrix, G::Union{AbstractMatrix,Missing}, D::AbstractMatrix, H::Union{AbstractMatrix,Missing}; 
+function dss(A::Matrix, E::Union{Matrix,UniformScaling}, B::Matrix, F::Union{Matrix,Missing},
+             C::Matrix, G::Union{Matrix,Missing}, D::Matrix, H::Union{Matrix,Missing}; 
              Ts::Real = 0, compacted::Bool = false, 
              atol::Real = zero(real(eltype(A))), atol1::Real = atol, atol2::Real = atol, atol3::Real = atol, 
              rtol::Real = (min(size(A)...)*eps(real(float(one(eltype(A))))))*iszero(min(atol1,atol2,atol3))) 
@@ -139,12 +139,12 @@ function dss(A::AbstractMatrix, E::Union{AbstractMatrix,UniformScaling}, B::Abst
     return DescriptorStateSpace{T}(lps2ls(A, E, B, F, C, G, D, H; compacted = compacted, atol1 = atol1, atol2 = atol2, atol3 = atol2, rtol = rtol)..., Ts)
 
 end
-# function dss(sys::AbstractPencilStateSpace; compacted::Bool = false, 
+# function dss(sys::PencilStateSpace; compacted::Bool = false, 
 #              atol1::Real = zero(real(eltype(sys.A))), atol2::Real = zero(real(eltype(sys.A))), 
 #              rtol::Real = (min(size(sys.A)...)*eps(real(float(one(eltype(sys.A))))))*iszero(min(atol1,atol2))) 
 #     return DescriptorStateSpace{eltype(sys.A)}(lps2ls(sys.A,sys.E,sys.B,sys.F,sys.C,sys.G,sys.D,sys.H; compacted = compacted, atol1 = atol1, atol2 = atol2, rtol = rtol)..., sys.Ts)
 # end
-# function dss(D::AbstractVecOrMat, H::AbstractVecOrMat; Ts::Real = 0) 
+# function dss(D::VecOrMat, H::VecOrMat; Ts::Real = 0) 
 #     typeof(D) <: Vector ? (p, m) = (length(D), 1) : (p,m) = size(D)
 #     T = promote_type(eltype(D), eltype(H))
 #     D1 = reshape(copy_oftype(D,T),p,m)
@@ -211,14 +211,14 @@ IEEE Transactions on Automatic Control, vol. AC-26, pp. 111-129, 1981.
 
 [3] A. Varga, Solving Fault Diagnosis Problems - Linear Synthesis Techniques, Springer Verlag, 2017. 
 """
-function dss(NUM::AbstractArray{T1,3},DEN::AbstractArray{T2,3};
+function dss(NUM::Array{T1,3},DEN::Array{T2,3};
     Ts::Real = 0, minimal::Bool = false, contr::Bool = false, obs::Bool = false, noseig::Bool = false, 
     atol::Real = zero(real(T1)), rtol::Real = (min(size(NUM)...)*eps(real(float(one(T1)))))*iszero(atol)) where {T1,T2}
     sysdata = rm2ls(NUM, DEN, contr = contr, obs = obs, noseig = noseig, minimal = minimal, atol = atol, rtol = rtol)
     return DescriptorStateSpace{eltype(sysdata[1])}(sysdata[1:5]...,Ts)
 end
-dss(NUM::Union{AbstractVecOrMat{Polynomial{T1,X}},Polynomial{T1,X},Number,AbstractVecOrMat},
-    DEN::Union{AbstractVecOrMat{Polynomial{T2,X}},Polynomial{T2,X},Number,AbstractVecOrMat}; kwargs...) where {T1,T2,X} =
+dss(NUM::Union{VecOrMat{Polynomial{T1,X}},Polynomial{T1,X},Number,VecOrMat},
+    DEN::Union{VecOrMat{Polynomial{T2,X}},Polynomial{T2,X},Number,VecOrMat}; kwargs...) where {T1,T2,X} =
     dss(poly2pm(NUM),poly2pm(DEN); kwargs...)
 """
     sys = dss(R; Ts=missing, contr = false, obs = false, noseig = false, minimal = false, fast = true, atol = 0, rtol) 
@@ -262,7 +262,7 @@ IEEE Transactions on Automatic Control, vol. AC-26, pp. 111-129, 1981.
 
 [2] A. Varga, Solving Fault Diagnosis Problems - Linear Synthesis Techniques, Springer Verlag, 2017. 
 """
-# function dss(R::Union{AbstractVecOrMat{<:RationalTransferFunction},RationalTransferFunction}; Ts::Union{Real,Missing} = missing, 
+# function dss(R::Union{VecOrMat{<:RationalTransferFunction},RationalTransferFunction}; Ts::Union{Real,Missing} = missing, 
 #              minimal::Bool = false, contr::Bool = false, obs::Bool = false, noseig::Bool = false, 
 #              atol::Real = zero(float(real(_eltype(R)))), rtol::Real = 100*eps(one(atol))*iszero(atol)) 
 #     ismissing(Ts) && (eltype(R) <: RationalTransferFunction ? Ts = R[1].Ts : Ts = R.Ts )
@@ -338,13 +338,13 @@ IEEE Transactions on Automatic Control, vol. AC-26, pp. 111-129, 1981.
 
 [2] A. Varga, Solving Fault Diagnosis Problems - Linear Synthesis Techniques, Springer Verlag, 2017. 
 """
-function dss(P::AbstractArray{T,3};
+function dss(P::Array{T,3};
     Ts::Real = 0, minimal::Bool = false, contr::Bool = false, obs::Bool = false, noseig::Bool = false, 
     atol::Real = zero(real(T)), rtol::Real = (min(size(P)...)*eps(real(float(one(T)))))*iszero(atol)) where T
     sysdata = pm2ls(P, contr = contr, obs = obs, noseig = noseig, minimal = minimal, atol = atol, rtol = rtol)
     return DescriptorStateSpace{eltype(sysdata[1])}(sysdata..., Ts)
 end
-dss(P::Union{AbstractVecOrMat{<:Polynomial},Polynomial}; kwargs...)  =
+dss(P::Union{VecOrMat{<:Polynomial},Polynomial}; kwargs...)  =
     dss(poly2pm(P); kwargs...)
 """
     sys = dss(T, U, V, W; fast = true, contr = false, obs = false, minimal = false, atol = 0, rtol) 
@@ -384,33 +384,33 @@ The descriptor realization is built using the methods described in [1].
 [1] A. Varga, On computing the Kronecker structure of polynomial and rational matrices using Julia, 2020, 
 [arXiv:2006.06825](https://arxiv.org/pdf/2006.06825).
 """
-function dss(T::AbstractArray{T1,3}, U::AbstractArray{T2,3}, V::AbstractArray{T3,3}, W::AbstractArray{T4,3}; 
+function dss(T::Array{T1,3}, U::Array{T2,3}, V::Array{T3,3}, W::Array{T4,3}; 
              Ts::Real = 0, contr::Bool = false, obs::Bool = false, minimal::Bool = false, 
              fast::Bool = true, atol::Real = zero(real(T1)), 
              rtol::Real = size(T,1)*eps(real(float(one(T1))))*iszero(atol)) where {T1, T2, T3, T4}
     sysdata = spm2ls(T, U, V, W, contr = contr, obs = obs, minimal = minimal, atol = atol, rtol = rtol)
     return DescriptorStateSpace{eltype(sysdata[1])}(sysdata..., Ts)
 end
-# function dss(T::Union{AbstractVecOrMat{Polynomial{T1}},AbstractVecOrMat{Polynomial{T1,X}},Polynomial{T1},Polynomial{T1,X}}, 
-#              U::Union{AbstractVecOrMat{Polynomial{T2}},AbstractVecOrMat{Polynomial{T2,X}},Polynomial{T2},Polynomial{T2,X}}, 
-#              V::Union{AbstractVecOrMat{Polynomial{T3}},AbstractVecOrMat{Polynomial{T3,X}},Polynomial{T3},Polynomial{T3,X}}, 
-#              W::Union{AbstractVecOrMat{Polynomial{T4}},AbstractVecOrMat{Polynomial{T4,X}},Polynomial{T4},Polynomial{T4,X}}; kwargs...) where {T1, T2, T3, T4, X}
+# function dss(T::Union{VecOrMat{Polynomial{T1}},VecOrMat{Polynomial{T1,X}},Polynomial{T1},Polynomial{T1,X}}, 
+#              U::Union{VecOrMat{Polynomial{T2}},VecOrMat{Polynomial{T2,X}},Polynomial{T2},Polynomial{T2,X}}, 
+#              V::Union{VecOrMat{Polynomial{T3}},VecOrMat{Polynomial{T3,X}},Polynomial{T3},Polynomial{T3,X}}, 
+#              W::Union{VecOrMat{Polynomial{T4}},VecOrMat{Polynomial{T4,X}},Polynomial{T4},Polynomial{T4,X}}; kwargs...) where {T1, T2, T3, T4, X}
 #              println("T = $T")
 #        dss(poly2pm(T),poly2pm(U),poly2pm(V),poly2pm(W); kwargs...)
 # end
-# function dss(T::Union{AbstractVecOrMat{TP},TP}, 
-#              U::Union{AbstractVecOrMat{TP},TP,Number,AbstractVecOrMat{<:Number}}, 
-#              V::Union{AbstractVecOrMat{TP},TP,Number,AbstractVecOrMat{<:Number}}, 
-#              W::Union{AbstractVecOrMat{TP},TP,Number,AbstractVecOrMat{<:Number}}; 
+# function dss(T::Union{VecOrMat{TP},TP}, 
+#              U::Union{VecOrMat{TP},TP,Number,VecOrMat{<:Number}}, 
+#              V::Union{VecOrMat{TP},TP,Number,VecOrMat{<:Number}}, 
+#              W::Union{VecOrMat{TP},TP,Number,VecOrMat{<:Number}}; 
 #              Ts::Real = 0, contr::Bool = false, obs::Bool = false, minimal::Bool = false, 
 #              fast::Bool = true, atol::Real = zero(float(real(eltype(eltype(T))))), 
 #              rtol::Real = size(T,1)*eps(one(eltype(atol)))*iszero(atol)) where {TP <: Polynomial}
 #     return dss(poly2pm(T),poly2pm(U),poly2pm(V),poly2pm(W); Ts = Ts, contr = contr, obs = obs, minimal = minimal, fast = fast, atol = atol, rtol = rtol)
 # end
-function dss(T::Union{AbstractVecOrMat{<:Polynomial},Polynomial}, 
-             U::Union{AbstractVecOrMat{<:Polynomial},Polynomial,Number,AbstractVecOrMat{<:Number}}, 
-             V::Union{AbstractVecOrMat{<:Polynomial},Polynomial,Number,AbstractVecOrMat{<:Number}}, 
-             W::Union{AbstractVecOrMat{<:Polynomial},Polynomial,Number,AbstractVecOrMat{<:Number}}; 
+function dss(T::Union{VecOrMat{<:Polynomial},Polynomial}, 
+             U::Union{VecOrMat{<:Polynomial},Polynomial,Number,VecOrMat{<:Number}}, 
+             V::Union{VecOrMat{<:Polynomial},Polynomial,Number,VecOrMat{<:Number}}, 
+             W::Union{VecOrMat{<:Polynomial},Polynomial,Number,VecOrMat{<:Number}}; 
              Ts::Real = 0, contr::Bool = false, obs::Bool = false, minimal::Bool = false, 
              fast::Bool = true, atol::Real = zero(float(real(eltype(eltype(T))))), 
              rtol::Real = size(T,1)*eps(one(eltype(atol)))*iszero(atol)) 
@@ -423,10 +423,10 @@ end
 Extract the matrices `A`, `E`, `B`, `C`, `D` of a descriptor system model `sys = (A-λE,B,C,D)`. 
 If the type `T` is specified, the resulting matrices are converted to this type. 
 """
-function dssdata(sys::AbstractDescriptorStateSpace)
+function dssdata(sys::DescriptorStateSpace)
     return copy(sys.A), copy(sys.E), copy(sys.B), copy(sys.C), copy(sys.D)
 end
-function dssdata(T::Type,sys::AbstractDescriptorStateSpace)
+function dssdata(T::Type,sys::DescriptorStateSpace)
     #eltype(sys) == T ? (return sys.A, sys.E, sys.B, sys.C, sys.D) :
     return copy_oftype(sys.A,T), sys.E == I ? I : copy_oftype(sys.E,T), copy_oftype(sys.B,T), copy_oftype(sys.C,T), copy_oftype(sys.D,T)
 end

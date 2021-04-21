@@ -25,7 +25,7 @@ function rcond(A::UpperTriangular, tola::Real = 0)
     T1 = T <: BlasFloat ? T : T1 = promote_type(T,Float64)
     nrmA = opnorm(A,1)
     nrmA <= tola && (return zero(real(T1)))
-    return LinearAlgebra.LAPACK.trcon!('1','U','N', Matrix(copy_oftype(A,T1))) 
+    return LinearAlgebra.LAPACK.trcon!('1','U','N', Matrix{T1}(A)) 
 end
 function jordanblockdiag(lambda::T, ed::Vector{Int}) where T
    n = sum(ed)
@@ -74,4 +74,54 @@ function sblockdiag(blockdims::Vector{Int},mats::Union{AbstractMatrix{T},Uniform
     end
     return res
 end
-
+function eigselect2(evr::Union{AbstractVector,Missing},evc::Union{AbstractVector,Missing},sdeg::Union{Real,Missing},evref::Union{Real,Complex},disc::Bool)
+   # corrected version to run under Julia 1.6
+   evref = real(evref) + im*abs(imag(evref))
+   if ismissing(evr) && ismissing(evc)
+      if ismissing(sdeg)
+         T = typeof(evref)
+         sdegdef = disc ? real(T)(0.95) : real(T)(-0.05)
+         evi = imag(evref)
+         γ = [complex(sdegdef,evi); complex(sdegdef,-evi)]
+      else
+        if disc
+           γ = [evref; conj(evref)]
+           γ = (sdeg/abs(evref))*γ 
+        else
+           evi = imag(evref)
+           γ = [complex(sdeg,evi); complex(sdeg,-evi)]
+        end
+      end
+      evrupd = missing
+      evcupd = missing;
+   elseif ismissing(evc)
+      # select two real eigenvalues
+      if length(evr) < 2
+         if ismissing(sdeg)
+            T = typeof(evref)
+            sdegdef = disc ? real(T)(0.95) : real(T)(-0.05)
+            γ = [evr[1];sdegdef]; 
+         else
+            γ = [evr[1];sdeg]; 
+         end
+         evrupd = missing;
+         evcupd = missing;
+      else
+         evr = evr[sortperm(abs.(evr .- evref))]
+         γ = [ evr[1]; evr[2]];
+         evrupd = evr[3:end]
+         isempty(evrupd) && (evrupd = missing)
+         evcupd = missing;
+      end
+   else
+      i = argmin(abs.(evc .- evref))
+      γ = [evc[i];evc[i+1]];       
+      evcupd = [evc[1:i-1]; evc[i+2:end]];
+      isempty(evcupd) && (evcupd = missing)
+      evrupd = evr;
+   end
+   return γ, evrupd, evcupd
+   
+# end eigselect2
+end
+ 

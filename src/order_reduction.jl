@@ -327,12 +327,12 @@ References
 """   
 function gbalmr(sys::DescriptorStateSpace{T}; balance::Bool = false, matchdc::Bool = false, fast::Bool = true, 
     ord::Union{Int,Missing} = missing, atolhsv::Real = zero(real(T)), 
-    rtolhsv::Real = (size(sys.A,1)*eps(real(float(one(T)))))*iszero(atolhsv), atolmin::Real = atolhsv, rtolmin::Real = rtolhsv, 
-    atol::Real = zero(real(T)), atol1::Real = atol, atol2::Real = atol, 
+    rtolhsv::Real = sqrt(eps(real(float(one(T)))))*iszero(atolhsv), atolmin::Real = atolhsv, rtolmin::Real = rtolhsv, 
+    offset::Real = sqrt(eps(float(real(T)))), atol::Real = zero(real(T)), atol1::Real = atol, atol2::Real = atol, 
     rtol::Real = (size(sys.A,1)*eps(real(float(one(T)))))*iszero(min(atol1,atol2))) where T
 
     T1 = T <: BlasFloat ? T : promote_type(Float64,T) 
-    s2eps = sqrt(eps(real(T1)))       
+    s2eps = offset      
     disc = !iszero(sys.Ts)
     standsys = sys.E == I
     ONE = one(T1)

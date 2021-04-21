@@ -1,10 +1,10 @@
 module Test_rtf
 
+using DescriptorSystems
 using LinearAlgebra
-using MatrixPencils
+#using MatrixPencils
 using Polynomials
 using Test
-using DescriptorSystems
 
 println("Test_rtf")
 

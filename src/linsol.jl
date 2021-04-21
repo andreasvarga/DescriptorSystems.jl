@@ -22,7 +22,7 @@ set to `nothing`.
 
 The call with
 
-    grsol(sysgf, pf; poles = missing, sdeg = missing, mindeg = false, solgen = false, minreal = true, fast = true, 
+    glsol(sysgf, pf; poles = missing, sdeg = missing, mindeg = false, solgen = false, minreal = true, fast = true, 
           atol = 0, atol1 = atol, atol2 = atol, rtol, ) -> (sysx, info, sysgen)
 
 uses the compound descriptor system `sysgf = (A-λE,B,[Cg; Cf],[Dg; Df])`, 

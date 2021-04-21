@@ -1,10 +1,11 @@
 module Test_nullrange
 using DescriptorSystems
-using MatrixEquations
-using MatrixPencils
+# using MatrixEquations
+# using MatrixPencils
 using LinearAlgebra
 using Polynomials
 using Test
+
 
 println("Test_nullrange")
 @testset "nullrange" begin
@@ -139,6 +140,7 @@ r = size(sysr,2);
       info.nrank == r && ismissing(info.nfuz) && info.niuz == 0
 
 
+# excessive compilation times
 @time z = rtf('z');     # define the variable z as rational function                   
 @time Gd = [z^2 z/(z-2); 0 1/z];     # define the 2-by-2 improper Gd(z)
 @time sysd = dss(Gd,minimal = true,Ts = 1);  
@@ -353,7 +355,7 @@ gn = [z^4-z^3/2-16*z^2-29/2*z+18 z^4+5*z^3-z^2-11*z+6 11/2*z^3+15*z^2+7/2*z-12
 gd = [z^4+5/2*z^3+2*z^2+z/2 z^4+5/2*z^3+2*z^2+z/2 z^4+5/2*z^3+2*z^2+z/2;
       z^4+5/2*z^3+2*z^2+z/2 z^4+5/2*z^3+2*z^2+z/2 z^4+5/2*z^3+2*z^2+z/2;
       z^4+5/2*z^3+2*z^2+z/2 z^4+5/2*z^3+2*z^2+z/2 z^4+5/2*z^3+2*z^2+z/2];
-# error
+
 sys = dss(gn,gd,minimal = true, atol = 1.e-7,Ts = 1); 
 sysr, sysx, info = grange(sys, zeros = "unstable", inner = true, atol = 1.e-7)  
 zeref = gzero(sys,atol1=1.e-7)

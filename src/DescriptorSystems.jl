@@ -18,7 +18,7 @@ export DescriptorStateSpace, AbstractDescriptorStateSpace, dss, dssdata, rdss, r
 export AbstractRationalFunction, RationalTransferFunction, rtf
 export gminreal, gir, gbalmr, gsvselect, gss2ss, gbilin
 export confmap, rmconfmap, simplify, normalize, poles, gain, zpk, rtfbilin, numpoly, denpoly, isconstant
-export blockdiag, eye, rcond
+export blockdiag, eye, rcond, eigselect2
 export gdual, ctranspose, inv, ldiv, rdiv
 export append, series, parallel, horzcat, vertcat
 export order, evalfr, dcgain, opnorm, freqresp
@@ -26,15 +26,16 @@ export gpole, gzero, gpoleinfo, gzeroinfo, gnrank, isregular, isproper, isstable
        glinfnorm, ghinfnorm, gl2norm, gh2norm, ghanorm, gnugap
 export gsdec, grnull, glnull, grange, gcrange, grsol, glsol, grmcover1, grmcover2, glmcover1, glmcover2
 export grcf, glcf, grcfid, glcfid, gnrcf, gnlcf, giofac, goifac, grsfg, glsfg
+export gnehari, glinfldp, glasol, grasol
 # export PencilStateSpace, pss, pssdata
 
 
 abstract type AbstractDynamicalSystem end
 abstract type AbstractLTISystem <: AbstractDynamicalSystem end
-abstract type AbstractGeneralizedLTIStateSpace <: AbstractLTISystem end
-abstract type AbstractDescriptorStateSpace <: AbstractLTISystem end
-abstract type AbstractPencilStateSpace <: AbstractLTISystem end
-abstract type AbstractTransferFunction <: AbstractLTISystem end
+#abstract type AbstractGeneralizedLTIStateSpace <: AbstractLTISystem end
+#abstract type AbstractDescriptorStateSpace <: AbstractLTISystem end
+#abstract type AbstractPencilStateSpace <: AbstractLTISystem end
+#abstract type AbstractTransferFunction <: AbstractLTISystem end
 
 include("types/DescriptorStateSpace.jl")
 include("types/RationalFunction.jl")
@@ -51,6 +52,7 @@ include("factorizations.jl")
 include("covers.jl")
 include("linsol.jl")
 include("nullrange.jl")
+include("model_matching.jl")
 include("dstools.jl")
 include("dsutils.jl")
 end

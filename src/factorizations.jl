@@ -2,7 +2,7 @@
      sysf = glsfg(sys, γ; fast = true, stabilize = true, offset = β, 
                   atol = 0, atol1 = atol, atol2 = atol, rtol = n*ϵ) 
 
-Compute for the descriptor system `sys = (A-λE,B,C,D)` with the transfer function matrices `G(λ)`
+Compute for the descriptor system `sys = (A-λE,B,C,D)` with the transfer function matrix `G(λ)`
 and ``{\\small γ > \\|G(λ)\\|_∞}``, the minimum-phase right spectral factor `sysf = (Af-λEf,Bf,Cf,Df)`
 with the transfer-function matrix `F(λ)`, such that `F(λ)*F(λ)' = γ^2*I-G(λ)*G(λ)'`.
 If `stabilize = true` (the default), a preliminary stabilization of `sys` is performed. 
@@ -92,7 +92,7 @@ end
      sysf = grsfg(sys, γ; fast = true, stabilize = true, offset = β, 
                   atol = 0, atol1 = atol, atol2 = atol, rtol = n*ϵ) 
 
-Compute for the descriptor system `sys = (A-λE,B,C,D)` with the transfer function matrices `G(λ)`
+Compute for the descriptor system `sys = (A-λE,B,C,D)` with the transfer function matrix `G(λ)`
 and ``{\\small γ > \\|G(λ)\\|_∞}``, the minimum-phase right spectral factor `sysf = (Af-λEf,Bf,Cf,Df)`
 with the transfer-function matrix `F(λ)`, such that `F(λ)'*F(λ) = γ^2*I-G(λ)'*G(λ)`.
 If `stabilize = true` (the default), a preliminary stabilization of `sys` is performed. 

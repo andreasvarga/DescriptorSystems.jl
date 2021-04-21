@@ -99,10 +99,10 @@ end
 Return the order `nx` of the descriptor system `sys` as the dimension of the state variable vector. 
 For improper or non-minimal systems, `nx` is less than the McMillan degree of the system.   
 """
-function order(sys::AbstractDescriptorStateSpace)
+function order(sys::DescriptorStateSpace)
     return sys.nx
 end
-function Base.ndims(::AbstractDescriptorStateSpace)
+function Base.ndims(::DescriptorStateSpace)
 # """
 #     ndims(sys)
 
@@ -117,13 +117,13 @@ end
 
 Return the number of outputs `p` and the number of inputs `m` of a descriptor system `sys`.
 """
-function Base.size(sys::AbstractDescriptorStateSpace)
+function Base.size(sys::DescriptorStateSpace)
     size(sys.D)
 end
-function Base.size(sys::AbstractDescriptorStateSpace, d::Integer)
+function Base.size(sys::DescriptorStateSpace, d::Integer)
     d <= 2 ? size(sys)[d] : 1
 end
-function Base.length(sys::AbstractDescriptorStateSpace)
+function Base.length(sys::DescriptorStateSpace)
 # """
 #     length(sys)
 
@@ -184,7 +184,7 @@ which employ rank determinations based on either the use of
 rank revealing QR-decomposition with column pivoting, if `fast = true`, or the SVD-decomposition.
 The rank decision based on the SVD-decomposition is generally more reliable, but the involved computational effort is higher.
 """
-function evalfr(SYS::AbstractDescriptorStateSpace, val::Number; kwargs...) 
+function evalfr(SYS::DescriptorStateSpace, val::Number; kwargs...) 
     return lseval(dssdata(SYS)..., val; kwargs...)
 end
 """
@@ -231,7 +231,7 @@ algorithms, which employ rank determinations based on either the use of
 rank revealing QR-decomposition with column pivoting, if `fast = true`, or the SVD-decomposition.
 The rank decision based on the SVD-decomposition is generally more reliable, but the involved computational effort is higher.
 """
-function dcgain(SYS::AbstractDescriptorStateSpace; kwargs...) 
+function dcgain(SYS::DescriptorStateSpace; kwargs...) 
     SYS.Ts == 0 ? (return lseval(dssdata(SYS)..., 0; kwargs...) ) : 
                   (return lseval(dssdata(SYS)..., 1; kwargs...) )
 end

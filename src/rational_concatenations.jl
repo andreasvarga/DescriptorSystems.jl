@@ -229,8 +229,21 @@ function _vcat(::Type{T},A::AbstractVecOrMat...) where T
 end
 # function Base.hvcat(rows::Tuple{Vararg{Int}}, A::Union{AbstractVecOrMat{T1},AbstractVecOrMat{T2},AbstractVecOrMat{T3},RationalTransferFunction,UniformScaling}...) where 
 #     {T1 <: RationalTransferFunction, T2 <: Polynomial, T3 <: Number}
-function Base.hvcat(rows::Tuple{Vararg{Int}}, A::Union{AbstractVecOrMat{T1},AbstractVecOrMat{T3},RationalTransferFunction,UniformScaling}...) where 
-    {T1 <: RationalTransferFunction, T3 <: Number}
+# function Base.hvcat(rows::Tuple{Vararg{Int}}, A::Union{AbstractVecOrMat{T1},AbstractVecOrMat{T3},RationalTransferFunction,UniformScaling}...) where 
+#     {T1 <: RationalTransferFunction, T3 <: Number}
+# function Base.hvcat(rows::Tuple{Vararg{Int}}, A::Union{AbstractVecOrMat{T1},RationalTransferFunction,UniformScaling}...) where 
+#     {T1 <: RationalTransferFunction}
+#     Tp = promote_rtf_type(A...)
+#     if Tp == RationalTransferFunction || Tp == Polynomial
+#         return rtfhvcat(rows, A...)
+#     else
+#        return LinearAlgebra.hvcat(rows, A...)
+#     end
+# end
+# function Base.hvcat(rows::Tuple{Vararg{Int}}, A::Union{AbstractVecOrMat{T1},AbstractVecOrMat{T3},RationalTransferFunction,UniformScaling}...) where 
+#     {T1 <: RationalTransferFunction, T3 <: Number}
+function Base.hvcat(rows::Tuple{Vararg{Int}}, A::Union{AbstractVecOrMat{T1},RationalTransferFunction,UniformScaling}...) where 
+    {T1 <: RationalTransferFunction}
     nr = length(rows)
     sum(rows) == length(A) || throw(ArgumentError("mismatch between row sizes and number of arguments"))
     n = fill(-1, length(A))
@@ -286,12 +299,14 @@ function Base.hvcat(rows::Tuple{Vararg{Int}}, A::Union{AbstractVecOrMat{T1},Abst
     Tc = promote_rtf_eltype(A...)
     var = promote_rtf_var(A...)
     Ts = promote_rtf_SamplingTime(A...)
-    Tp = promote_rtf_type(A...)
-    if Tp == RationalTransferFunction || Tp == Polynomial
-        return _hvcat(RationalTransferFunction{Tc,var},rows,promote_to_rtfmats(Ts,var, n, 1, Tc, A...)...)
-    else
-       return _hvcat(Tc,rows,LinearAlgebra.promote_to_arrays(n, 1, Matrix, A...)...)
-    end
+    #Tp = promote_rtf_type(A...)
+    return _hvcat(RationalTransferFunction{Tc,var},rows,promote_to_rtfmats(Ts,var, n, 1, Tc, A...)...)
+
+    # if Tp == RationalTransferFunction || Tp == Polynomial
+    #     return _hvcat(RationalTransferFunction{Tc,var},rows,promote_to_rtfmats(Ts,var, n, 1, Tc, A...)...)
+    # else
+    #    return _hvcat(Tc,rows,LinearAlgebra.promote_to_arrays(n, 1, Matrix, A...)...)
+    # end
 end
 function _hvcat(::Type{T}, rows::Tuple{Vararg{Int}}, as::AbstractVecOrMat...) where T 
     nbr = length(rows)  # number of block rows

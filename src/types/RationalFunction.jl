@@ -31,7 +31,7 @@ can be obtained as `r.zeros`, while the roots of the denominator polynomial `den
 The ratio of the leading polynomial coefficients of `num(λ)` and `den(λ)` 
 (also called _gain_ of `r(λ)`) can be obtained as `r.gain`.
 """
-struct RationalTransferFunction{T,X} <: AbstractTransferFunction
+struct RationalTransferFunction{T,X} <: AbstractLTISystem
     num::Polynomial{T,X}       # numerator polynomial
     den::Polynomial{T,X}       # denominator polynomial
     Ts::Float64                # sampling time (0. - continuous-time, -1. or > 0. - discrete-time)
@@ -148,8 +148,8 @@ end
 # end
 Base.eltype(sys::RationalTransferFunction) = eltype(sys.num)
 _eltype(R::RationalTransferFunction) = eltype(R.num)
-_eltype(R::AbstractVecOrMat{<:RationalTransferFunction}) = length(R) == 0 ? eltype(eltype(Polynomials.coeffs.(numpoly.(R)))) : eltype(R[1])
-_eltype(R::AbstractVecOrMat{<:Polynomial}) = length(R) == 0 ? eltype(eltype(Polynomials.coeffs.(R))) : eltype(R[1])
+_eltype(R::VecOrMat{<:RationalTransferFunction}) = length(R) == 0 ? eltype(eltype(Polynomials.coeffs.(numpoly.(R)))) : eltype(R[1])
+_eltype(R::VecOrMat{<:Polynomial}) = length(R) == 0 ? eltype(eltype(Polynomials.coeffs.(R))) : eltype(R[1])
 """
     r = rtf(var; Ts = 0.)
     r = rtf('s'; Ts = 0.) or r = rtf('z'; Ts = -1.) 

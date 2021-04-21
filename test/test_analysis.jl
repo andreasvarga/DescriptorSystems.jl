@@ -164,7 +164,7 @@ sys = dss(A,E,B,C,D);
       info.regular && !info.proper && !info.stable 
 
 
-@test gnrank(sys, fastrank = true) == 3 && gnrank(sys, fastrank = false) == 3 #fails in Julia 1.3
+@test gnrank(sys, fastrank = true) == 3 && gnrank(sys, fastrank = false) == 3 
 
 @test gnrank(sys[:,1], fastrank = true) == 1 && gnrank(sys[:,1], fastrank = false) == 1
 
@@ -522,6 +522,12 @@ sys = dss(a,b,c,d);
       round(hinfnorm, digits=6) ≈ round(1.163398400218353e+01,digits=6) && 
       round(fpeak,digits = 3) ≈ round(2.695926597795647,digits=3)
 
+sys = dss(a+im*a,b+im*b,c+im*c,d+im*d);
+@time hinfnorm, fpeak = ghinfnorm(sys,rtolinf = 0.0000001)
+@test opnorm(evalfr(sys,im*fpeak)) ≈ hinfnorm &&
+      abs(hinfnorm - 56.237554184492573) < 1.e-6 &&  # compare with Matlab results
+      abs(fpeak+3.952242830041314) < 0.001
+
 a = [-1 2;-3 -2]; b = [2 3 4; 1 2 3]; c = [1 4; 2 2; 1 3]; d = zeros(3,3);
 e = rand(2,2);
 sys = dss(e*a,e,e*b,c,d);
@@ -529,6 +535,14 @@ sys = dss(e*a,e,e*b,c,d);
 @test opnorm(evalfr(sys,im*fpeak)) ≈ hinfnorm &&
       round(hinfnorm, digits=6) ≈ round(1.163398400218353e+01,digits=6) && 
       round(fpeak,digits = 3) ≈ round(2.695926597795647,digits=3)
+
+a = [-1 2;-3 -2]; b = [2 3 4; 1 2 3]; c = [1 4; 2 2; 1 3]; d = zeros(3,3);
+e = rand(Complex{Float64},2,2);
+sys = dss(e*(a+im*a),e,e*(b+im*b),c+im*c,d+im*d);
+@time hinfnorm, fpeak = ghinfnorm(sys,rtolinf = 0.0000001)
+@test opnorm(evalfr(sys,im*fpeak)) ≈ hinfnorm &&
+      abs(hinfnorm - 56.237554184492573) < 1.e-6 &&  # compare with Matlab results
+      abs(fpeak+3.952242830041314) < 0.001
 
 a = [-1 2;-3 -2]; b = [2 3 4; 1 2 3]; c = [1 4; 2 2; 1 3]; d = zeros(3,3);
 sys = dss(a,b,c,d);
@@ -569,7 +583,7 @@ sys = dss(e*a,e,e*b,c,d);
 # discrete standard & descriptor
 a = [-1 2;-3 -2]/10; b = [2 3 4; 1 2 3]; c = [1 4; 2 2; 1 3]; d = ones(3,3);
 sys = dss(a,b,c,d,Ts = 1);
-@time hinfnorm, fpeak = ghinfnorm(sys,rtolinf = 0.0000001)
+@time hinfnorm, fpeak = ghinfnorm(sys,rtolinf = 0.0000001)  #fails
 @test opnorm(evalfr(sys,exp(im*fpeak))) ≈ hinfnorm &&
       round(hinfnorm, digits=6) ≈ round(4.133509781281479e+01,digits=6) && 
       round(fpeak,digits = 3) ≈ round(2.753904640692288,digits=3)
@@ -661,28 +675,28 @@ Ty = Complex{Float64}; fast = true;
 sys = rss(n,p,m,T = Ty,disc=false); 
 @time linfnorm, fpeak = glinfnorm(sys,fast = fast, rtolinf = 0.0000000001);
 syst = (linfnorm)^2*I-sys'*sys; ev=gpole(inv(syst),atol=1.e-7); 
-@test sort(abs.(real(ev)))[1] < 1.e-5
+@test sort(abs.(real(ev)))[1] < 1.e-5 && opnorm(evalfr(sys,im*fpeak)) ≈ linfnorm
 
 # discrete-time standard, complex
 Ty = Complex{Float64}; fast = true; 
 sys = rss(n,p,m,T = Ty,disc=true); 
 @time linfnorm, fpeak = glinfnorm(sys,fast = fast, rtolinf = 0.0000000001);
 syst = (linfnorm)^2*I-sys'*sys; ev=gpole(inv(syst),atol=1.e-7); 
-@test sort(abs.(abs.(ev).-1))[1] < 1.e-5
+@test sort(abs.(abs.(ev).-1))[1] < 1.e-5 && opnorm(evalfr(sys,exp(im*fpeak))) ≈ linfnorm
 
 # continuous-time descriptor, complex
 Ty = Complex{Float64}; fast = true; 
 sys = rdss(n,p,m,T = Ty,disc=false); 
 @time linfnorm, fpeak = glinfnorm(sys,fast = fast, rtolinf = 0.0000000001);
 syst = (linfnorm)^2*I-sys'*sys; ev=gpole(inv(syst),atol=1.e-7); 
-@test sort(abs.(real(ev)))[1] < 1.e-5
+@test sort(abs.(real(ev)))[1] < 1.e-5 && opnorm(evalfr(sys,im*fpeak)) ≈ linfnorm
 
 # discrete-time descriptor, complex
 Ty = Complex{Float64}; fast = true; 
 sys = rdss(n,p,m,T = Ty,disc=true); 
 @time linfnorm, fpeak = glinfnorm(sys,fast = fast, rtolinf = 0.0000000001);
 syst = (linfnorm)^2*I-sys'*sys; ev=gpole(inv(syst),atol=1.e-7); 
-@test sort(abs.(abs.(ev).-1))[1] < 1.e-5
+@test sort(abs.(abs.(ev).-1))[1] < 1.e-5 && opnorm(evalfr(sys,exp(im*fpeak))) ≈ linfnorm
 
 n = 5; m = 3; p = 2;
 
@@ -697,38 +711,38 @@ sys = rss(n,p,m,T = Ty, stable = true);
 sys.D[:,:] = zeros(Ty,p,m);
 @time hinf, hfpeak = ghinfnorm(sys,fast = fast,rtolinf = rtolinf)
 @time linf, lfpeak = glinfnorm(sys',fast = fast,rtolinf = rtolinf)
-@test abs(hinf-linf)/hinf < 2*rtolinf && (hfpeak == lfpeak || abs(hfpeak-lfpeak) <= 0.01*lfpeak)
+@test abs(hinf-linf)/hinf < 2*rtolinf && (hfpeak ≈ lfpeak || abs(hfpeak-lfpeak) <= 0.01*abs(lfpeak))
 
 sys = rss(n,p,m,T = Ty, stable = true); 
 @time hinf, hfpeak = ghinfnorm(sys,fast = fast,rtolinf = rtolinf)
 @time linf, lfpeak = glinfnorm(sys',fast = fast,rtolinf = rtolinf)
-@test abs(hinf-linf)/hinf < 2*rtolinf && (hfpeak == lfpeak || abs(hfpeak-lfpeak) <= 0.01*lfpeak)
+@test abs(hinf-linf)/hinf < 2*rtolinf && (hfpeak ≈ lfpeak || abs(hfpeak-lfpeak) <= 0.01*abs(lfpeak))
 
 sys = rss(n,p,m,stable = true, disc = true); 
 @time hinf, hfpeak = ghinfnorm(sys,fast = fast,rtolinf = rtolinf)
 @time linf, lfpeak = glinfnorm(sys',fast = fast,rtolinf = rtolinf)
-@test abs(hinf-linf)/hinf < 2*rtolinf && (hfpeak == lfpeak || abs(hfpeak-lfpeak) <= 0.01*lfpeak)
+@test abs(hinf-linf)/hinf < 2*rtolinf && (hfpeak ≈ lfpeak || abs(hfpeak-lfpeak) <= 0.01*abs(lfpeak))
 
 sys = rdss(n,p,m,T = Ty, stable = true); 
 sys.D[:,:] = zeros(Ty,p,m);
 @time hinf, hfpeak = ghinfnorm(sys,fast = fast,rtolinf = rtolinf)
 @time linf, lfpeak = glinfnorm(sys',fast = fast,rtolinf = rtolinf)
-@test abs(hinf-linf)/hinf < 2*rtolinf && (hfpeak == lfpeak || abs(hfpeak-lfpeak) <= 0.01*lfpeak)
+@test abs(hinf-linf)/hinf < 2*rtolinf && (hfpeak ≈ lfpeak || abs(hfpeak-lfpeak) <= 0.01*abs(lfpeak))
 
 sys = rdss(n,p,m,T = Ty, stable = true); 
 @time hinf, hfpeak = ghinfnorm(sys,fast = fast,rtolinf = rtolinf)
 @time linf, lfpeak = glinfnorm(sys',fast = fast,rtolinf = rtolinf)
-@test abs(hinf-linf)/hinf < 2*rtolinf && (hfpeak == lfpeak || abs(hfpeak-lfpeak) <= 0.01*lfpeak)
+@test abs(hinf-linf)/hinf < 2*rtolinf && (hfpeak ≈ lfpeak || abs(hfpeak-lfpeak) <= 0.01*abs(lfpeak))
 
 sys = rdss(n,p,m,T = Ty, stable = true, disc = true); 
 @time hinf, hfpeak = ghinfnorm(sys,fast = fast,rtolinf = rtolinf)
 @time linf, lfpeak = glinfnorm(sys',fast = fast,rtolinf = rtolinf)
-@test abs(hinf-linf)/hinf < 2*rtolinf && (hfpeak == lfpeak || abs(hfpeak-lfpeak) <= 0.01*lfpeak)
+@test abs(hinf-linf)/hinf < 2*rtolinf && (hfpeak ≈ lfpeak || abs(hfpeak-lfpeak) <= 0.01*abs(lfpeak))
 
 sys = rdss(n,p,m,T = Ty, stable = true, id=ones(Int,3)); 
 @time hinf, hfpeak = ghinfnorm(sys,fast = fast,rtolinf = rtolinf)
 @time linf, lfpeak = glinfnorm(sys',fast = fast,rtolinf = rtolinf)
-@test abs(hinf-linf)/hinf < 2*rtolinf && (hfpeak == lfpeak || abs(hfpeak-lfpeak) <= 0.01*lfpeak)
+@test abs(hinf-linf)/hinf < 2*rtolinf && (hfpeak ≈ lfpeak || abs(hfpeak-lfpeak) <= 0.01*abs(lfpeak))
 
 end # fast
 end # Ty
@@ -881,12 +895,12 @@ sys1 = rss(n,p,m,T = Ty); sys1d = rss(3,2,3,stable=true,T = Ty); sys2 = sys1+sys
 @time nugap, fpeek = gnugap(sys1,sys2,fast = fast, atol=1.e-7)
 sysd1 = gbilin(sys1,rtfbilin("c2d")[1])[1]; sysd2 = gbilin(sys2,rtfbilin("c2d")[1])[1]; 
 @time nugap1, fpeak1 = gnugap(sysd2,sysd1,fast = fast, atol=1.e-7)
-@test abs(nugap-nugap1) < 0.00001
+@test abs(nugap-nugap1) < 0.001
 
 
 sysc1 = gbilin(sysd1,rtfbilin("d2c")[1])[1]; sysc2 = gbilin(sysd2,rtfbilin("d2c")[1])[1]; 
 nugap2, fpeak2 = gnugap(sysc2,sysc1,fast = fast, atol=1.e-7)
-@test abs(nugap-nugap2) < 0.00001
+@test abs(nugap-nugap2) < 0.0001
 
 end # fast
 end # Ty

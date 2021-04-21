@@ -56,17 +56,27 @@ function ldiv(sys1::DescriptorStateSpace{T1}, sys2::DescriptorStateSpace{T2};
    T = promote_type(T1,T2)
    n1 = sys1.nx
    n2 = sys2.nx
-   A, E, B, C, D = dssdata(T,[sys1 sys2])
-   Ai = [A B[:,1:m1]; C D[:,1:m1]]
-   Ei = E == I ? [I zeros(T,n1+n2,m1); zeros(T,m1,n1+n2+m1)]  : blockdiag(E,zeros(T,m1,m1))
-   MatrixPencils.isregular(Ai, Ei, atol1 = atol1, atol2 = atol2, rtol = rtol) || 
-              error("The system SYS1 is not invertible")
-   Bi = [B[:,m1+1:m1+m2]; D[:,m1+1:m1+m2]]
-   Ci = [zeros(T,p1,n1+n2) -I] 
+   if n1 > 0
+      A, E, B, C, D = dssdata(T,[sys1 sys2])
+      Ai = [A B[:,1:m1]; C D[:,1:m1]]
+      Ei = E == I ? [I zeros(T,n1+n2,m1); zeros(T,m1,n1+n2+m1)]  : blockdiag(E,zeros(T,m1,m1))
+      MatrixPencils.isregular(Ai, Ei, atol1 = atol1, atol2 = atol2, rtol = rtol) || 
+                 error("The system SYS1 is not invertible")
+      Bi = [B[:,m1+1:m1+m2]; D[:,m1+1:m1+m2]]
+      Ci = [zeros(T,p1,n1+n2) -I] 
+      Di = zeros(T,p1,m2)
+   else
+      D1 = copy_oftype(sys1.D,T)
+      LUD = lu(D1)
+      norm(D1,Inf) > atol1 || rcond(LUD.U) <= 10*m1*eps(real(float(one(T)))) || 
+               error("The system SYS2 is not invertible")
+      Ai, Ei, Bi, Ci, Di = dssdata(T,sys1)
+      ldiv!(LUD,Ci); ldiv!(LUD,Di)
+   end
 
-   return DescriptorStateSpace{T}(Ai, Ei, Bi, Ci, zeros(T,p1,m2), sys1.Ts) 
+   return DescriptorStateSpace{T}(Ai, Ei, Bi, Ci, Di, sys2.Ts) 
 end
-function (\)(sys1::AbstractDescriptorStateSpace, sys2::AbstractDescriptorStateSpace; kwargs...)
+function (\)(sys1::DescriptorStateSpace, sys2::DescriptorStateSpace; kwargs...)
    ldiv(sys1,sys2; kwargs...)
 end
 """
@@ -99,17 +109,27 @@ function rdiv(sys1::DescriptorStateSpace{T1}, sys2::DescriptorStateSpace{T2};
    T = promote_type(T1,T2)
    n1 = sys1.nx
    n2 = sys2.nx
-   A, E, B, C, D = dssdata(T,[sys2; sys1])
-   Ai = [A B; C[1:p2,:] D[1:p2,:]]
-   Ei = E == I ? [I zeros(T,n1+n2,p2); zeros(T,p2,n1+n2+p2)] : blockdiag(E,zeros(T,p2,p2))
-   MatrixPencils.isregular(Ai, Ei, atol1 = atol1, atol2 = atol2, rtol = rtol) || 
-              error("The system SYS2 is not invertible")
-   Ci = [C[p2+1:p1+p2,:] D[p2+1:p1+p2,:]]
-   Bi = [zeros(T,n1+n2,m1); -I] 
+   if n2 > 0
+      A, E, B, C, D = dssdata(T,[sys2; sys1])
+      Ai = [A B; C[1:p2,:] D[1:p2,:]]
+      Ei = E == I ? [I zeros(T,n1+n2,p2); zeros(T,p2,n1+n2+p2)] : blockdiag(E,zeros(T,p2,p2))
+      MatrixPencils.isregular(Ai, Ei, atol1 = atol1, atol2 = atol2, rtol = rtol) || 
+                 error("The system SYS2 is not invertible")
+      Ci = [C[p2+1:p1+p2,:] D[p2+1:p1+p2,:]]
+      Bi = [zeros(T,n1+n2,m1); -I] 
+      Di = zeros(T,p1,m1)
+   else
+      D2 = copy_oftype(sys2.D,T)
+      LUD = lu(D2)
+      norm(D2,Inf) > atol1 || rcond(LUD.U) <= 10*m2*eps(real(float(one(T)))) || 
+                  error("The system SYS2 is not invertible")
+      Ai, Ei, Bi, Ci, Di = dssdata(T,sys1)
+      rdiv!(Bi,LUD); rdiv!(Di,LUD)
+   end
 
-   return DescriptorStateSpace{T}(Ai, Ei, Bi, Ci, zeros(T,p1,m1), sys1.Ts) 
+   return DescriptorStateSpace{T}(Ai, Ei, Bi, Ci, Di, sys1.Ts) 
 end
-function (/)(sys1::AbstractDescriptorStateSpace, sys2::AbstractDescriptorStateSpace; kwargs...)
+function (/)(sys1::DescriptorStateSpace, sys2::DescriptorStateSpace; kwargs...)
     rdiv(sys1,sys2; kwargs...)
 end
 """
@@ -171,7 +191,7 @@ is the appropriate conjugate transpose of `G(λ)`, as follows:
 for a continuous-time system with `λ = s`, `Gconj(s) := transpose(G(-s))`, while 
 for a discrete-time system with `λ = z`, `Gconj(z) := transpose(G(1/z))`.
 """
-function adjoint(sys::AbstractDescriptorStateSpace)
+function adjoint(sys::DescriptorStateSpace)
     ctranspose(sys)
 end
 """

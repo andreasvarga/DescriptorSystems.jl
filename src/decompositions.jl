@@ -68,7 +68,7 @@ function gsdec(SYS::DescriptorStateSpace{T}; job::String = "finite", smarg::Unio
           n1 = blkdims[1];
           i1 = 1:n1; i2 = n1+1:SYS.nx 
           return dss(A[i1,i1], B[i1,:], C[:,i1], SYS.D, Ts = SYS.Ts), 
-                 DescriptorStateSpace{T}(A[i2,i2], I, B[i2,:], C[:,i2], zeros(T,SYS.ny,SYS.nu), SYS.Ts) 
+                 dss(A[i2,i2], B[i2,:], C[:,i2], zeros(T,SYS.ny,SYS.nu), Ts = SYS.Ts) 
        else
           error("No such job option")
        end 
@@ -95,7 +95,7 @@ function gsdec(SYS::DescriptorStateSpace{T}; job::String = "finite", smarg::Unio
             error("No such job option")
         end
         i1 = 1:n1; i2 = n1+1:SYS.nx 
-        return DescriptorStateSpace{T}(A[i1,i1], E[i1,i1], B[i1,:], C[:,i1], SYS.D, SYS.Ts), 
-               DescriptorStateSpace{T}(A[i2,i2], E[i2,i2], B[i2,:], C[:,i2], zeros(T,size(SYS.D)...), SYS.Ts) 
+        return dss(A[i1,i1], E[i1,i1], B[i1,:], C[:,i1], SYS.D, Ts = SYS.Ts), 
+               dss(A[i2,i2], E[i2,i2], B[i2,:], C[:,i2], zeros(T,size(SYS.D)...), Ts = SYS.Ts) 
     end
 end
