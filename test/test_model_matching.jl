@@ -59,8 +59,8 @@ G = rss(n1,p,m,T = Complex{Float64}); F = rss(n2,p,mf,T = Complex{Float64});
 # discrete-time, both G and F unstable and complex
 n1 = 3; n2 = 2; m = 2; p = 3; mf = 1; 
 G = rdss(n1,p,m,T = Complex{Float64},disc=true); F = rss(n2,p,mf,T = Complex{Float64},disc=true);  
-@time X, info = grasol(G, F; reltol=0.0001, atol = 1.e-9); info
-@test abs(glinfnorm(G*X-F,offset=1.e-13)[1] - info.mindist) < 0.01 &&  (!info.nonstandard && isstable(X,offset=1.e-13)) 
+@time X, info = grasol(G, F; reltol=0.001, offset=1.e-13, atol = 1.e-13); info
+@test abs(glinfnorm(G*X-F,offset=1.e-13,atol=1.e-10)[1] - info.mindist) < 0.01 &&  (!info.nonstandard && isstable(X,offset=1.e-13)) 
 
 @time X, info = grasol(G, F; nehari = true, atol = 1.e-7); info
 @test abs(glinfnorm(G*X-F)[1] - info.mindist) < 0.01 &&  (!info.nonstandard && isstable(X)) 
@@ -217,6 +217,7 @@ n1 = 3; n2 = 2; m = 2; p = 3; pf = 1;
 G = rss(n1,p,m,stable=true); X0 = rss(n2,pf,p,stable=true);  F = X0*G;
 @time X, info = glasol(G, F, atol = 1.e-7, poles = [-2, -3], sdeg = -1); info
 @test abs(glinfnorm(X*G-F)[1] - info.mindist) < 1.e-7 &&  (!info.nonstandard && isstable(X)) 
+gpole(X)
 
 n1 = 3; n2 = 2; m = 2; p = 3; pf = 1; 
 G = rss(n1,p,m,stable=true); X0 = rss(n2,pf,p,stable=true);  F = X0*G;
@@ -315,7 +316,7 @@ sys1 = rss(0,3,4); sys2 = rss(0,3,2);
 s = rtf('s');
 a = 1; f1 = 1/(s-1); f2 = 1/(s-a); Q0 = -1;
 sys1 = dss(f1); sys2 = dss(f2);
-@time sysx, mindist = glinfldp([sys1 sys2],1, reltol=1.e-9); 
+@time sysx, mindist = glinfldp([sys1 sys2], 1, atol = 1.e-7, reltol=1.e-9); 
 @test glinfnorm([sys1-Q0 sys2])[1] ≈  glinfnorm([sys1-sysx sys2])[1] ≈ mindist ≈ 1/a
 
 γ = 1.1;
@@ -374,7 +375,7 @@ G = [z^2+z+1 4*z^2+3*z+2 2*z^2-2;
     z^2 4*z^2-z 2*z^2-2*z]; 
 sys = gir(dss(G),atol=1.e-7); 
 @time sysx, s2 = glinfldp(sys; reltol=1.e-7); 
-@test glinfnorm(sysx-sys)[1] ≈ s2 && s2 == 8.662176191833835
+@test glinfnorm(sysx-sys)[1] ≈ s2 && s2 ≈ 8.662176191833835
 
 # poles on the imaginary axis
 s = rtf('s');
@@ -429,7 +430,7 @@ G = [z^2+z+1 4*z^2+3*z+2 2*z^2-2;
     z^2 4*z^2-z 2*z^2-2*z]; 
 sys = gir(dss(G),atol=1.e-7); 
 @time sysn, s1 = gnehari(sys)
-@test glinfnorm(sysn-sys)[1] ≈ s1 && s1 == 8.662176191833835
+@test glinfnorm(sysn-sys)[1] ≈ s1 && s1 ≈ 8.662176191833835
 
 
 sys = rdss(50,10,14)'; 
