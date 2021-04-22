@@ -434,7 +434,7 @@ function glinfldp(sys::DescriptorStateSpace{T}, m2::Int, γ::Union{Real,Missing}
    p, m = size(sys);
    (m2 <= m && m2 >= 0) || throw(DimensionMismatch("m2 must be at most $m, got $m2"))
    m1 = m-m2
-   tol = eps(real(float(one(T1))))
+   tol = sqrt(eps(real(float(one(T1)))))
 
    if nehari
       # compute a suboptimal solution as a Nehari approximation of G1
@@ -456,7 +456,7 @@ function glinfldp(sys::DescriptorStateSpace{T}, m2::Int, γ::Union{Real,Missing}
    
    hlu = ghanorm(gsdec(sys[:,1:m1], job = "unstable", atol1 = atol1, atol2 = atol2, rtol = rtol, fast = fast)[1]')[1];
 
-   if m2 == 0 || gl1 <= tol*hlu
+   if m2 == 0 || hlu == 0 || gl1 <= tol*hlu
       # solve one block LDP
       if subopt 
          # solve sub-optimal Nehari problem
@@ -489,7 +489,7 @@ function glinfldp(sys::DescriptorStateSpace{T}, m2::Int, γ::Union{Real,Missing}
          # solve optimal LDP using gamma-iteration
          # initialize the gamma-iteration
          # compute upper bound and inital gap
-         hlu = ghanorm(gsdec(sys[:,1:m1], job = "unstable", atol1 = atol1, atol2 = atol2, rtol = rtol, fast = fast)[1]')[1];
+         # hlu = ghanorm(gsdec(sys[:,1:m1], job = "unstable", atol1 = atol1, atol2 = atol2, rtol = rtol, fast = fast)[1]')[1];
          gu = hypot(hlu,gl1); gl = max(gl1,hlu)
          gap = max(1,gu-gl);
          gam = (gl+gu)/2; 

@@ -116,7 +116,7 @@ function eigselect2(evr::Union{AbstractVector,Missing},evc::Union{AbstractVector
    else
       i = argmin(abs.(evc .- evref))
       γ = [evc[i],evc[i+1]]       
-      evcupd = [evc[1:i-1], evc[i+2:end]]
+      evcupd = [evc[1:i-1]; evc[i+2:end]]
       isempty(evcupd) && (evcupd = missing)
       evrupd = evr
    end

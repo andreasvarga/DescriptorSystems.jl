@@ -7,19 +7,6 @@ using LinearAlgebra
 using Polynomials
 using Test
 
-# using JLD
-# F1 = load("test_glinfldp.jld","F1")
-# Yt, gopt = glinfldp(F1, 1); gpole(Yt) # fails
-
-# s1, s2 = gsdec(F1, job = "unstable",atol=1.e-7); gpole(s1) # fails
-
-# A, E, B, C, _, _, _, blkdims, = gsblkdiag(F1.A, F1.E, F1.B, F1.C; 
-#                                           finite_infinite = false, stable_unstable = false) 
-
-# F2 = gss2ss(F1)
-# s1, s2 = gsdec(F2, job = "unstable",atol=1.e-7); gpole(s1) # fails
-# A1, B1, C1, _, _, _, blkdims, = ssblkdiag(F2.A, F2.B, F2.C; stable_unstable = false)
-
 
 println("Test_model_matching")
 
