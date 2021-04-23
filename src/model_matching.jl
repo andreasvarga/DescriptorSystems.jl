@@ -151,8 +151,8 @@ function grasol(sysg::DescriptorStateSpace{T1}, sysf::DescriptorStateSpace{T2},
       if min(sysx.ny,sysx.nu) > 0
          ev = gpole(sysx, atol1 = atol1, atol2 = atol2);
          disc || (ev = ev[isfinite.(ev)])
-         if !isempty(ev) 
-            if (!disc && maximum(real.(ev)) > offset) || (disc && maximum(abs.(ev)) > 1+offset)
+         if !isempty(ev) && !nonstandard
+            if (!disc && maximum(real.(ev)) > -offset) || (disc && maximum(abs.(ev)) > 1-offset)
                ismissing(poles) && ismissing(sdeg) && (sdeg = disc ? 0.95 : -0.05)
                sysx = grsol(Go, Xt, mindeg = false, poles = poles, sdeg = sdeg, 
                             atol1 = atol1, atol2 = atol2, rtol = rtol)[1] 
@@ -325,8 +325,8 @@ function glasol(sysg::DescriptorStateSpace{T1}, sysf::DescriptorStateSpace{T2},
       if min(sysx.ny,sysx.nu) > 0
          ev = gpole(sysx, atol1 = atol1, atol2 = atol2);
          disc || (ev = ev[isfinite.(ev)])
-         if !isempty(ev) 
-            if (!disc && maximum(real.(ev)) > offset) || (disc && maximum(abs.(ev)) > 1+offset)
+         if !isempty(ev) && !nonstandard
+            if (!disc && maximum(real.(ev)) > -offset) || (disc && maximum(abs.(ev)) > 1-offset)
                ismissing(poles) && ismissing(sdeg) && (sdeg = disc ? 0.95 : -0.05)
                sysx = glsol(Go, Xt, mindeg = false, poles = poles, sdeg = sdeg, 
                             atol1 = atol1, atol2 = atol2, rtol = rtol)[1] 
@@ -456,7 +456,7 @@ function glinfldp(sys::DescriptorStateSpace{T}, m2::Int, γ::Union{Real,Missing}
    
    hlu = ghanorm(gsdec(sys[:,1:m1], job = "unstable", atol1 = atol1, atol2 = atol2, rtol = rtol, fast = fast)[1]')[1];
 
-   if m2 == 0 || hlu == 0 || gl1 <= tol*hlu
+   if m2 == 0 || hlu <= atol || gl1 <= tol*hlu
       # solve one block LDP
       if subopt 
          # solve sub-optimal Nehari problem

@@ -18,7 +18,7 @@ println("Test_model_matching")
 # continuous-time, both G and F unstable
 n1 = 3; n2 = 2; m = 2; p = 3; mf = 1; 
 G = rss(n1,p,m); F = rss(n2,p,mf);  
-@time X, info = grasol(G, F; reltol=0.0001, atol = 1.e-9); info
+@time X, info = grasol(G, F; reltol=0.0001, atol = 1.e-7); info
 @test abs(glinfnorm(G*X-F,offset=1.e-13)[1] - info.mindist) < 0.01 &&  (!info.nonstandard && isstable(X,offset=1.e-13)) 
 
 @time X, info = grasol(G, F; nehari = true, atol = 1.e-7); info
@@ -140,6 +140,47 @@ G = rss(3,3,2,stable=true);
 @time X, info = grasol(G, G, atol = 1.e-7, L2sol = true); info
 @test gl2norm(G*X-G,atolinf=1.e-7) < 1.e-7 && X.D ≈ eye(2)
 
+##  Francis (1987) Example 1, p. 112 
+s = rtf('s'); # define the complex variable s
+# enter W(s), G(s) and F(s)
+W = (s+1)/(10*s+1); # weighting function
+G = [ -(s-1)/(s^2+s+1); (s^2-2*s)/(s^2+s+1)]*[W];
+F = [ W; 0 ];
+# solve G(s)*X(s) = F(s) for the least order solution
+sysg = dss(G); sysf = dss(F);
+X, info = grasol(sysg,sysf,atol=1.e-7,mindeg = true); info
+@test glinfnorm(sysg*X-sysf)[1] ≈ info.mindist 
+# compute the suboptimal solution for gamma = 0.2729
+Xsub, info = grasol(sysg,sysf,0.2729,atol=1.e-7,mindeg = true); info
+@test glinfnorm(sysg*Xsub-sysf)[1] ≈ info.mindist 
+
+
+# Wang and Davison Example (1973)
+s = Polynomial([0, 1],'s'); 
+gn = [ s+1 s+3 s^2+3*s; s+2 s^2+2*s 0 ]; 
+gd = [s^2+3*s+2 s^2+3*s+2 s^2+3*s+2 ;
+s^2+3*s+2 s^2+3*s+2 s^2+3*s+2]; 
+m = 3; mf = 2;
+sysg = dss(gn,gd,minimal = true, atol = 1.e-7); 
+sysf = dss([1 0;0 1.]);
+
+@time sysx, info = grasol(sysg, sysf); info
+@test abs(glinfnorm(sysg*sysx-sysf)[1] ≈ info.mindist) < 1.e-7 && isstable(sysx)
+
+@time sysx, info = grasol(sysg, sysf, mindeg = true); info
+@test abs(glinfnorm(sysg*sysx-sysf)[1] ≈ info.mindist) < 1.e-7 && isstable(sysx)
+
+evals=[-1, -2, -3];
+@time sysx, info = grasol(sysg, sysf, poles = evals); info
+@test abs(glinfnorm(sysg*sysx-sysf)[1] ≈ info.mindist) < 1.e-7 && sort(gpole(sysx)) ≈ sort(evals)
+
+sdeg = -1;
+@time sysx, info = grasol(sysg, sysf, sdeg = sdeg); info
+@test abs(glinfnorm(sysg*sysx-sysf)[1] ≈ info.mindist) < 1.e-7 && 
+      all(real(gpole(sysx)) .< sdeg*(1-eps()^(1/info.nr))) 
+
+@time sysx, info = glasol(gdual(sysg), sysf); info
+@test abs(glinfnorm(sysx*gdual(sysg)-sysf,atol=1.e-7)[1] - info.mindist) < 1.e-7 && isstable(sysx)
 
 end #grasol
 
@@ -149,7 +190,7 @@ end #grasol
 # continuous-time, both G and F unstable
 n1 = 3; n2 = 2; m = 3; p = 2; pf = 1; 
 G = rss(n1,p,m); F = rss(n2,pf,m);  
-@time X, info = glasol(G, F; reltol=0.0001, atol = 1.e-9); info
+@time X, info = glasol(G, F; reltol=0.001, atol = 1.e-7); info
 @test abs(glinfnorm(X*G-F,offset=1.e-13)[1] - info.mindist) < 0.01 &&  (!info.nonstandard && isstable(X,offset=1.e-13)) 
 
 @time X, info = glasol(G, F; nehari = true, atol = 1.e-7); info
@@ -184,7 +225,7 @@ G = rdss(n1,p,m,T = Complex{Float64},disc=true); F = rss(n2,pf,m,T = Complex{Flo
 @test abs(glinfnorm(X*G-F)[1] - info.mindist) < 0.01 &&  (!info.nonstandard && isstable(X)) 
 
 
-# both G and F stable
+# both G and F stable  
 n1 = 3; n2 = 2; m = 3; p = 2; pf = 1; 
 G = rss(n1,p,m,stable=true); F = rss(n2,pf,m,stable=true);  
 @time X, info = glasol(G, F; atol = 1.e-8); info
@@ -204,7 +245,7 @@ n1 = 3; n2 = 2; m = 2; p = 3; pf = 1;
 G = rss(n1,p,m,stable=true); X0 = rss(n2,pf,p,stable=true);  F = X0*G;
 @time X, info = glasol(G, F, atol = 1.e-7, poles = [-2, -3], sdeg = -1); info
 @test abs(glinfnorm(X*G-F)[1] - info.mindist) < 1.e-7 &&  (!info.nonstandard && isstable(X)) 
-gpole(X)
+
 
 n1 = 3; n2 = 2; m = 2; p = 3; pf = 1; 
 G = rss(n1,p,m,stable=true); X0 = rss(n2,pf,p,stable=true);  F = X0*G;
@@ -283,6 +324,30 @@ G = rss(3,2,3,stable=true);
 G = rss(3,2,3,stable=true); 
 @time X, info = glasol(G, G, atol = 1.e-7, L2sol = true); info
 @test gl2norm(X*G-G,atolinf=1.e-7) < 1.e-7 && X.D ≈ eye(2)
+
+# Wang and Davison Example (1973)
+s = Polynomial([0, 1],'s'); 
+gn = [ s+1 s+3 s^2+3*s; s+2 s^2+2*s 0 ]; 
+gd = [s^2+3*s+2 s^2+3*s+2 s^2+3*s+2 ;
+s^2+3*s+2 s^2+3*s+2 s^2+3*s+2]; 
+m = 3; mf = 2;
+sysg = gdual(dss(gn,gd,minimal = true, atol = 1.e-7)); 
+sysf = dss([1 0;0 1.]);
+
+@time sysx, info = glasol(sysg, sysf); info
+@test abs(glinfnorm(sysx*sysg-sysf,atol=1.e-7)[1] - info.mindist) < 1.e-7 && isstable(sysx)
+
+@time sysx, info = glasol(sysg, sysf, mindeg = true); info
+@test abs(glinfnorm(sysx*sysg-sysf,atol=1.e-7)[1] - info.mindist) < 1.e-7 && isstable(sysx)
+
+evals=[-1, -2, -3];
+@time sysx, info = glasol(sysg, sysf, poles = evals); info
+@test abs(glinfnorm(sysx*sysg-sysf)[1] ≈ info.mindist) < 1.e-7 && sort(gpole(sysx)) ≈ sort(evals)
+
+sdeg = -1;
+@time sysx, info = glasol(sysg, sysf, sdeg = sdeg); info
+@test abs(glinfnorm(sysx*sysg-sysf)[1] ≈ info.mindist) < 1.e-7 && 
+      all(real(gpole(sysx)) .< sdeg*(1-eps()^(1/info.nl))) 
 
 
 end #glasol

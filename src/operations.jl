@@ -68,7 +68,7 @@ function ldiv(sys1::DescriptorStateSpace{T1}, sys2::DescriptorStateSpace{T2};
    else
       D1 = copy_oftype(sys1.D,T)
       LUD = lu(D1)
-      norm(D1,Inf) > atol1 || rcond(LUD.U) <= 10*m1*eps(real(float(one(T)))) || 
+      (norm(D1,Inf) <= atol1 || rcond(LUD.U) <= 10*m1*eps(real(float(one(T))))) && 
                error("The system SYS2 is not invertible")
       Ai, Ei, Bi, Ci, Di = dssdata(T,sys1)
       ldiv!(LUD,Ci); ldiv!(LUD,Di)
@@ -121,7 +121,7 @@ function rdiv(sys1::DescriptorStateSpace{T1}, sys2::DescriptorStateSpace{T2};
    else
       D2 = copy_oftype(sys2.D,T)
       LUD = lu(D2)
-      norm(D2,Inf) > atol1 || rcond(LUD.U) <= 10*m2*eps(real(float(one(T)))) || 
+      (norm(D2,Inf) <= atol1 || rcond(LUD.U) <= 10*m1*eps(real(float(one(T))))) && 
                   error("The system SYS2 is not invertible")
       Ai, Ei, Bi, Ci, Di = dssdata(T,sys1)
       rdiv!(Bi,LUD); rdiv!(Di,LUD)

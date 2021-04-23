@@ -74,54 +74,31 @@ function sblockdiag(blockdims::Vector{Int},mats::Union{AbstractMatrix{T},Uniform
     end
     return res
 end
-function eigselect2(evr::Union{AbstractVector,Missing},evc::Union{AbstractVector,Missing},sdeg::Union{Real,Missing},evref::Union{Real,Complex},disc::Bool)
-   # corrected version to run under Julia 1.6
-   evref = real(evref) + im*abs(imag(evref))
-   if ismissing(evr) && ismissing(evc)
-      if ismissing(sdeg)
-         T = typeof(evref)
-         sdegdef = disc ? real(T)(0.95) : real(T)(-0.05)
-         evi = imag(evref)
-         γ = [complex(sdegdef,evi), complex(sdegdef,-evi)]
-      else
-        if disc
-           γ = [evref, conj(evref)]
-           γ = (sdeg/abs(evref))*γ 
-        else
-           evi = imag(evref)
-           γ = [complex(sdeg,evi), complex(sdeg,-evi)]
+if VERSION < v"1.3.0"
+    function rdiv!(A::StridedVecOrMat, B::LU{<:Any,<:StridedMatrix})
+        rdiv!(rdiv!(A, UpperTriangular(B.factors)), UnitLowerTriangular(B.factors))
+        _apply_inverse_ipiv_cols!(B, A)
+    end
+    _apply_inverse_ipiv_cols!(A::LU, B::StridedVecOrMat) = _ipiv_cols!(A, length(A.ipiv) : -1 : 1, B)
+
+    function _ipiv_cols!(A::LU, order::OrdinalRange, B::StridedVecOrMat)
+        for i = order
+            if i != A.ipiv[i]
+                _swap_cols!(B, i, A.ipiv[i])
+            end
         end
-      end
-      evrupd = missing
-      evcupd = missing
-   elseif ismissing(evc)
-      # select two real eigenvalues
-      if length(evr) < 2
-         if ismissing(sdeg)
-            T = typeof(evref)
-            sdegdef = disc ? real(T)(0.95) : real(T)(-0.05)
-            γ = [evr[1],sdegdef] 
-         else
-            γ = [evr[1],sdeg] 
-         end
-         evrupd = missing
-         evcupd = missing
-      else
-         evr = evr[sortperm(abs.(evr .- evref))]
-         γ = [ evr[1], evr[2]]
-         evrupd = evr[3:end]
-         isempty(evrupd) && (evrupd = missing)
-         evcupd = missing
-      end
-   else
-      i = argmin(abs.(evc .- evref))
-      γ = [evc[i],evc[i+1]]       
-      evcupd = [evc[1:i-1]; evc[i+2:end]]
-      isempty(evcupd) && (evcupd = missing)
-      evrupd = evr
-   end
-   return γ, evrupd, evcupd
-   
-# end eigselect2
+        B
+    end
+    
+    function _swap_cols!(B::StridedVector, i::Integer, j::Integer)
+        _swap_rows!(B, i, j)
+    end
+    
+    function _swap_cols!(B::StridedMatrix, i::Integer, j::Integer)
+        for row = 1 : size(B, 1)
+            B[row,i], B[row,j] = B[row,j], B[row,i]
+        end
+        B
+    end
 end
- 
+

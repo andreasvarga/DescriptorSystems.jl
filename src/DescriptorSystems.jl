@@ -8,7 +8,7 @@ using Polynomials
 using Random
 using Compat
 
-import LinearAlgebra: BlasFloat, BlasReal, BlasComplex, copy_oftype, transpose, adjoint, opnorm, normalize
+import LinearAlgebra: BlasFloat, BlasReal, BlasComplex, copy_oftype, transpose, adjoint, opnorm, normalize, rdiv!
 import Base: +, -, *, /, \, (==), (!=), ^, isapprox, iszero, convert, promote_op, size, length, ndims, 
              hcat, vcat, hvcat, inv, show, lastindex, require_one_based_indexing, print, show, one, zero, eltype
 import MatrixPencils: isregular, rmeval
@@ -18,7 +18,7 @@ export DescriptorStateSpace, AbstractDescriptorStateSpace, dss, dssdata, rdss, r
 export AbstractRationalFunction, RationalTransferFunction, rtf
 export gminreal, gir, gbalmr, gsvselect, gss2ss, gbilin
 export confmap, rmconfmap, simplify, normalize, poles, gain, zpk, rtfbilin, numpoly, denpoly, isconstant
-export blockdiag, eye, rcond, eigselect2
+export blockdiag, eye, rcond
 export gdual, ctranspose, inv, ldiv, rdiv
 export append, series, parallel, horzcat, vertcat
 export order, evalfr, dcgain, opnorm, freqresp
