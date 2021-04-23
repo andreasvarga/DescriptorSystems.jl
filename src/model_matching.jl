@@ -632,7 +632,7 @@ function gnehari(sys::DescriptorStateSpace{T}, γ::Union{Real,Missing} = missing
    if !disc && sysu.E != I && (norm(sysu.E) < atol2 || rcond(sysu.E) < s2eps)
       sysu = gss2ss(sysu, atol2 = s2eps)[1]
       if sysu.E != I && rcond(sysu.E) < s2eps
-          error("Improper continuous-time system sys")
+          error("gnehari: improper continuous-time system sys")
       else
           sysx.D[:,:] = sysx.D + sysu.D
           sysu.D[:,:] = zeros(T, sys.ny, sys.nu)
@@ -645,11 +645,11 @@ function gnehari(sys::DescriptorStateSpace{T}, γ::Union{Real,Missing} = missing
    a, e, b, c, d = dssdata(sysu)
    e == I ? (isqtriu(a) ? ev = ordeigvals(a) : ev = eigvals(a)) : ev = ordeigvals(a,e)[1] 
    if disc
-      minimum(abs.(ev)) <= 1+offset &&
-          error("The system sys has possibly poles on the unit circle")
+      any(abs.(ev) .<= 1+offset) &&
+          error("gnehari: the system has possibly poles on the unit circle")
    else
-       minimum(real(ev)) <= offset &&
-          error("The system sys has possibly poles on the imaginary axis")
+      any(real.(ev) .<= offset) &&
+          error("gnehari: the system has possibly poles on the imaginary axis")
    end
    
    if disc
