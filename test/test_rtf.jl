@@ -2,7 +2,7 @@ module Test_rtf
 
 using DescriptorSystems
 using LinearAlgebra
-#using MatrixPencils
+using MatrixPencils
 using Polynomials
 using Test
 
