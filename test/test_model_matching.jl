@@ -5,11 +5,13 @@ using MatrixEquations
 using MatrixPencils
 using LinearAlgebra
 using Polynomials
+using Random
 using Test
 
 
 println("Test_model_matching")
 
+Random.seed!(21231)
 
 @testset "Model_matching " begin
 
