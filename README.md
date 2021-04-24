@@ -37,7 +37,7 @@ This collection also allows the operation on and manipulation of rational and po
 descriptor system realizations.
 
 The functionality of many of the implemented functions parallel or even extend the functionality of the
-Control System Toolbox of MATLAB and is similar to that of the [`DSTOOLS`](https://bitbucket.org/DSVarga/dstools/src/master/) collection of tools. The underlying computational functions are based on the
+Control System Toolbox of MATLAB and is similar to that of the [`DSTOOLS`](https://github.com/andreasvarga/DescriptorSystemTools) collection of tools. The underlying computational functions are based on the
 [`MatrixPencils.jl`](https://github.com/andreasvarga/MatrixPencils.jl) and
 [`MatrixEquations.jl`](https://github.com/andreasvarga/MatrixEquations.jl) packages.
 
