@@ -12,7 +12,7 @@ import LinearAlgebra: BlasFloat, BlasReal, BlasComplex, copy_oftype, transpose, 
 import Base: +, -, *, /, \, (==), (!=), ^, isapprox, iszero, convert, promote_op, size, length, ndims, 
              hcat, vcat, hvcat, inv, show, lastindex, require_one_based_indexing, print, show, one, zero, eltype
 import MatrixPencils: isregular, rmeval
-import Polynomials: variable, degree
+import Polynomials: variable, degree, poles
 
 export DescriptorStateSpace, AbstractDescriptorStateSpace, dss, dssdata, rdss, rss, iszero, order
 export AbstractRationalFunction, RationalTransferFunction, rtf
