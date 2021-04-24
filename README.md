@@ -65,10 +65,12 @@ The current version of the package includes the following categories of function
 
 * Advanced operations on transfer function matrices via their descriptor system realizations
 
+* Solution of model-matching problems
+
 ## Future plans
 
 This is a rapidly evolving software project for which new functionality will be frequently added.
 
 ## Supplementary information
 
-Supplementary information on the existing and planned functionality is also available in the documentation of the [`DSTOOLS`](https://bitbucket.org/DSVarga/dstools/src/master/) collection available on [arXiv](https://arxiv.org/abs/1707.07140).
+Supplementary information on the existing and planned functionality is also available in the documentation of the [`DSTOOLS`](https://github.com/andreasvarga/DescriptorSystemTools) collection available on [arXiv](https://arxiv.org/abs/1707.07140).

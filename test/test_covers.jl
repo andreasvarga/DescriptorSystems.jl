@@ -5,10 +5,12 @@ using MatrixEquations
 using MatrixPencils
 using LinearAlgebra
 using Polynomials
+using Random
 using Test
 
 println("Test_covers")
 @testset "covers " begin
+Random.seed!(2123)
 
 @testset "grmcover1" begin
 
