@@ -212,14 +212,14 @@ G = rss(n1,p,m,T = Complex{Float64}); F = rss(n2,pf,m,T = Complex{Float64});
 @time X, info = glasol(G, F; nehari = true, atol = 1.e-7); info
 @test abs(glinfnorm(X*G-F)[1] - info.mindist) < 0.01 &&  (!info.nonstandard && isstable(X)) 
 
-# discrete-time, both G and F unstable and complex
-n1 = 3; n2 = 2; m = 3; p = 2; pf = 1; 
-G = rdss(n1,p,m,T = Complex{Float64},disc=true); F = rss(n2,pf,m,T = Complex{Float64},disc=true);  
-@time X, info = glasol(G, F; reltol=0.0001, atol = 1.e-9); info
-@test abs(glinfnorm(X*G-F,offset=1.e-10)[1] - info.mindist) < 0.01 &&  (!info.nonstandard && isstable(X,offset=1.e-13)) 
+# # discrete-time, both G and F unstable and complex
+# n1 = 3; n2 = 2; m = 3; p = 2; pf = 1; 
+# G = rdss(n1,p,m,T = Complex{Float64},disc=true); F = rss(n2,pf,m,T = Complex{Float64},disc=true);  
+# @time X, info = glasol(G, F; reltol=0.0001, atol = 1.e-9); info
+# @test abs(glinfnorm(X*G-F,offset=1.e-10)[1] - info.mindist) < 0.01 &&  (!info.nonstandard && isstable(X,offset=1.e-13)) 
 
-@time X, info = glasol(G, F; nehari = true, atol = 1.e-7); info
-@test abs(glinfnorm(X*G-F)[1] - info.mindist) < 0.01 &&  (!info.nonstandard && isstable(X)) 
+# @time X, info = glasol(G, F; nehari = true, atol = 1.e-7); info
+# @test abs(glinfnorm(X*G-F)[1] - info.mindist) < 0.01 &&  (!info.nonstandard && isstable(X)) 
 
 
 # both G and F stable  
