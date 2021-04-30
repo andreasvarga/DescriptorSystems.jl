@@ -504,7 +504,7 @@ sys = dss(a,b,c,d);
 @time linfnorm, fpeak = glinfnorm(sys)
 @test isinf(linfnorm) && fpeak ≈ 1
 
-a = [0 1;-1 0]; b = [2 3 4; 1 2 3]; c = [1 4; 2 2; 1 3]; d = zeros(3,3);
+a = [0 1;-1 0]; b = [2 3 4; 1 2 3]; c = [1 4; 2 2; 1 3]; d = zeros(3,3); 
 sys = dss(a,b,c,d, Ts = 2);
 @time linfnorm, fpeak = glinfnorm(sys)
 @test isinf(linfnorm) && fpeak ≈ pi/4
@@ -583,7 +583,7 @@ sys = dss(e*a,e,e*b,c,d);
 # discrete standard & descriptor
 a = [-1 2;-3 -2]/10; b = [2 3 4; 1 2 3]; c = [1 4; 2 2; 1 3]; d = ones(3,3);
 sys = dss(a,b,c,d,Ts = 1);
-@time hinfnorm, fpeak = ghinfnorm(sys,rtolinf = 0.0000001)  #fails
+@time hinfnorm, fpeak = ghinfnorm(sys,rtolinf = 0.0000001) 
 @test opnorm(evalfr(sys,exp(im*fpeak))) ≈ hinfnorm &&
       round(hinfnorm, digits=6) ≈ round(4.133509781281479e+01,digits=6) && 
       round(fpeak,digits = 3) ≈ round(2.753904640692288,digits=3)

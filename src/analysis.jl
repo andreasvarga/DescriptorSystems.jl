@@ -736,6 +736,7 @@ function glinfnorm(sys::DescriptorStateSpace{T}; hinfnorm::Bool = false, rtolinf
     β = abs(offset)
     Ts = abs(sys.Ts)
     disc = !iszero(Ts)
+    complx = T1 <: Complex
 
     # eliminate simple infinite eigenvalues in the continuous-time case with singular E
     if disc || sys.E == I || rcond(sys.E) >= sys.nx*eps(float(real(T1)))
@@ -758,12 +759,12 @@ function glinfnorm(sys::DescriptorStateSpace{T}; hinfnorm::Bool = false, rtolinf
     if disc
         hinfnorm && all(abs.(ft) .> 1-β) && (return Inf, NaN)
         for i = 1:length(ft)
-            abs(ft[i]) >= 1-β && abs(ft[i]) <= 1+β && (return Inf, abs(log(ft[i])/Ts))
+            abs(ft[i]) >= 1-β && abs(ft[i]) <= 1+β && (return Inf, complx ? imag(log(complex(ft[i]))/Ts) : abs(log(complex(ft[i]))/Ts))
         end
     else
         hinfnorm && all(real.(ft) .> -β) && (return Inf, NaN)
         for i = 1:length(ft)
-            real(ft[i]) >= -β && real(ft[i]) <= β && (return Inf, abs(imag(ft[i])))
+            real(ft[i]) >= -β && real(ft[i]) <= β && (return Inf, complx ? imag(ft[i]) : abs(imag(ft[i])))
         end
     end
     

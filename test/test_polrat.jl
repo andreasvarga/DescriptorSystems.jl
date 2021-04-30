@@ -152,9 +152,10 @@ s = Polynomial([0, 1],:s)
 num = Polynomial([4:-1:1...],:s)
 den = Polynomial([7:-1:4...,1],:s)
 sys = dss(num,den)
+r = rtf(num,den)
 @test rmeval(num,den,0) ≈ dcgain(sys)
-@test dcgain(sys)  == dcgain([num/den]) == evalfr(sys)
-@test dcgain(sys)[1]  == dcgain(num/den) == evalfr(sys)[1]
+@test dcgain(sys)  == dcgain([r]) == evalfr(sys)
+@test dcgain(sys)[1]  == dcgain(r) == evalfr(sys)[1]
 
 
 sys = dss(num,den,contr=true); 

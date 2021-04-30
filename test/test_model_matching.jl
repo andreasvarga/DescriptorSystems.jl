@@ -141,7 +141,8 @@ G = rss(3,3,2,stable=true);
 s = rtf('s'); # define the complex variable s
 # enter W(s), G(s) and F(s)
 W = (s+1)/(10*s+1); # weighting function
-G = [ -(s-1)/(s^2+s+1); (s^2-2*s)/(s^2+s+1)]*[W];
+#G = W.*[ -(s-1)/(s^2+s+1); (s^2-2*s)/(s^2+s+1)];  # erroneous
+G = [ -(s-1)/(s^2+s+1)*W; (s^2-2*s)/(s^2+s+1)*W];
 F = [ W; 0 ];
 # solve G(s)*X(s) = F(s) for the least order solution
 sysg = dss(G); sysf = dss(F);
@@ -400,12 +401,12 @@ s = rtf('s'); t = rtfbilin("tustin",Ts=0.5)[1];
 a = 0.5; f1 = confmap(1/(s-1),t); f2 = confmap(1/(s-a),t); 
 Q0 = confmap(-((1+a)*s+2*a)/2/(s+a),t);
 sys1 = dss(f1); sys2 = dss(f2); sys0 = dss(Q0);
-@time sysx, mindist = glinfldp([sys1 sys2],1, reltol=1.e-9); 
-@test glinfnorm([sys1-sys0 sys2])[1] ≈  glinfnorm([sys1-sysx sys2])[1] ≈ mindist ≈ 1/a
+@time sysx, mindist = glinfldp(gir([sys1 sys2],atol=1.e-7),1, offset=1.e-13, atol=1.e-7, reltol=1.e-9); #fails
+@test glinfnorm(gir([sys1-sys0 sys2],atol=1.e-7))[1] ≈  glinfnorm(gir([sys1-sysx sys2],atol=1.e-7))[1] ≈ mindist ≈ 1/a
 
 γ = 1.1/a;
-@time sysx, mindist = glinfldp([sys1 sys2], 1, γ, reltol=1.e-9); 
-@test glinfnorm([sys1-sysx sys2])[1] ≈ mindist < γ
+@time sysx, mindist = glinfldp(gir([sys1 sys2],atol=1.e-7), 1, γ, reltol=1.e-9); 
+@test glinfnorm(gir([sys1-sysx sys2],atol=1.e-7))[1] ≈ mindist < γ
 
 
 
@@ -414,8 +415,8 @@ a = 2; f1 = confmap(1/(s-1),t); f2 = confmap(1/(s-a),t);
 g0 = 1/(2*(a-1))*(-1 + sqrt(a^2+ 4*(a-1)/(a+1))); Q0 = -(g0*s+g0+(a-1)/2)/(s+a);
 Q0 = confmap(-(g0*s+g0+(a-1)/2)/(s+a),t);
 sys1 = dss(f1); sys2 = dss(f2); sys0 = dss(Q0);
-@time sysx, mindist = glinfldp([sys1 sys2],1, reltol=1.e-9); 
-@test glinfnorm([sys1-sys0 sys2])[1] ≈  glinfnorm([sys1-sysx sys2])[1] ≈ mindist ≈ g0
+@time sysx, mindist = glinfldp(gir([sys1 sys2],atol=1.e-7),1, reltol=1.e-9); 
+@test glinfnorm(gir([sys1-sys0 sys2],atol=1.e-7))[1] ≈  glinfnorm(gir([sys1-sysx sys2],atol=1.e-7))[1] ≈ mindist ≈ g0
 
 
 z = rtf('z');

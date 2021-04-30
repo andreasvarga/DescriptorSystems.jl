@@ -1,5 +1,9 @@
 # Release Notes
 
+## Version 0.7.0
+
+This minor release relies on a new definition of the _RationalTransferFunction_ type as a subtype of the _RationalFunction_ type available in the Polynomials package starting with the version v2.0.9. Several bug fixes have been also performed. 
+
 ## Version 0.6.0
 
 This minor release includes new functions for solving model matching problems, such as the Nehari approximation problems, least-distance problems, and approximate solution  of linear equations with rational matrices. The definition of the descriptor system object has been simplified to have only fields with concrete types. Several bug fixes have been also performed. 
