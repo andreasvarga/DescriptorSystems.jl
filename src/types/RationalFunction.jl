@@ -139,6 +139,7 @@ ValT(::Val{T}) where {T} = T
 sampling_time(pq::RationalTransferFunction{T,X,P,Ts}) where {T,X,P,Ts} = ValT(Val(Ts))
 sampling_time(::Type{𝑷}) where {T,X,P,Ts, 𝑷<:RationalTransferFunction{T,X,P,Ts}} = ValT(Val(Ts))
 sampling_time(::Type{<:Number}) = nothing
+sampling_time(p::Number) = nothing
 
 """
     r = rtf(num, den; Ts = rts, var = rvar ) 

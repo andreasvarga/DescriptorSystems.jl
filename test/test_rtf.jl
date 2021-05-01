@@ -22,10 +22,12 @@ s = Polynomial([0,1],:s)
 
 # some basic tests
 @test propertynames(sys) == (:Ts, :var, :zeros, :poles, :gain, :num, :den)
-@test poles(sys) ≈ [-d/c] && gain(sys) ≈ a/c #&& length(sys) == 1
+@test poles(sys) ≈ [-d/c] && gpole(sys) ≈ [-d/c] 
+@test gzero(sys) ≈ [-b/a] && gain(sys) ≈ a/c #&& length(sys) == 1
 @test poles(sys.num) ≈ Int[] && gain(sys.den) ≈ c
 @test !isconstant(sys) && !isconstant(sys.num) && isconstant(a)
 @test variable(sys) == variable(sys.num)
+@test convert(RationalFunction,sys) == RationalFunction(sys.num,sys.den)
 @test all(zpk(sys) .≈ ([-2.0], [-1.3333333333333333], 0.3333333333333333))
 @test all(zpk(sys.num) .≈ ([-2.0], Int64[], 1))
 @test sys' == rtf(-a*s+b, -c*s+d)
@@ -37,6 +39,9 @@ s = Polynomial([0,1],:s)
       DescriptorSystems.promote_var(Polynomial(1),Polynomial(1)) == :s 
 @test zero(sys) == rtf(0.) && zero(sys) == 0 && zero(sys) == Polynomial(0) &&
       one(sys) == rtf(1.) 
+@test isnothing(sampling_time(3.)) && isnothing(sampling_time(Int))
+@test DescriptorSystems.promote_Ts(sampling_time.((sys, 3))...) == 0
+@test DescriptorSystems._eltype([sys.num;sys.den]) == Int
 
 
 a = 1; b = 2; c = 3; d = 4;
@@ -249,6 +254,7 @@ sys = rtf(Polynomial([b, a],:s), Polynomial([d, c],:s), Ts = 0)
 s = rtf('s'); z = rtf('z');     # define the complex variables s and z  
 @time Gc = [s^2 s/(s+1); 0 1/s] 
 @time Gd = [z^2 z/(z-2); 0 1/z] 
+@test all(transpose(transpose(Gc)) .== Gc)
 
 # # s and z polynomials
 # s = Polynomial([0, 1],'s'); z = Polynomial([0, 1],'z');  

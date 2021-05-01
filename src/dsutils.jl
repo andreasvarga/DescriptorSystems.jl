@@ -74,31 +74,31 @@ function sblockdiag(blockdims::Vector{Int},mats::Union{AbstractMatrix{T},Uniform
     end
     return res
 end
-if VERSION < v"1.3.0"
-    function rdiv!(A::StridedVecOrMat, B::LU{<:Any,<:StridedMatrix})
-        rdiv!(rdiv!(A, UpperTriangular(B.factors)), UnitLowerTriangular(B.factors))
-        _apply_inverse_ipiv_cols!(B, A)
-    end
-    _apply_inverse_ipiv_cols!(A::LU, B::StridedVecOrMat) = _ipiv_cols!(A, length(A.ipiv) : -1 : 1, B)
+# if VERSION < v"1.3.0"
+#     function rdiv!(A::StridedVecOrMat, B::LU{<:Any,<:StridedMatrix})
+#         rdiv!(rdiv!(A, UpperTriangular(B.factors)), UnitLowerTriangular(B.factors))
+#         _apply_inverse_ipiv_cols!(B, A)
+#     end
+#     _apply_inverse_ipiv_cols!(A::LU, B::StridedVecOrMat) = _ipiv_cols!(A, length(A.ipiv) : -1 : 1, B)
 
-    function _ipiv_cols!(A::LU, order::OrdinalRange, B::StridedVecOrMat)
-        for i = order
-            if i != A.ipiv[i]
-                _swap_cols!(B, i, A.ipiv[i])
-            end
-        end
-        B
-    end
+#     function _ipiv_cols!(A::LU, order::OrdinalRange, B::StridedVecOrMat)
+#         for i = order
+#             if i != A.ipiv[i]
+#                 _swap_cols!(B, i, A.ipiv[i])
+#             end
+#         end
+#         B
+#     end
     
-    function _swap_cols!(B::StridedVector, i::Integer, j::Integer)
-        _swap_rows!(B, i, j)
-    end
+#     function _swap_cols!(B::StridedVector, i::Integer, j::Integer)
+#         _swap_rows!(B, i, j)
+#     end
     
-    function _swap_cols!(B::StridedMatrix, i::Integer, j::Integer)
-        for row = 1 : size(B, 1)
-            B[row,i], B[row,j] = B[row,j], B[row,i]
-        end
-        B
-    end
-end
+#     function _swap_cols!(B::StridedMatrix, i::Integer, j::Integer)
+#         for row = 1 : size(B, 1)
+#             B[row,i], B[row,j] = B[row,j], B[row,i]
+#         end
+#         B
+#     end
+# end
 
