@@ -525,13 +525,13 @@ and return `rt(δ) = r(f(δ))`. The resulting `rt` inherits the sampling time an
 """
 function confmap(pol::Polynomial,f::RationalTransferFunction) 
     # perform Horner's algorithm
-    n = length(pol)
+    n = length(pol)-1
     s = pol[n]*one(f)
     for i in n-1:-1:0
         s = s*f + pol[i]
     end
-    return rtf(s.num,1,Ts = f.Ts)
-end
+    return rtf(s,Ts = f.Ts)
+end 
 function confmap(r::RationalTransferFunction,f::RationalTransferFunction) 
     m = degree(r.num)
     n = degree(r.den)
