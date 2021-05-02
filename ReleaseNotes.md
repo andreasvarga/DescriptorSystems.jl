@@ -2,7 +2,7 @@
 
 ## Version 0.7.0
 
-This minor release relies on a new definition of the _RationalTransferFunction_ type as a subtype of the _RationalFunction_ type available in the Polynomials package starting with the version v2.0.9. Several bug fixes have been also performed. 
+This minor release relies on a new definition of the _RationalTransferFunction_ type as a subtype of the _RationalFunction_ type available in the Polynomials package starting with the version v2.0.9. Also, the _DescriptorStateSpace_ type has been simplified. Several bug fixes have been also performed. 
 
 ## Version 0.6.0
 
