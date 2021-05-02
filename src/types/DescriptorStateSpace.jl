@@ -24,11 +24,7 @@ defined by the 4-tuple `SYS = (A-λE,B,C,D)`, then:
     and `Ts > 0` or `Ts = -1` for a discrete-time system. 
     `Ts = -1` indicates a discrete-time system with an unspecified sampling time. 
 
-`SYS.nx` is the system state vector dimension `nx`. 
-
-`SYS.ny` is the system output vector dimension `ny`. 
-
-`SYS.nu` is the system input vector dimension `nu`. 
+The dimensions `nx`, `ny` and `nu` can be obtained as `SYS.nx`, `SYS.ny` and `SYS.nu`, respectively. 
 """
 struct DescriptorStateSpace{T} <: AbstractLTISystem
     A::Matrix{T}
@@ -37,13 +33,10 @@ struct DescriptorStateSpace{T} <: AbstractLTISystem
     C::Matrix{T}
     D::Matrix{T}
     Ts::Float64
-    nx::Int
-    nu::Int
-    ny::Int
     function DescriptorStateSpace{T}(A::Matrix{T}, E::Union{Matrix{T},UniformScaling}, 
                                      B::Matrix{T}, C::Matrix{T}, D::Matrix{T},  Ts::Real) where T 
-        nx, nu, ny = dss_validation(A, E, B, C, D, Ts)
-        new{T}(A, E, B, C, D, Float64(Ts), nx, nu, ny)
+        dss_validation(A, E, B, C, D, Ts)
+        new{T}(A, E, B, C, D, Float64(Ts))
     end
 end
 function dss_validation(A::Matrix{T}, E::Union{Matrix{T},UniformScaling}, 
@@ -65,6 +58,19 @@ function dss_validation(A::Matrix{T}, E::Union{Matrix{T},UniformScaling},
                                 (continuous system), or -1 (unspecified)")
     return nx, nu, ny
 end
+function Base.getproperty(sys::DescriptorStateSpace, d::Symbol)  
+    if d === :nx
+        return size(sys.A,1)
+    elseif d === :ny
+        return size(sys.C,1)
+    elseif d === :nu
+        return size(sys.B,2)
+    else
+        getfield(sys, d)
+    end
+end
+Base.propertynames(sys::DescriptorStateSpace) =
+    (:nx, :ny, :nu, fieldnames(typeof(sys))...)
 
 # Base.ndims(::AbstractDescriptorStateSpace) = 2 
 # Base.size(sys::AbstractDescriptorStateSpace) = size(sys.D) 

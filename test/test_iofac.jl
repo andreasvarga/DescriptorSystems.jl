@@ -1,8 +1,6 @@
 module Test_iofac
 
 using DescriptorSystems
-using MatrixEquations
-using MatrixPencils
 using LinearAlgebra
 using Polynomials
 using Test

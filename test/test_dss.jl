@@ -2,7 +2,6 @@ module Test_dss
 
 using DescriptorSystems
 using LinearAlgebra
-using MatrixPencils
 using Test
 
 println("Test_dss")
@@ -150,8 +149,8 @@ sysd = dss(A, E, B, C, D, Ts = -1)
 @test D_111.Ts == 0.005
 
 # property names
-@test propertynames(C_111) == (:A, :E, :B, :C, :D, :Ts, :nx, :nu, :ny)
-@test propertynames(D_111) == (:A, :E, :B, :C, :D, :Ts, :nx, :nu, :ny)
+@test propertynames(C_111) == (:nx, :ny, :nu, :A, :E, :B, :C, :D, :Ts)
+@test propertynames(D_111) == (:nx, :ny, :nu, :A, :E, :B, :C, :D, :Ts)
 
 # Errors
 @test_throws ErrorException C_111 + C_222             # Dimension mismatch

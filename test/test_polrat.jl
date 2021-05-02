@@ -1,7 +1,6 @@
 module Test_polrat
 
 using DescriptorSystems
-using MatrixEquations
 using MatrixPencils
 using LinearAlgebra
 using Polynomials

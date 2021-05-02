@@ -1,8 +1,6 @@
 module Test_cfid
 
 using DescriptorSystems
-using MatrixEquations
-using MatrixPencils
 using LinearAlgebra
 using Polynomials
 using Test

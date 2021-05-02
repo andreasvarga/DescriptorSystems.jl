@@ -6,7 +6,6 @@ using MatrixEquations
 using MatrixPencils
 using Polynomials
 using Random
-using Compat
 
 import LinearAlgebra: BlasFloat, BlasReal, BlasComplex, copy_oftype, transpose, adjoint, opnorm, normalize, rdiv!
 import Base: +, -, *, /, \, (==), (!=), ^, isapprox, iszero, convert, promote_op, size, length, ndims, 
@@ -34,7 +33,7 @@ abstract type AbstractDynamicalSystem end
 abstract type AbstractLTISystem <: AbstractDynamicalSystem end
 
 include("types/DescriptorStateSpace.jl")
-include("types/RationalFunction.jl")
+include("types/RationalTransferFunction.jl")
 #include("types/PencilStateSpace.jl")
 include("dss.jl")
 include("connections.jl")

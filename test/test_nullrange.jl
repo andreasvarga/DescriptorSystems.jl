@@ -1,11 +1,9 @@
 module Test_nullrange
+
 using DescriptorSystems
-# using MatrixEquations
-# using MatrixPencils
 using LinearAlgebra
 using Polynomials
 using Test
-
 
 println("Test_nullrange")
 @testset "nullrange" begin
@@ -140,19 +138,10 @@ r = size(sysr,2);
       info.nrank == r && ismissing(info.nfuz) && info.niuz == 0
 
 
-# excessive compilation times
+# large compilation times
 @time z = rtf('z');     # define the variable z as rational function                   
 @time Gd = [z^2 z/(z-2); 0 1/z];     # define the 2-by-2 improper Gd(z)
 @time sysd = dss(Gd,minimal = true,Ts = 1);  
-# @time Gdnum = MatrixPencils.poly2pm(numpoly.(Gd)); 
-# @time Gdden = MatrixPencils.poly2pm(denpoly.(Gd)); 
-# @time sysd = dss(Gdnum, Gdden; Ts = 1, minimal = true);
-
-
-# @time z = Polynomial([0, 1],'z') # define z as a monomial 
-# @time Nd = [z^2 z; 0 1]; Dd = [1 z-2; 1 z]; # define numerators and denominators
-# @time sysd = dss(Nd,Dd,minimal = true,Ts = 1);      
-# build LTI minimal descriptor realizations of Gd(z) 
 zeref = gzero(sysd,atol1=1.e-7)
 
 @time sysr, sysx, info = grange(sysd, zeros = "none", inner = false, atol = 1.e-7)  
@@ -277,7 +266,7 @@ gd = [(s+2) (s+2) (s+2);
     1 (s+1)^2 (s+1)^2;
     (s+2) (s+1)*(s+2) (s+1)*(s+2)]; 
 
-sys = dss(gn,gd,minimal = true, atol = 1.e-7); 
+@time sys = dss(gn,gd,minimal = true, atol = 1.e-7); 
 @time sysr, sysx, info = grange(sys, zeros = "unstable", inner = true, atol = 1.e-7)  
 r = size(sysr,2);
 zer = gzero(gminreal(sysx),atol1=1.e-7);

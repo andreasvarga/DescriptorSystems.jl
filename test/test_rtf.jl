@@ -2,7 +2,6 @@ module Test_rtf
 
 using DescriptorSystems
 using LinearAlgebra
-using MatrixPencils
 using Polynomials
 using Test
 
@@ -43,6 +42,21 @@ s = Polynomial([0,1],:s)
 @test DescriptorSystems.promote_Ts(sampling_time.((sys, 3))...) == 0
 @test DescriptorSystems._eltype([sys.num;sys.den]) == Int
 
+# check some standard constructors 
+@time r = RationalTransferFunction{Complex{Float64},:s,Polynomial{Complex{Float64},:s},1}(2,Polynomial([1,1. *im],:s),1)
+@time r = RationalTransferFunction{Float64,:s,Polynomial{Float64,:s},1}(Polynomial([1,1.],:s),2//3,1)
+@time t = convert(RationalFunction,r)
+@time r = RationalTransferFunction(Polynomial([1,1.],:s),Polynomial(2//3*im,:s),1)
+@time r = RationalTransferFunction(Polynomial([1,1.],:s),2//3*im,1)
+@time r = RationalTransferFunction(2//3*im,Polynomial([1,1.],:s),1)
+@time r = RationalTransferFunction(2.1*im,Polynomial([1,1.],:s),1)
+@time r = RationalTransferFunction(Polynomial([1,1.],:s),2.1*im,1)
+@time r = rtf(2//3,2.1*im,Ts=1)
+@time convert(typeof(r),Polynomial([0,1],:s))
+rr = RationalFunction(Polynomial(2,:s),Polynomial([1,2],:s));
+@test promote_rule(typeof(r),typeof(rr)) == RationalTransferFunction{ComplexF64, :s, Polynomial{ComplexF64, :s}, 1.0}
+pol = Polynomial(2,:s);
+@test promote_rule(typeof(r),typeof(pol)) == RationalTransferFunction{ComplexF64, :s, Polynomial{ComplexF64, :s}, 1.0}
 
 a = 1; b = 2; c = 3; d = 4;
 sysd = rtf(Polynomial([b, a],:z), Polynomial([d, c],:z), Ts = 1)

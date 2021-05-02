@@ -1,16 +1,16 @@
 """
     r = RationalTransferFunction(num::AbstractPolynomial, den::AbstractPolynomial, Ts:Real)
     
-Construct a rational transfer function model `r` from its numerator and denominator polynomials `num` and `den`, respectively,
-and a sampling time `Ts`. 
+Construct a rational transfer function model `r` from its numerator and denominator polynomials 
+`num` and `den`, respectively, and sampling time `Ts`. 
 
 If `r::RationalTransferFunction{T,λ,P <: Polynomial(T,λ),Ts}` is a rational transfer function system model 
-object defined as `r(λ) = num(λ)/den(λ)`, where  `num(λ)` and `den(λ)` are polynomials with coefficients in `T`
-and with the indeterminate `λ`, and `Ts` is the sampling time, then:
+object defined as `r(λ) = num(λ)/den(λ)`, where  `num(λ)` and `den(λ)` are polynomials 
+with coefficients in `T` and with the indeterminate `λ`, and `Ts` is the sampling time, then:
 
 `r.num` is the numerator polynomial `num(λ)`; 
 
-`r.den` is the denominator polynomial `den(λ)`; 
+`r.den` is the denominator polynomial `den(λ)`. 
 
 The sampling time `Ts` can have the following values:
 
@@ -34,27 +34,27 @@ struct RationalTransferFunction{T,X,P<:AbstractPolynomial{T,X},Ts} <: AbstractRa
     ## Define RationalTransferFunction as a subtype of AbstractRationalFunction
     num::P
     den::P
-    function RationalTransferFunction{T,X,P,Ts}(num::P, den::P) where{T,X,P<:AbstractPolynomial{T,X}, Ts}
+    function RationalTransferFunction{T,X,P,Ts}(num::P, den::P) where{T, X, P<:AbstractPolynomial{T,X}, Ts}
         check_den(den)
         new{T,X,P,Ts}(num,den)
     end
-    function RationalTransferFunction{T,X,P,Ts}(num::P, den::P,ts::Union{Real,Nothing}) where{T,X,P<:AbstractPolynomial{T,X}, Ts}
+    function RationalTransferFunction{T,X,P,Ts}(num::P, den::P, ts::Union{Real,Nothing}) where {T, X, P<:AbstractPolynomial{T,X}, Ts}
         check_den(den)        
         check_Ts(Ts,ts)        
         new{T,X,P,Ts}(num,den)
     end
-    # can promote constants to polynomials too
-    function  RationalTransferFunction{T,X,P,Ts}(num::S, den::P, ts::Union{Real,Nothing}) where{S, T,X,P<:AbstractPolynomial{T,X}, Ts}
+    # can promote constants to polynomials if S <: T
+    function  RationalTransferFunction{T,X,P,Ts}(num::S, den::P, ts::Union{Real,Nothing}) where {S, T, X, P<:AbstractPolynomial{T,X}, Ts}
         check_den(den)
-        check_Ts(Ts,ts)        
+        check_Ts(Ts,ts)  
         new{T,X,P,Ts}(convert(P,num),den)
     end
-    function  RationalTransferFunction{T,X,P,Ts}(num::P,den::S, ts::Union{Real,Nothing}) where{S, T,X,P<:AbstractPolynomial{T,X}, Ts}
+    function  RationalTransferFunction{T,X,P,Ts}(num::P, den::S, ts::Union{Real,Nothing}) where {S, T, X, P<:AbstractPolynomial{T,X}, Ts}
         check_den(den)
         check_Ts(Ts,ts)
         new{T,X,P,Ts}(num, convert(P,den))
     end
-    function RationalTransferFunction{T,X,P}(num::P, den::P, Ts::Union{Real,Nothing}) where{T,X,P<:AbstractPolynomial{T,X}}
+    function RationalTransferFunction{T,X,P}(num::P, den::P, Ts::Union{Real,Nothing}) where {T,X,P<:AbstractPolynomial{T,X}}
         check_den(den)
         Ts′ = standardize_Ts(Ts)
         #new{T,X,P,Val(Ts′)}(num,den)
@@ -100,19 +100,25 @@ function Base.convert(::Type{PQ}, pq::RationalTransferFunction) where {PQ <:Rati
     p//q
 end
 
-# alternate constructor
-function RationalTransferFunction(p′::P, q′::Q, Ts::Union{Real,Nothing}) where {T,X,P<:AbstractPolynomial{T,X},
+# alternate constructors
+function RationalTransferFunction(p′::P, q′::Q, Ts::Union{Real,Nothing}) where {T, X, P<:AbstractPolynomial{T,X},
                                                                                 S,  Q<:AbstractPolynomial{S,X}}
-
-    p,q = promote(p′, q′)
-    R = eltype(p)
-    RationalTransferFunction{R,X,typeof(p)}(p,q,Ts)
+    p, q = promote(p′, q′)
+    RationalTransferFunction{eltype(p),X,typeof(p)}(p,q,Ts)
 end
-
+function RationalTransferFunction(p′::P, q′::S, Ts::Union{Real,Nothing}) where {S, T, X, P<:AbstractPolynomial{T,X}}
+    p, q = promote(p′, q′)
+    RationalTransferFunction{eltype(p),X,typeof(p)}(p,q,Ts)
+ end
+ function RationalTransferFunction(p′::S, q′::P, Ts::Union{Real,Nothing}) where {S, T, X, P<:AbstractPolynomial{T,X}}
+    p, q = promote(p′, q′)
+    RationalTransferFunction{eltype(q),X,typeof(q)}(p,q,Ts)
+ end
+  
 
 function Polynomials.rational_function(::Type{PQ}, p::P, q::Q) where {PQ <:RationalTransferFunction,
-                                                          T,X,   P<:AbstractPolynomial{T,X},
-                                                          S,   Q<:AbstractPolynomial{S,X}}
+                                                          T, X, P<:AbstractPolynomial{T,X},
+                                                          S,    Q<:AbstractPolynomial{S,X}}
     RationalTransferFunction(promote(p,q)..., sampling_time(PQ))
 end
 
@@ -303,7 +309,8 @@ function Base.convert(::Type{PQ}, p::R) where {T,X,P,Ts,PQ <: RationalTransferFu
 end
 
 function Base.convert(::Type{PQ}, p::P1) where {T,X,P,Ts,PQ <: RationalTransferFunction{T,X,P,Ts}, P1<:AbstractPolynomial}
-    PQ(p, one(p), sampling_time(PQ))
+    #PQ(p, one(p), sampling_time(PQ))
+    PQ(Polynomial(T.(p.coeffs),X), Polynomial(one(T),X), sampling_time(PQ))
 end
 function Base.convert(::Type{PQ}, p::Number) where {PQ <: RationalTransferFunction}
     PQ(p, one(eltype(PQ)), sampling_time(PQ))
@@ -334,7 +341,7 @@ function Base.promote_rule(::Type{PQ}, ::Type{PQ′}) where {T,X,P,Ts,PQ <: Rati
     RationalTransferFunction{S,Y,Q,ts}
 end
 function Base.promote_rule(::Type{PQ}, ::Type{PQ′}) where {T,X,P,Ts,PQ <: RationalTransferFunction{T,X,P,Ts},
-                                                           T′,X′,P′,PQ′ <: AbstractRationalFunction{T′,X′,P′}}
+                                                           T′,X′,P′,PQ′ <: RationalFunction{T′,X′,P′}}
     S = promote_type(T,T′)
     Polynomials.assert_same_variable(X,X′)
     Y = X

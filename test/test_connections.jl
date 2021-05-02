@@ -3,7 +3,6 @@ module Test_connections
 
 using DescriptorSystems
 using LinearAlgebra
-using MatrixPencils
 using Test
 
 

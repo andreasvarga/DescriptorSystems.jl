@@ -66,32 +66,20 @@ function freqresp(sys::DescriptorStateSpace{T}, ω::Union{AbstractVector{<:Real}
     end
     N = length(w)
     H = similar(dc, eltype(dc), sys.ny, sys.nu, N)
-    if VERSION < v"1.3.0-DEV.349"
-        ac = complex(Matrix{T1}(ac))
-        for i = 1:N
-            if isinf(ω[i])
-                # exceptional call to evalfr
-                H[:,:,i] = evalfr(sys,fval=Inf)
-            else
-                desc ? (H[:,:,i] = dc+cc*((w[i]*ec-ac)\bc)) : (H[:,:,i] = dc+cc*((w[i]*I-ac)\bc)) 
-            end
-        end
-    else  
-        bct = similar(bc) 
-        for i = 1:N
-            if isinf(ω[i])
-               # exceptional call to evalfr
-               H[:,:,i] = evalfr(sys,fval=Inf)
-            else
-               Hi = view(H,:,:,i)
-               copyto!(Hi,dc)
-               copyto!(bct,bc)
-               desc ? ldiv!(UpperHessenberg(ac-w[i]*ec),bct) : ldiv!(ac,bct,shift = -w[i])
-               mul!(Hi,cc,bct,-ONE,ONE)
-            end
+    bct = similar(bc) 
+    for i = 1:N
+        if isinf(ω[i])
+           # exceptional call to evalfr
+           H[:,:,i] = evalfr(sys,fval=Inf)
+        else
+           Hi = view(H,:,:,i)
+           copyto!(Hi,dc)
+           copyto!(bct,bc)
+           desc ? ldiv!(UpperHessenberg(ac-w[i]*ec),bct) : ldiv!(ac,bct,shift = -w[i])
+           mul!(Hi,cc,bct,-ONE,ONE)
         end
     end
-    return H
+return H
 end
 """
     nx = order(sys)

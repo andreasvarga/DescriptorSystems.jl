@@ -1,8 +1,6 @@
 module Test_model_matching
 
 using DescriptorSystems
-using MatrixEquations
-using MatrixPencils
 using LinearAlgebra
 using Polynomials
 using Random
