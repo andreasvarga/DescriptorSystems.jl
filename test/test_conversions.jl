@@ -5,6 +5,8 @@ using LinearAlgebra
 using Polynomials
 using Test
 
+
+
 println("Test_conversions")
 
 @testset "gbilin" begin
@@ -18,7 +20,8 @@ g = (s+0.01)/(1+0.01*s);
 
 @test opnorm(evalfr(sysc-syst,1)) < 1.e-7
 # compute the ν-gap
-# nugap = gnugap(sysc,syst,atol=1.e-4)
+@time nugap = gnugap(sysc,syst,atol=1.e-4)[1];
+@test nugap < 0.02
 
 
 z = rtf('z');
@@ -126,7 +129,7 @@ type = "lft";
 sys = rdss(T = Ty, 3,2,3,disc=true); 
 val = rand(Ty,4)
 @time g, ginv = rtfbilin(type,Ts=1, Tsi=1, a=val[1],b=val[2],c=val[3],d=val[4])
-@time syst, gi = gbilin(sys,g,atol=1.e-7); 
+@time syst, gi = gbilin(sys,g,atol=1.e-7) 
 @time sysi, g1 = gbilin(syst,ginv,atol=1.e-7); 
 @test iszero(sys-sysi,atol=1.e-7) && gi == ginv && g == g1
 
@@ -148,6 +151,56 @@ val = rand(Ty,4)
 
 end #Ty
 end # gbilin
+
+@testset "c2d" begin
+
+a = [-4 -2;1 0]; b = [2;0]; c = [0.5 1]; d = [0]; x0 = [1,2]; u0 = [1];
+sysc = dss(a,b,c,d);
+@time sysd, xd0 = c2d(sysc,1; x0 = [1,2], u0 = [1]); 
+EAt = exp(a); 
+@test dcgain(sysd) ≈ dcgain(sysc) && sort(gpole(sysd)) ≈ sort(exp.(gpole(sysc))) && 
+      sysd.A ≈ EAt && sysd.B ≈ a\(EAt-I)*b
+@time sysd_foh, xd0 = c2d(sysc,1,"foh"; x0, u0); 
+@test dcgain(sysd_foh) ≈ dcgain(sysc) 
+@time sysd_imp, xd0 = c2d(sysc,1,"impulse"; x0, u0); 
+@test sort(gpole(sysd_imp)) ≈ sort(exp.(gpole(sysc)))
+@time sysd1, xd1 = c2d(sysc,1,"tustin"; x0, u0, standard = true)
+@time sysd2, xd2 = c2d(sysc,1,"tustin"; x0, u0, standard = false)
+syst = gbilin(sysc,rtfbilin("Tustin"; Ts = 1)[1])[1] 
+@test gnrank(sysd1 - sysd2, atol=1.e-7) == 0 && iszero(sysd1-syst, atol=1.e-7) &&
+      xd1-xd2 ≈ (sysd2.E-I)*x0
+
+@time sysd1, xd1 = c2d(sysc,1,"tustin"; prewarp_freq=1, x0, u0, standard = true)
+@time sysd2, xd2 = c2d(sysc,1,"tustin"; prewarp_freq=1, x0, u0, standard = false)
+syst = gbilin(sysc,rtfbilin("Tustin"; Ts = 1, prewarp_freq=1)[1])[1] 
+@test gnrank(sysd1 - sysd2, atol=1.e-7) == 0 && iszero(sysd1-syst, atol=1.e-7) && xd1-xd2 ≈ (sysd2.E-I)*x0 &&
+      evalfr(sysc,fval=1) ≈ evalfr(sysd1,fval=1) && evalfr(sysc,fval=1) ≈ evalfr(sysd2,fval=1) 
+
+
+a = [-4 -2;1 0]; b = [2;0]; c = [0.5 1]; d = [0]; e = [1 2; 0 0]; x0 = [1,2]; u0 = [1];  
+sysc = dss(a,e,b,c,d);
+@time (sysd,xd0) = c2d(sysc,1; x0, u0); 
+a1, e1, b1, c1, d1 = dssdata(gir(sysc,noseig=true))
+EAt = exp(e1\a1); 
+@test dcgain(sysd) ≈ dcgain(sysc) && sort(gpole(sysd)) ≈ sort(exp.(gpole(sysc))) && 
+      sysd.A ≈ EAt && sysd.B ≈ (e1\a1)\(EAt-I)*(e1\b1)
+@time sysd_foh, xd0 = c2d(sysc,1,"foh"; x0, u0); 
+@test dcgain(sysd_foh) ≈ dcgain(sysc) 
+@time sysd_imp, xd0 = c2d(sysc,1,"impulse"; x0, u0); 
+@test sort(gpole(sysd_imp)) ≈ sort(exp.(gpole(sysc)))
+
+@time sysd1, xd0 = c2d(sysc,1,"tustin"; x0, u0, standard = true)
+@time sysd2, xd0 = c2d(sysc,1,"tustin"; x0, u0, standard = false)
+syst = gbilin(sysc,rtfbilin("Tustin"; Ts = 1)[1])[1] 
+@test gnrank(sysd1 - sysd2, atol=1.e-7) == 0 && iszero(sysd1-syst, atol=1.e-7)
+
+@time sysd1, xd0 = c2d(sysc,1,"tustin"; prewarp_freq=1, x0, u0, standard = true)
+@time sysd2, xd0 = c2d(sysc,1,"tustin"; prewarp_freq=1, x0, u0, standard = false)
+syst = gbilin(sysc,rtfbilin("Tustin"; Ts = 1, prewarp_freq=1)[1])[1] 
+@test gnrank(sysd1 - sysd2, atol=1.e-7) == 0 && iszero(sysd1-syst, atol=1.e-7) &&
+      evalfr(sysc,fval=1) ≈ evalfr(sysd1,fval=1) && evalfr(sysc,fval=1) ≈ evalfr(sysd2,fval=1) 
+
+end # c2d
 
 
 end #module

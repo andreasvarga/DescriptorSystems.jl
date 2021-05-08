@@ -13,6 +13,7 @@ makedocs(
         "rtf.md",
         "operations.md",
         "operations_rtf.md",
+        "conversions.md",
         "order_reduction.md",
         "analysis.md",
         "factorizations.md",

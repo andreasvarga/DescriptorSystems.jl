@@ -189,6 +189,29 @@ function gir(SYS::DescriptorStateSpace{T}; atol::Real = zero(real(T)), atol1::Re
     end
 end
 """
+    gir_lrtran(sys; ltran = false, rtran = false, finite = true, infinite = true, contr = true, obs = true, 
+             noseig = false, fast = true, atol = 0, atol1 = atol, atol2 = atol, rtol = nϵ) -> (sysr, L, R)
+
+This is a special version of the function `gir` to additionally determine the left and right 
+projection matrices `L` and `R`, respectively, such that the matrices `Ar`, `Er`, `Br` and `Cr` of the resulting
+descriptor system `sysr = (Ar-λEr,Br,Cr,Dr)` are given by `Ar = L*A*R`, `Er = L*E*R`, `Br = L*B`, `Cr = C*R`. 
+`L = nothing` if `ltran = false` and `R = nothing` if `rtran = false`. 
+See [`gir`](@ref) for details on the rest of keyword parameters.
+"""
+function gir_lrtran(SYS::DescriptorStateSpace{T}; ltran::Bool = false, rtran::Bool = false, atol::Real = zero(real(T)), atol1::Real = atol, atol2::Real = atol, 
+                    rtol::Real =  SYS.nx*eps(real(float(one(real(T)))))*iszero(max(atol1,atol2)), 
+                    fast::Bool = true, finite::Bool = true, infinite::Bool = true, 
+                    contr::Bool = true, obs::Bool = true, noseig::Bool = false) where T
+    T1 = T <: BlasFloat ? T : promote_type(Float64,T) 
+    A, E, B, C, D = dssdata(T1,SYS)
+
+    E == I && (E = eye(T,size(A,1)))
+    A, E, B, C, D, L, R, = lsminreal2_lrtran(A, E, B, C, D; ltran, rtran, 
+                                             fast, atol1, atol2, rtol, 
+                                             finite, infinite, contr, obs, noseig) 
+    return dss(A, E, B, C, D, Ts = SYS.Ts), L, R
+end
+"""
     sysr = gminreal(sys; contr = true, obs = true, noseig = true, fast = true, 
                     atol = 0, atol1 = atol, atol2 = atol, rtol = nϵ) 
 
@@ -467,4 +490,184 @@ function gbalmr(sys::DescriptorStateSpace{T}; balance::Bool = false, matchdc::Bo
          end
     end
     # end GBALMR
+end
+function lsminreal2_lrtran(A::AbstractMatrix, E::AbstractMatrix, 
+                    B::AbstractVecOrMat, C::AbstractMatrix, D::AbstractVecOrMat; 
+                    ltran::Bool = false, rtran::Bool = false, 
+                    atol1::Real = zero(real(eltype(A))), atol2::Real = zero(real(eltype(A))), 
+                    rtol::Real =  (size(A,1)+1)*eps(real(float(one(real(eltype(A))))))*iszero(max(atol1,atol2)), 
+                    fast::Bool = true, finite::Bool = true, infinite::Bool = true, 
+                    contr::Bool = true, obs::Bool = true, noseig::Bool = true)
+   # This is a special version of lsminreal2 to also determine the left and right projection matrices 
+   # L and R, respectively, such that the matrices Ar, Er, Br, and Cr of the resulting descriptor system 
+   # (Ar-λEr,Br,Cr,Dr) are given by Ar = L*A*R, Er = L*E*R, Br = L*B, Cr = C*R. 
+   # L = nothing if ltran = false and R = nothing if rtran = false. 
+   n = LinearAlgebra.checksquare(A)
+   (n,n) != size(E) && throw(DimensionMismatch("A and E must have the same dimensions"))
+   p, m = size(D,1), size(D,2)
+   n1, m1 = size(B,1), size(B,2)
+   (n,m) == (n1, m1) || throw(DimensionMismatch("A, B and D must have compatible dimensions"))
+   (p,n) == size(C) || throw(DimensionMismatch("A, C and D must have compatible dimensions"))
+   T = promote_type(eltype(A), eltype(E), eltype(B), eltype(C), eltype(D))
+   T <: BlasFloat || (T = promote_type(Float64,T)) 
+   ONE = one(T)       
+
+   A1 = copy_oftype(A,T)   
+   E1 = copy_oftype(E,T)
+   B1 = copy_oftype(B,T)
+   C1 = copy_oftype(C,T)
+   D1 = copy_oftype(D,T)  
+
+   ltran ? L = Matrix{T}(I,n,n) : L = nothing
+   rtran ? R = Matrix{T}(I,n,n) : R = nothing
+
+
+   n == 0 && (return A1, E1, B1, C1, D1, L, R, 0, 0, 0)
+
+   # save system matrices
+   Ar = copy(A1)
+   Br = copy(B1)
+   Cr = copy(C1)
+   Dr = copy(D1)
+   Er = copy(E1)
+   ir = 1:n
+   if finite
+      if contr  
+         m == 0 &&  (ir = 1:0; return Ar[ir,ir], Er[ir,ir], Br[ir,:], Cr[:,ir], Dr, L, R, n, 0, 0)
+         Q, Z, _, nr, nfuc = sklf_rightfin!(Ar, Er, Br, Cr; fast, atol1, atol2, rtol, withQ = ltran, withZ = rtran) 
+         if nfuc > 0
+            ir = 1:nr
+            # save intermediary results
+            A1 = Ar[ir,ir]
+            E1 = Er[ir,ir]
+            B1 = Br[ir,:]
+            C1 = Cr[:,ir]
+            ltran && (L = Q[:,ir]'*L)
+            rtran && (R = R*Z[:,ir])
+         else
+            # restore original matrices 
+            Ar = copy(A1)
+            Er = copy(E1)
+            Br = copy(B1)
+            Cr = copy(C1)
+         end
+      else
+         nfuc = 0
+         nr = n
+      end
+      if obs 
+         p == 0 &&  (ir = 1:0; return Ar[ir,ir], Er[ir,ir], Br[ir,:], Cr[:,ir], Dr, L, R, nfuc, nr, 0)
+         Q, Z, _, no, nfuo = sklf_leftfin!(view(Ar,ir,ir), view(Er,ir,ir), view(Cr,:,ir), view(Br,ir,:); 
+                                           fast, atol1, atol2, rtol, withQ = ltran, withZ = rtran) 
+         if nfuo > 0
+             ir = ir[end-no+1:end]
+             # save intermediary results
+             A1 = Ar[ir,ir]
+             E1 = Er[ir,ir]
+             B1 = Br[ir,:]
+             C1 = Cr[:,ir]
+             ltran && (L = Q[:,ir]'*L) 
+             rtran && (R = R*Z[:,ir])
+          else
+             # restore saved matrices
+             Ar[ir,ir] = A1
+             Er[ir,ir] = E1
+             Br[ir,:] = B1
+             Cr[:,ir] = C1
+         end
+      else
+         nfuo = 0
+      end
+   else
+      nfuc = 0
+      nfuo = 0
+   end
+   if infinite
+      if contr  
+         m == 0 &&  (ir = 1:0; return Ar[ir,ir], Er[ir,ir], Br[ir,:], Cr[:,ir], Dr, L, R, n, 0, 0)
+         Q, Z, _, nr, niuc = sklf_rightfin!(view(Er,ir,ir), view(Ar,ir,ir), view(Br,ir,:), view(Cr,:,ir); 
+                                           fast, atol1, atol2, rtol, withQ = ltran, withZ = rtran) 
+         if niuc > 0
+            ir = ir[1:nr]
+            # save intermediary results
+            A1 = Ar[ir,ir]
+            E1 = Er[ir,ir]
+            B1 = Br[ir,:]
+            C1 = Cr[:,ir]
+            ltran && (L = Q[:,ir]'*L) 
+            rtran && (R = R*Z[:,ir])
+        else
+            # restore original matrices 
+            Ar[ir,ir] = A1
+            Er[ir,ir] = E1
+            Br[ir,:] = B1
+            Cr[:,ir] = C1
+         end
+      else
+         niuc = 0
+      end
+      if obs 
+         p == 0 &&  (ir = 1:0; return Ar[ir,ir], Er[ir,ir], Br[ir,:], Cr[:,ir], Dr, L, R, niuc, nr, 0)
+         Q, Z, _, no, niuo = sklf_leftfin!(view(Er,ir,ir), view(Ar,ir,ir), view(Cr,:,ir), view(Br,ir,:); 
+                                           fast, atol1, atol2, rtol, withQ = ltran, withZ = rtran) 
+         if niuo > 0
+             ir = ir[end-no+1:end]
+             # save intermediary results
+             A1 = Ar[ir,ir]
+             E1 = Er[ir,ir]
+             B1 = Br[ir,:]
+             C1 = Cr[:,ir]
+             ltran && (L = Q[:,ir]'*L)
+             rtran && (R = R*Z[:,ir])
+          else
+             # restore saved matrices
+             Ar[ir,ir] = A1
+             Er[ir,ir] = E1
+             Br[ir,:] = B1
+             Cr[:,ir] = C1
+         end
+      else
+          niuo = 0
+      end
+   else
+      niuc = 0
+      niuo = 0
+   end
+   nuc = nfuc+niuc
+   nuo = nfuo+niuo
+   if noseig
+      nm = length(ir)
+      ltran ? Q = Matrix{T}(I,nm,nm) : Q = nothing
+      rtran ? Z = Matrix{T}(I,nm,nm) : Z = nothing
+      rE, rA22  = _svdlikeAE!(view(Ar,ir,ir), view(Er,ir,ir), Q, Z, view(Br,ir,:), view(Cr,:,ir); 
+                              fast, atol1, atol2, rtol, withQ = ltran, withZ = rtran)
+      if rA22 > 0
+         ltran && (L = Q'*L) 
+         rtran && (R = R*Z)
+         i1 = ir[1:rE]
+         i2 = ir[rE+1:rE+rA22]
+         # make A22 = I
+         fast ? (A22 = UpperTriangular(Ar[i2,i2])) : (A22 = Diagonal(Ar[i2,i2]))
+         ldiv!(A22,view(Ar,i2,i1))
+         ldiv!(A22,view(Br,i2,:))
+         ltran && ldiv!(A22,view(L,i2,:))
+         # apply simplified residualization formulas
+         mul!(Dr, view(Cr,:,i2), view(Br,i2,:), -ONE, ONE)               # Dr -= Cr[:,i2]*Br[i2,:]
+         mul!(view(Br,i1,:), view(Ar,i1,i2), view(Br,i2,:), -ONE, ONE)   # Br[i1,:] -= Ar[i1,i2]*Br[i2,:]
+         mul!(view(Cr,:,i1), view(Cr,:,i2), view(Ar,i2,i1), -ONE, ONE)   # Cr[:,i1] -= Cr[:,i2]*Ar[i2,i1]
+         mul!(view(Ar,i1,i1), view(Ar,i1,i2), view(Ar,i2,i1), -ONE, ONE) # Ar[i1,i1] -= Ar[i1,i2]*Ar[i2,i1]
+         ltran &&  mul!(view(L,i1,:), view(Ar,i1,i2), view(L,i2,:), -ONE, ONE) # (L[i1,:] -= Ar[i1,i2]*L[i2,:])
+         rtran &&  mul!(view(R,:,i1), view(R,:,i2), view(Ar,i2,i1), -ONE, ONE) # (R[:,i1] -= R[:,i2]*Ar[i2,i1])
+         ir = [i1; ir[rE+rA22+1:end]]
+      else
+         # restore saved matrices
+         Ar[ir,ir] = A1
+         Er[ir,ir] = E1
+         Br[ir,:] = B1
+         Cr[:,ir] = C1
+      end
+      return Ar[ir,ir], Er[ir,ir], Br[ir,:], Cr[:,ir], Dr, ltran ? L[ir,:] : nothing, rtran ? R[:,ir] : nothing, nuc, nuo, rA22
+   else
+      return Ar[ir,ir], Er[ir,ir], Br[ir,:], Cr[:,ir], Dr, L, R, nuc, nuo, 0
+   end
 end

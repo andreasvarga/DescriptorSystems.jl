@@ -356,6 +356,7 @@ function glnull(sys::DescriptorStateSpace{T}, m2::Int = 0; polynomial::Bool = fa
                 fast::Bool = true, coinner::Bool = false, simple::Bool = false) where T 
    p, m = size(sys)
    (m2 <= m && m2 >= 0) || throw(DimensionMismatch("m2 must be at most $m, got $m2"))
+   polynomial && coinner && (coinner = false; @warn "Coinner option not allowed for polynomial basis")  
    sysnull, info1 = grnull(gdual(sys), m2; polynomial = polynomial, poles = poles, sdeg = sdeg, offset = offset, 
                          atol = atol, atol1 = atol1, atol2 = atol2, rtol = rtol, fast = fast, inner = coinner, simple = simple)
    info = (nrank = info1.nrank, stdim = reverse(info1.stdim), degs = info1.degs, tcond = info1.tcond, fnorm = info1.fnorm)
@@ -474,6 +475,7 @@ function grnull(sys::DescriptorStateSpace{T}, p2::Int = 0; polynomial::Bool = fa
    p, m = size(sys)
    (p2 <= p && p2 >= 0) || throw(DimensionMismatch("p2 must be at most $p, got $p2"))
    Ts = sys.Ts;   
+   polynomial && inner && (inner = false; @warn "Inner option not allowed for polynomial basis")
    
    T1 = T <: BlasFloat ? T : promote_type(Float64,T) 
    ONE = one(T1)
@@ -575,7 +577,7 @@ function grnull(sys::DescriptorStateSpace{T}, p2::Int = 0; polynomial::Bool = fa
     
    if inner && p2 > 0
       # check stabilizability of SYSF*NR1
-      zer = gzero(dss(ar,er,br,cr[1:m,:],dr[1:m,:],Ts=Ts),atol1 = atol1,atol2=atol2, rtol = rtol)
+      zer = gzero(dss(ar,er,br,cr[1:m,:],dr[1:m,:],Ts=Ts), atol1 = atol1,atol2 = atol2, rtol = rtol)
       if disc
          zf = abs.(zer[isfinite.(zer)]) 
          nostab = any((zf .>= 1-offset) .& (zf .<= 1+offset)) 

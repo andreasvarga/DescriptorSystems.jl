@@ -364,6 +364,7 @@ in conjunction with parameters specified in `Ts`, `Tis`, `a`, `b`, `c`, and `d`:
 
     "Tustin" - Tustin transformation (also known as trapezoidal integration): `s = g(z) = (2*z-2)/(T*z+T)` and `z = ginv(s) = (T*s+2)/(-T*s+2)`; 
                the sampling time `g.Ts` is set to the value `T ≠ 0` (default `T = -1`), while `ginv.Ts = 0`;
+               a nonzero prewarping frequency `freq` can be specified using the keyword parameter `prewarp_freq = freq`;
 
     "Euler"  - Euler integration (or forward Euler integration): `s = g(z) = s = (z-1)/T` and `z = ginv(s) = T*s+1`; 
                the sampling time `g.Ts` is set to the value `T ≠ 0` (default `T = -1`), while `ginv.Ts = 0`;
@@ -382,8 +383,8 @@ in conjunction with parameters specified in `Ts`, `Tis`, `a`, `b`, `c`, and `d`:
 
     "lft"     - alias to "Moebius" (linear fractional transformation).   
 """
-function rtfbilin(type = "c2d"; Ts::Union{Real,Missing} = missing, Tsi::Union{Real,Missing} = missing, 
-                    a::Number = 1, b::Number = 0, c::Number = 0, d::Number = 1 )   
+function rtfbilin(type::String = "c2d"; Ts::Union{Real,Missing} = missing, Tsi::Union{Real,Missing} = missing, 
+                  prewarp_freq::Real = 0,  a::Number = 1, b::Number = 0, c::Number = 0, d::Number = 1 )   
     s = rtf('s'); 
     type = lowercase(type)
     if type == "c2d" || type == "cayley" 
@@ -398,7 +399,8 @@ function rtfbilin(type = "c2d"; Ts::Union{Real,Missing} = missing, Tsi::Union{Re
         ismissing(Ts) && (Ts = 2) 
         Ts > 0 || error("sampling time must be positive") 
         z = rtf('z',Ts = Ts);
-        g = (2*z-2)/(Ts*z+Ts); ginv = (Ts*s+2)/(-Ts*s+2);
+        prewarp_freq == 0 ? t = Ts : t = 2*tan(prewarp_freq*Ts/2)/prewarp_freq 
+        g = (2*z-2)/(t*z+t); ginv = (t*s+2)/(-t*s+2);
     elseif type ==  "euler" 
         ismissing(Ts) && (Ts = 1) 
         Ts > 0 || error("sampling time must be positive") 

@@ -6,7 +6,6 @@
 * **[`gdual`](@ref)**   Building the dual of a descriptor system (also overloaded with **`transpose`**)
 * **[`ctranspose`](@ref)**  Building the conjugate transpose of a system (also overloaded with **`adjoint`** and **`'`**).
 * **[`adjoint`](@ref)**  Building the adjoint of a system.
-* **[`gbilin`](@ref)**  Generalized bilinear transformation of a descriptor system.
 
 ```@docs
 DescriptorSystems.inv
@@ -15,5 +14,4 @@ rdiv
 gdual
 ctranspose
 DescriptorSystems.adjoint
-gbilin
 ```

@@ -64,6 +64,9 @@ The available functions in the `DescriptorSystems.jl` package cover both standar
 * **[`gdual`](@ref)**   Building the dual of a descriptor system (also overloaded with **`transpose`**)
 * **[`ctranspose`](@ref)**  Building the conjugate transpose of a system (also overloaded with **`adjoint`** and **`'`**).
 * **[`adjoint`](@ref)**  Building the adjoint of a system.
+
+**Basic operations on descriptor system models**
+* **[`c2d`](@ref)**  Discretization of continuous-time descriptor systems.
 * **[`gbilin`](@ref)**  Generalized bilinear transformation of a descriptor system.
 
 **Some operations on rational transfer functions and matrices**

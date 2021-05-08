@@ -14,8 +14,9 @@ import MatrixPencils: isregular, rmeval
 import Polynomials: AbstractRationalFunction, AbstractPolynomial, poles, isconstant, variable, degree, pqs
 
 export DescriptorStateSpace, AbstractDescriptorStateSpace, dss, dssdata, rdss, rss, iszero, order
-export AbstractRationalFunction, RationalTransferFunction, rtf
-export gminreal, gir, gbalmr, gsvselect, gss2ss, gbilin
+export RationalTransferFunction, rtf
+export gminreal, gir, gir_lrtran, gbalmr, gsvselect, gss2ss
+export gbilin, c2d
 export confmap, rmconfmap, simplify, normalize, poles, gain, zpk, rtfbilin, numpoly, denpoly, isconstant, sampling_time
 export blockdiag, eye, rcond
 export gdual, ctranspose, inv, ldiv, rdiv
@@ -38,6 +39,7 @@ include("types/RationalTransferFunction.jl")
 include("dss.jl")
 include("connections.jl")
 include("operations.jl")
+include("conversions.jl")
 include("order_reduction.jl")
 include("analysis.jl")
 include("decompositions.jl")

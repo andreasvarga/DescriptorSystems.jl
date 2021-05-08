@@ -181,9 +181,17 @@ sys = dss(A2,E2,B2,C2,D2);
 # compute irreducible realization which still contains a non-dynamic mode using only orthogonal transformations
 sys1 = gir(sys, fast = fast)
 @test iszero(sys-sys1,atol=1.e-7)  && order(sys)-order(sys1) == 2
+sys1, L, R = gir_lrtran(sys, fast = fast, ltran = true, rtran = true)
+@test iszero(sys-sys1,atol=1.e-7)  && order(sys)-order(sys1) == 2 &&
+      L*sys.A*R ≈ sys1.A && L*sys.E*R ≈ sys1.E && L*sys.B ≈ sys1.B && sys.C*R ≈ sys1.C
+
 # minimal realization requires elimination of non-dynamic modes
 sys1 = gir(sys, noseig=true, fast = fast)
 @test iszero(sys-sys1,atol=1.e-7)  && order(sys)-order(sys1) == 3
+sys1, L, R = gir_lrtran(sys, noseig=true, fast = fast, ltran = true, rtran = true)
+@test iszero(sys-sys1,atol=1.e-7)  && order(sys)-order(sys1) == 3 &&
+      L*sys.A*R ≈ sys1.A && L*sys.E*R ≈ sys1.E && L*sys.B ≈ sys1.B && sys.C*R ≈ sys1.C
+
 # order reduction may results even when applying the infinite controllability/observability algorithm
 sys1 = gir(sys, finite = false, fast = fast)
 @test iszero(sys-sys1,atol=1.e-7)  && order(sys)-order(sys1) == 2
@@ -264,8 +272,12 @@ sys = dss(A2,E2,B2,C2,D2);
 @test iszero(sys-sys1,atol=1.e-7) && order(sys)-order(sys1) == 5
 
 # minimal realization requires removing of non-dynamic modes
-@time sys1 = gir(sys, obs=false, finite = false, noseig = true, fast = fast);
+@time sys1 = gir(sys, atol = 1.e-7, obs=false, finite = false, noseig = true, fast = fast);
 @test iszero(sys-sys1,atol=1.e-7) && order(sys)-order(sys1) == 6
+sys1, L, R = gir_lrtran(sys, atol = 1.e-7, obs=false, finite = false, noseig=true, fast = fast, ltran = true, rtran = true)
+@test iszero(sys-sys1,atol=1.e-7)  && order(sys)-order(sys1) == 6 &&
+      L*sys.A*R ≈ sys1.A && L*sys.E*R ≈ sys1.E && L*sys.B ≈ sys1.B && sys.C*R ≈ sys1.C
+
 
 # Example 1 - (Varga, Kybernetika, 1990) 
 A2 = [
@@ -310,8 +322,11 @@ sys = dss(A2,E2,B2,C2,D2);
 @test iszero(sys-sys1,atol=1.e-7) && order(sys)-order(sys1) == 7
 
 # irreducible realization is not minimal
-@time sys1 = gir(sys, fast = fast);
+@time sys1 = gir(sys, atol = 1.e-7, fast = fast);
 @test iszero(sys-sys1,atol=1.e-7) && order(sys)-order(sys1) == 6
+sys1, L, R = gir_lrtran(sys, atol = 1.e-7, noseig=true, fast = fast, ltran = true, rtran = true)
+@test iszero(sys-sys1,atol=1.e-7)  && order(sys)-order(sys1) == 7 &&
+      L*sys.A*R ≈ sys1.A && L*sys.E*R ≈ sys1.E && L*sys.B ≈ sys1.B && sys.C*R ≈ sys1.C
 
 
 # SISO standard system, B and D vectors
@@ -340,8 +355,12 @@ sys = dss(A2,B2,C2,D2);
 @test iszero(sys-sys1,atol=1.e-7) && order(sys)-order(sys1) == 10
 
 # irreducible realization is also minimal
-@time sys1 = gir(sys, fast = fast, atol=1.e-7);
+@time sys1 = gir(sys, atol = 1.e-7, fast = fast);
 @test iszero(sys-sys1,atol=1.e-7) && order(sys)-order(sys1) == 10
+sys1, L, R = gir_lrtran(sys, atol = 1.e-7, fast = fast, ltran = true, rtran = true)
+@test iszero(sys-sys1,atol=1.e-7)  && order(sys)-order(sys1) == 10 &&
+      L*sys.A*R ≈ sys1.A && L*sys.E*R ≈ sys1.E && L*sys.B ≈ sys1.B && sys.C*R ≈ sys1.C
+
 
 for Ty in (Float64, Complex{Float64})
 
@@ -355,6 +374,9 @@ sys = rss(n, p, m; T = Ty, nuc = 3, nuo = 4);
 
 @time sys1  = gir(sys, atol = 1.e-7, fast = fast);
 @test iszero(sys-sys1, atol = 1.e-7) && order(sys)-order(sys1) == nuc+nuo
+sys1, L, R = gir_lrtran(sys, atol = 1.e-7, fast = fast, ltran = true, rtran = true)
+@test iszero(sys-sys1,atol=1.e-7)  && order(sys)-order(sys1) == nuc+nuo &&
+      L*sys.A*R ≈ sys1.A && L*sys.E*R ≈ sys1.E && L*sys.B ≈ sys1.B && sys.C*R ≈ sys1.C
 
 @time sys1  = gminreal(sys, atol = 1.e-7, contr = false, fast = fast);
 @test iszero(sys-sys1, atol = 1.e-7) && order(sys)-order(sys1) == nuo
@@ -373,10 +395,13 @@ nfuc = 3; nfuo = 4;
 sys = rdss(n, p, m; T = Ty, nfuc = 3, nfuo = 4);
 
 @time sys1  = gminreal(sys, atol = 1.e-7, fast = fast);
-@test iszero(sys-sys1, atol = 1.e-7) && order(sys)-order(sys1) == nfuc+nfuo #fails in Julia 1.2
+@test iszero(sys-sys1, atol = 1.e-7) && order(sys)-order(sys1) == nfuc+nfuo 
 
 @time sys1  = gir(sys, atol = 1.e-7, fast = fast);
 @test iszero(sys-sys1, atol = 1.e-7) && order(sys)-order(sys1) == nfuc+nfuo
+sys1, L, R = gir_lrtran(sys,  atol = 1.e-7, fast = fast, ltran = true, rtran = true)
+@test iszero(sys-sys1,atol=1.e-7)  && order(sys)-order(sys1) == nfuc+nfuo &&
+      L*sys.A*R ≈ sys1.A && L*sys.E*R ≈ sys1.E && L*sys.B ≈ sys1.B && sys.C*R ≈ sys1.C
 
 @time sys1  = gminreal(sys, atol = 1.e-7, contr = false, fast = fast);
 @test iszero(sys-sys1, atol = 1.e-7) && order(sys)-order(sys1) == nfuo
