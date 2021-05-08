@@ -55,6 +55,8 @@ The current version of the package includes the following categories of function
 
 * Basic operations on descriptor system models
 
+* Basic convertions of descriptor system models
+
 * Interconnecting descriptor system models
 
 * Simplification of descriptor system models
@@ -69,7 +71,8 @@ The current version of the package includes the following categories of function
 
 ## Future plans
 
-This is a rapidly evolving software project for which new functionality will be frequently added.
+The targeted release v1.0 will additionally include functions for several basic conversions to/from input-output representations as well as functions for time-response and frequency response computation.
+Later future developments will address support for several new classes of generalized LTI systems types and for polynomial system models.
 
 ## Supplementary information
 

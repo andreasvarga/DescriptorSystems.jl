@@ -36,7 +36,7 @@ The default relative tolerance is `n*ϵ`, where `n` is the order of the square m
 The keyword argument `atol` can be used to simultaneously set `atol1 = atol` and `atol2 = atol`. 
 """
 function c2d(sysc::DescriptorStateSpace{T}, Ts::Real, meth::String = "zoh"; 
-             x0::Vector = zeros(T,sys.nx), u0::Vector = zeros(T,sys.nu), 
+             x0::Vector = zeros(T,sysc.nx), u0::Vector = zeros(T,sysc.nu), 
              prewarp_freq::Real = 0, standard::Bool = true, fast::Bool = true, 
              atol::Real = zero(float(real(T))), atol1::Real = atol, atol2::Real = atol, 
              rtol::Real = sysc.nx*eps(real(float(one(T))))*iszero(min(atol1,atol2))) where T

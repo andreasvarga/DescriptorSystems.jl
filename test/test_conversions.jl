@@ -176,11 +176,20 @@ syst = gbilin(sysc,rtfbilin("Tustin"; Ts = 1, prewarp_freq=1)[1])[1]
 @test gnrank(sysd1 - sysd2, atol=1.e-7) == 0 && iszero(sysd1-syst, atol=1.e-7) && xd1-xd2 ≈ (sysd2.E-I)*x0 &&
       evalfr(sysc,fval=1) ≈ evalfr(sysd1,fval=1) && evalfr(sysc,fval=1) ≈ evalfr(sysd2,fval=1) 
 
+@test_throws ErrorException c2d(sysc,1,"Euler")
+
+a = [-4 -2;1 0]; b = [2;0]; c = [0.5 1]; d = [0]; e = [1 2; 3 0]; x0 = [1,2]; u0 = [1];  
+sysc = dss(a,e,b,c,d);
+@time (sysd,xd0) = c2d(sysc,1; x0, u0); 
+a1, e1, b1, c1, d1 = dssdata(sysc);
+EAt = exp(e1\a1); 
+@test dcgain(sysd) ≈ dcgain(sysc) && sort(gpole(sysd)) ≈ sort(exp.(gpole(sysc))) && 
+      sysd.A ≈ EAt && sysd.B ≈ (e1\a1)\(EAt-I)*(e1\b1)
 
 a = [-4 -2;1 0]; b = [2;0]; c = [0.5 1]; d = [0]; e = [1 2; 0 0]; x0 = [1,2]; u0 = [1];  
 sysc = dss(a,e,b,c,d);
 @time (sysd,xd0) = c2d(sysc,1; x0, u0); 
-a1, e1, b1, c1, d1 = dssdata(gir(sysc,noseig=true))
+a1, e1, b1, c1, d1 = dssdata(gir(sysc,noseig=true));
 EAt = exp(e1\a1); 
 @test dcgain(sysd) ≈ dcgain(sysc) && sort(gpole(sysd)) ≈ sort(exp.(gpole(sysc))) && 
       sysd.A ≈ EAt && sysd.B ≈ (e1\a1)\(EAt-I)*(e1\b1)

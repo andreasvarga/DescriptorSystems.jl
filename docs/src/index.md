@@ -65,7 +65,7 @@ The available functions in the `DescriptorSystems.jl` package cover both standar
 * **[`ctranspose`](@ref)**  Building the conjugate transpose of a system (also overloaded with **`adjoint`** and **`'`**).
 * **[`adjoint`](@ref)**  Building the adjoint of a system.
 
-**Basic operations on descriptor system models**
+**Basic conversions on descriptor system models**
 * **[`c2d`](@ref)**  Discretization of continuous-time descriptor systems.
 * **[`gbilin`](@ref)**  Generalized bilinear transformation of a descriptor system.
 
@@ -135,11 +135,6 @@ The available functions in the `DescriptorSystems.jl` package cover both standar
 * **[`glinfldp`](@ref)**  Solution of the least distance problem.
 * **[`grasol`](@ref)**   Approximate solution of the linear rational matrix equation `G(λ)*X(λ) = F(λ)`.
 * **[`glasol`](@ref)**   Approximate solution of the linear rational matrix equation `X(λ)*G(λ) = F(λ)`.
-
-## Future plans
-
-The targeted v1.0 will additionally include functions for several basic conversions to/from input-output representations as well as functions for time-response and frequency response computation.
-Later future developments will address support for several new classes of generalized LTI systems types and for polynomial system models.
 
 ## [Release Notes](https://github.com/andreasvarga/DescriptorSystems.jl/blob/main/ReleaseNotes.md)
 
