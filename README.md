@@ -55,7 +55,7 @@ The current version of the package includes the following categories of function
 
 * Basic operations on descriptor system models
 
-* Basic convertions of descriptor system models
+* Basic conversions of descriptor system models
 
 * Interconnecting descriptor system models
 
