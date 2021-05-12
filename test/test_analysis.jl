@@ -162,7 +162,7 @@ sys = dss(A,E,B,C,D);
       info.regular && !info.proper && !info.stable 
 
 
-@test gnrank(sys, fastrank = true) == 3 && gnrank(sys, fastrank = false) == 3 
+@test gnrank(sys, atol = 1.e-7, fastrank = true) == 2 && gnrank(sys, atol = 1.e-7, fastrank = false) ==2 
 
 @test gnrank(sys[:,1], fastrank = true) == 1 && gnrank(sys[:,1], fastrank = false) == 1
 

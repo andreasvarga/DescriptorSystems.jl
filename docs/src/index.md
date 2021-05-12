@@ -67,6 +67,8 @@ The available functions in the `DescriptorSystems.jl` package cover both standar
 
 **Basic conversions on descriptor system models**
 * **[`c2d`](@ref)**  Discretization of continuous-time descriptor systems.
+* **[`dss2rm`](@ref)**  Rational transfer function matrix of a descriptor system.
+* **[`dss2pm`](@ref)**  Polynomial transfer function matrix of a descriptor system.
 * **[`gbilin`](@ref)**  Generalized bilinear transformation of a descriptor system.
 
 **Some operations on rational transfer functions and matrices**

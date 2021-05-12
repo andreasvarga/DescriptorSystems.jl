@@ -5,6 +5,12 @@ using LinearAlgebra
 using Polynomials
 using Test
 
+ # Example 3: P = [λ^2 λ; λ 1] DeTeran, Dopico, Mackey, ELA 2009
+λ = Polynomial([0,1],:s)
+P = [λ^2 λ; λ 1]
+@test all(P .≈ dss2pm(dss(P)))    
+@test all(P .≈ dss2rm(dss(P)))  
+
 
 
 println("Test_conversions")
