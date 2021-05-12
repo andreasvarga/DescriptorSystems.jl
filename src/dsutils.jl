@@ -1,7 +1,7 @@
 # The function to_matrix is a fork from ControlSystems.jl
-# cover the case when a vector represents the row of a matrix 
+# covers the case when a vector represents the row of a matrix 
 to_matrix(T, A::AbstractVector, wide::Bool = false) = wide ? Matrix{T}(reshape(A, 1, length(A))) : Matrix{T}(reshape(A, length(A), 1))
-to_matrix(T, A::AbstractMatrix, wide::Bool = false) = T.(A)  # Fallback
+to_matrix(T, A::AbstractMatrix, wide::Bool = false) = Matrix{T}(A)  # Fallback
 to_matrix(T, A::Number, wide::Bool = true) = fill(T(A), 1, 1)
 # Handle Adjoint Matrices
 to_matrix(T, A::Adjoint{R, MT}, wide::Bool = false) where {R<:Number, MT<:AbstractMatrix} = to_matrix(T, MT(A))

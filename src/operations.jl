@@ -70,7 +70,7 @@ function ldiv(sys1::DescriptorStateSpace{T1}, sys2::DescriptorStateSpace{T2};
       LUD = lu(D1)
       (norm(D1,Inf) <= atol1 || rcond(LUD.U) <= 10*m1*eps(real(float(one(T))))) && 
                error("The system SYS2 is not invertible")
-      Ai, Ei, Bi, Ci, Di = dssdata(T,sys1)
+      Ai, Ei, Bi, Ci, Di = dssdata(T,sys2)
       ldiv!(LUD,Ci); ldiv!(LUD,Di)
    end
 

@@ -128,6 +128,7 @@ The available functions in the `DescriptorSystems.jl` package cover both standar
 * **[`glmcover1`](@ref)**   Left minimum dynamic cover of Type 1 based order reduction.
 * **[`grmcover2`](@ref)**  Right minimum dynamic cover of Type 2 based order reduction.
 * **[`glmcover2`](@ref)**  Left minimum dynamic cover of Type 2 based order reduction.
+* **[`ginv`](@ref)**  Generalized inverses.
 
 **Solution of model-matching problems**
 

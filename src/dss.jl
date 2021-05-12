@@ -65,13 +65,13 @@ end
 function dss(A::AbstractNumOrArray, B::AbstractNumOrArray, C::AbstractNumOrArray, D::AbstractNumOrArray; Ts::Real = 0) 
     T = promote_type(eltype(A),eltype(B),eltype(C),eltype(D))
     p = typeof(C) <: Union{Vector,Number} ? (size(A,1) <= 1 ? size(C,1) : 1) : size(C,1)                        
-    m = typeof(B) <: Union{Vector,Number} ? 1 : size(B,2)                        
+    m = size(B,2)                        
     return DescriptorStateSpace{T}(to_matrix(T,A), I, to_matrix(T,B), to_matrix(T,C,p <=1), 
                                    typeof(D) <: Number && iszero(D) ? zeros(T,p,m) : p <=1 ? to_matrix(T,D,m > p) : to_matrix(T,D), Ts)
 end
 function dss(D::AbstractNumOrArray; Ts::Real = 0) 
     D == [] && (T = Int64; return DescriptorStateSpace{T}(zeros(T,0,0),I,zeros(T,0,0),zeros(T,0,0),zeros(T,0,0),Ts))
-    typeof(D) <: Vector ? ((p, m) = (length(D), 1)) : (typeof(D) <: Number ? ((p,m) = (1,1)) : ((p,m) = size(D)) )
+    p, m = size(D,1),size(D,2)
     T = eltype(D)
     return DescriptorStateSpace{T}(zeros(T,0,0),I,zeros(T,0,m),zeros(T,p,0),to_matrix(T,D),Ts)
 end

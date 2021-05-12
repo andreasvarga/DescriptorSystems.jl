@@ -25,8 +25,10 @@ and the relative tolerance for the nonzero elements of `A`, `B`, `C`, `D` and `E
 The default relative tolerance is `n*ϵ`, where `ϵ` is the working machine epsilon. 
 The keyword argument `atol` can be used to simultaneously set `atol1 = atol` and `atol2 = atol`. 
 """
-function gnrank(SYS::DescriptorStateSpace; fastrank = true, atol::Real = 0, atol1::Real = atol, atol2::Real = atol, rtol::Real = 0 ) 
-    return max(0,sprank(dssdata(SYS)..., atol1 = atol1, atol2 = atol2, rtol = rtol, fastrank = fastrank) - SYS.nx)
+function gnrank(sys::DescriptorStateSpace; fastrank = true, atol::Real = 0, atol1::Real = atol, atol2::Real = atol, 
+                rtol::Real = (max(sys.nx,sys.nu,sys.ny)*eps(real(float(one(eltype(sys.A))))))*iszero(min(atol1,atol2))) 
+    sys.nx == 0 && (return rank(sys.D; atol = atol1, rtol))             
+    return max(0,sprank(dssdata(sys)..., atol1 = atol1, atol2 = atol2, rtol = rtol, fastrank = fastrank) - sys.nx)
 end
 """
     val = gzero(sys; fast = false, atol = 0, atol1 = atol, atol2 = atol, rtol = n*ϵ) 

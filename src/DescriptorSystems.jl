@@ -19,7 +19,7 @@ export gminreal, gir, gir_lrtran, gbalmr, gsvselect, gss2ss
 export gbilin, c2d
 export confmap, rmconfmap, simplify, normalize, poles, gain, zpk, rtfbilin, numpoly, denpoly, isconstant, sampling_time
 export blockdiag, eye, rcond
-export gdual, ctranspose, inv, ldiv, rdiv
+export gdual, ctranspose, inv, ldiv, rdiv, ginv
 export append, series, parallel, horzcat, vertcat
 export order, evalfr, dcgain, opnorm, freqresp
 export gpole, gzero, gpoleinfo, gzeroinfo, gnrank, isregular, isproper, isstable, 
@@ -33,9 +33,12 @@ export gnehari, glinfldp, glasol, grasol
 abstract type AbstractDynamicalSystem end
 abstract type AbstractLTISystem <: AbstractDynamicalSystem end
 
+
 include("types/DescriptorStateSpace.jl")
 include("types/RationalTransferFunction.jl")
 #include("types/PencilStateSpace.jl")
+include("ginv.jl")
+
 include("dss.jl")
 include("connections.jl")
 include("operations.jl")

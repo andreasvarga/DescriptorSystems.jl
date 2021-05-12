@@ -1,6 +1,6 @@
 """
-    gcrange(sys; zeros = "none", coinner = false, atol = 0, atol1 = atol, atol2 = atol, atol3 = atol, rtol, 
-           fast = true, offset = sqrt(ϵ)) -> (sysr, sysx, info)
+    gcrange(sys; zeros = "none", coinner = false, atol = 0, atol1 = atol, atol2 = atol, rtol, 
+            fast = true, offset = sqrt(ϵ)) -> (sysr, sysx, info)
 
 Compute for the descriptor system `sys = (A-λE,B,C,D)` with the transfer function matrix `G(λ)`, 
 the proper descriptor system `sysr = (Ar-λEr,Br,Cr,Dr)` with a full row rank 
@@ -53,7 +53,7 @@ the absolute tolerance for the nonzero elements of `E`,
 and the relative tolerance for the nonzero elements of `A`, `E`, `B`, `C` and `D`.  
 The default relative tolerance is `n*ϵ`, where `ϵ` is the working machine epsilon 
 and `n` is the order of the system `sys`. The keyword argument `atol` can be used 
-to simultaneously set `atol1 = atol`, `atol2 = atol`, `atol3 = atol`. 
+to simultaneously set `atol1 = atol` and `atol2 = atol`. 
 
 For the assessment of zeros, the dual system pencil `transpose([A-λE B; C D])` is reduced to a 
 special Kronecker-like form (see [2]). In this reduction, the 
@@ -89,7 +89,7 @@ function gcrange(sys::DescriptorStateSpace{T}; zeros = "none", coinner::Bool = f
    return gdual(sysr), gdual(sysx), info
 end
 """
-    grange(sys; zeros = "none", atol = 0, atol1 = atol, atol2 = atol, atol3 = atol, rtol, 
+    grange(sys; zeros = "none", atol = 0, atol1 = atol, atol2 = atol, rtol, 
            fast = true, offset = sqrt(ϵ)) -> (sysr, sysx, info)
 
 Compute for the descriptor system `sys = (A-λE,B,C,D)` with the transfer function matrix `G(λ)`, 
