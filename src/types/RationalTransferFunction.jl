@@ -184,15 +184,6 @@ function rtf(num::Number, den::Number; Ts::Real = 0, var::Symbol = :s)
     return RationalTransferFunction{T,var,Polynomial{T,var},Float64(Ts)}(Polynomial{T,var}(num),Polynomial{T,var}(den))
 end
 
-function Base.show(io::IO, pq::RationalTransferFunction)
-    p,q = Polynomials.pqs(pq)
-    print(io,"(")
-    printpoly(io, p)
-    print(io, ") // (")
-    printpoly(io, q)
-    print(io, ")")
-end
-
 # display sys
 Base.print(io::IO, sys::RationalTransferFunction) = show(io, sys)
 Base.show(io::IO, sys::RationalTransferFunction) = show(io, MIME("text/plain"), sys)
@@ -218,34 +209,6 @@ function Base.show(io::IO, mime::MIME{Symbol("text/plain")}, sys::RationalTransf
     sys.Ts > 0 && println(io, "\n\nSample time: $(sys.Ts) second(s).")
     iszero(sys.Ts) ? println(io, "\n\nContinuous-time rational transfer function model.") :
                      println(io, "Discrete-time rational transfer function model.") 
-end
-
-    # n = size(sys.A,1) 
-    # typeof(sys.D) <: Vector ? ((p,m) = (length(sys.D),1)) : ((p, m) = size(sys.D))
-    # if n > 0
-    #    println(io, "\nState matrix A:")
-    #    show(io, mime, sys.A)
-    #    if sys.E != I
-    #       println(io, "\n\nDescriptor matrix E:")
-    #       show(io, mime, sys.E)
-    #    end
-    #    m > 0 ? println(io, "\n\nInput matrix B:") : println(io, "\n\nEmpty input matrix B.")
-    #    show(io, mime, sys.B)
-    #    p > 0 ? println(io, "\n\nOutput matrix C:") : println(io, "\n\nEmpty output matrix C.") 
-    #    show(io, mime, sys.C)
-    #    (m > 0 && p > 0) ? println(io, "\n\nFeedthrough matrix D:") : println(io, "\n\nEmpty feedthrough matrix D.") 
-    #    show(io, mime, sys.D)
-    #    iszero(sys.Ts) ? println(io, "\n\nContinuous-time state-space model.") :
-    #                   println(io, "\n\nDiscrete-time state-space model") 
-    #    sys.Ts < 0 && println(io, "Sample time: unspecified.")
-    #    sys.Ts > 0 && println(io, "Sample time: $(sys.Ts) second(s).")
-    # elseif m > 0 && p > 0
-    #    println(io, "\nFeedthrough matrix D:")
-    #    show(io, mime, sys.D)
-    #    println(io, "\nStatic gain.") 
-    # else
-    #    println(io, "\nEmpty state-space model.")
-    # end
 end
 
 
