@@ -5,13 +5,6 @@ using LinearAlgebra
 using Polynomials
 using Test
 
- # Example 3: P = [λ^2 λ; λ 1] DeTeran, Dopico, Mackey, ELA 2009
-λ = Polynomial([0,1],:s)
-P = [λ^2 λ; λ 1]
-@test all(P .≈ dss2pm(dss(P)))    
-@test all(P .≈ dss2rm(dss(P)))  
-
-
 
 println("Test_conversions")
 
@@ -217,6 +210,22 @@ syst = gbilin(sysc,rtfbilin("Tustin"; Ts = 1, prewarp_freq=1)[1])[1]
 
 end # c2d
 
+@testset "dss2pm & dss2rm" begin
+
+# Example 3: P = [λ^2 λ; λ 1] DeTeran, Dopico, Mackey, ELA 2009
+λ = Polynomial([0,1],:s)
+P = [λ^2 λ; λ 1]
+@test all(P .≈ dss2pm(dss(P)))    
+@test all(P .≈ dss2rm(dss(P)))  
+
+z = rtf('z')
+@test_throws ErrorException dss2pm(dss(z+1/z))
+
+s = Polynomial([0, 1],:s);
+R = rtf.([s^2+3*s+3 1; -1 2*s^2+7*s+4] ./ [(s+1)^2 s+2; (s+1)^3 (s+1)*(s+2)]);
+@test all(R .≈ dss2rm(dss(R))) 
+
+end # dss2pm & dss2rm
 
 end #module
 

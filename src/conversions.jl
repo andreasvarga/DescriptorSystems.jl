@@ -58,11 +58,15 @@ function dss2pm(sys::DescriptorStateSpace{T}; fast::Bool = true,
                 atol::Real = zero(real(T)), atol1::Real = atol, atol2::Real = atol, 
                 gaintol::Real = atol, val::Union{Number,Missing} = missing,
                 rtol::Real = (max(sys.nx,sys.nu,sys.ny)*eps(real(float(one(T)))))*iszero(min(atol1,atol2))) where T
+   sys.nx > 0 && sys.E == I && error("the given realization cannot be converted to a polynomial form")
+   A, E, B, C, D = dssdata(sys)
+   E == I && (E = Matrix{eltype(A)}(I, sys.nx, sys.nx))
    try
-      P =  ls2pm(dssdata(sys)...; fast, atol1, atol2, rtol, gaintol, val)  
+      P =  ls2pm(A, E, B, C, D; fast, atol1, atol2, rtol, gaintol, val)  
       return pm2poly(P, sys.Ts == 0 ? (:s) : (:z))
    catch err
-      error("the given realization cannot be converted to a polynomial form")     
+      findfirst("linearization cannot",string(err)) === nothing ? error("$err") : 
+         error("the given realization cannot be converted to a polynomial form")     
    end
 end
 """
