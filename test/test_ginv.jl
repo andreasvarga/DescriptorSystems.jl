@@ -3,9 +3,11 @@ module Test_ginv
 using DescriptorSystems
 using LinearAlgebra
 using Polynomials
+using Random
 using Test
 
 println("Test_ginv")
+Random.seed!(2123)
 @testset "ginv" begin
 
 fast = true; Ty = Complex{Float64}; #Ty = Float64  
