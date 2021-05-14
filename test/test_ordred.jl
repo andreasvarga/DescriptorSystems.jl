@@ -3,9 +3,13 @@ module Test_ordred
 using DescriptorSystems
 using LinearAlgebra
 using Polynomials
+using Random
 using Test
 
+
 println("Test_ordred")
+Random.seed!(2123)
+
 @testset "Order Reduction Tools" begin
 
 @testset "gss2ss" begin
@@ -391,29 +395,31 @@ sys1, L, R = gir_lrtran(sys, atol = 1.e-7, fast = fast, ltran = true, rtran = tr
 @test iszero(sys-sys1, atol = 1.e-7) && order(sys)-order(sys1) == nuc
 
 n = 10; m = 5; p = 6;
-nfuc = 3; nfuo = 4;
-sys = rdss(n, p, m; T = Ty, nfuc = 3, nfuo = 4);
+nfuc = 3; nfuo = 4; Ty = Float64; fast=true;
+iduc = ones(Int,3); ; iduo = [ones(Int,3); 2*ones(Int,2)];
+nuc = nfuc+sum(iduc); nuo = nfuo+sum(iduo);
+sys = rdss(n, p, m; T = Ty, nfuc, nfuo, iduc, iduo);
 
 @time sys1  = gminreal(sys, atol = 1.e-7, fast = fast);
-@test iszero(sys-sys1, atol = 1.e-7) && order(sys)-order(sys1) == nfuc+nfuo 
+@test iszero(sys-sys1, atol = 1.e-7) && order(sys)-order(sys1) == nuc+nuo 
 
 @time sys1  = gir(sys, atol = 1.e-7, fast = fast);
-@test iszero(sys-sys1, atol = 1.e-7) && order(sys)-order(sys1) == nfuc+nfuo
+@test iszero(sys-sys1, atol = 1.e-7) && order(sys)-order(sys1) == nuc+nuo 
 sys1, L, R = gir_lrtran(sys,  atol = 1.e-7, fast = fast, ltran = true, rtran = true)
-@test iszero(sys-sys1,atol=1.e-7)  && order(sys)-order(sys1) == nfuc+nfuo &&
-      L*sys.A*R ≈ sys1.A && L*sys.E*R ≈ sys1.E && L*sys.B ≈ sys1.B && sys.C*R ≈ sys1.C
+@test iszero(sys-sys1,atol=1.e-7)  && order(sys)-order(sys1) == nuc+nuo  &&
+      L*sys.A*R ≈ sys1.A && L*sys.E*R ≈ sys1.E && L*sys.B ≈ sys1.B && sys.C*R ≈ sys1.C 
 
-@time sys1  = gminreal(sys, atol = 1.e-7, contr = false, fast = fast);
-@test iszero(sys-sys1, atol = 1.e-7) && order(sys)-order(sys1) == nfuo
+@time sys1  = gminreal(sys, atol = 1.e-7, contr = false, noseig = false, fast = fast); 
+@test iszero(sys-sys1, atol = 1.e-7) && order(sys)-order(sys1) == nuo
 
 @time sys1  = gir(sys, atol = 1.e-7, contr = false, fast = fast);
-@test iszero(sys-sys1, atol = 1.e-7) && order(sys)-order(sys1) == nfuo
+@test iszero(sys-sys1, atol = 1.e-7) && order(sys)-order(sys1) == nuo
 
-@time sys1  = gminreal(sys, atol = 1.e-7, obs = false, fast = fast);
-@test iszero(sys-sys1, atol = 1.e-7) && order(sys)-order(sys1) == nfuc
+@time sys1  = gminreal(sys, atol = 1.e-7, obs = false, noseig = false, fast = fast); 
+@test iszero(sys-sys1, atol = 1.e-7) && order(sys)-order(sys1) == nuc
 
 @time sys1  = gir(sys, atol = 1.e-7, obs = false, fast = fast);
-@test iszero(sys-sys1, atol = 1.e-7) && order(sys)-order(sys1) == nfuc
+@test iszero(sys-sys1, atol = 1.e-7) && order(sys)-order(sys1) == nuc
 
 
 

@@ -210,6 +210,21 @@ function Base.show(io::IO, mime::MIME{Symbol("text/plain")}, sys::RationalTransf
     iszero(sys.Ts) ? println(io, "\n\nContinuous-time rational transfer function model.") :
                      println(io, "Discrete-time rational transfer function model.") 
 end
+# Base.print(io::IO, R::VecOrMat{<:RationalTransferFunction}) = show(io, R)
+# Base.show(io::IO, R::VecOrMat{<:RationalTransferFunction}) = show(io, MIME("text/plain"), R)
+
+# function Base.show(io::IO, mime::MIME{Symbol("text/plain")}, R::VecOrMat{<:AbstractRationalFunction})
+#     summary(io, R); println(io)
+#     println("$R")
+#     if typeof(R) <: VecOrMat{<:RationalTransferFunction}
+#         Ts = sampling_time(R[1,1])
+#         Ts < 0 && println(io, "\n\nSample time: unspecified.")
+#         Ts > 0 && println(io, "\n\nSample time: $(sys.Ts) second(s).")
+#         iszero(Ts) ? println(io, "\n\nContinuous-time rational transfer function matrix model.") :
+#                      println(io, "Discrete-time rational transfer function matrix model.") 
+#     end
+# end
+
 
 
 function promote_var(num::Polynomial, den::Polynomial)

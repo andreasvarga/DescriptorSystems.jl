@@ -331,6 +331,18 @@ catch
    @test false
 end
 
+try
+   s = sprint(show,rtf(1));
+   s = sprint(show,rtf('s'));
+   s = sprint(show,rtf('z'));
+   s = sprint(show,rtf('z',Ts=2));
+   λ = rtf('λ'); s = sprint(show,λ/(λ+1));
+   λ = rtf('λ',Ts=1); s = sprint(show,(λ^2+1)/5);
+   @test true   
+catch
+   @test false
+end
+
 end #test
 
 end #module

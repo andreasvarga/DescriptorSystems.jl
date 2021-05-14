@@ -566,8 +566,8 @@ function lsminreal2_lrtran(A::AbstractMatrix, E::AbstractMatrix,
              E1 = Er[ir,ir]
              B1 = Br[ir,:]
              C1 = Cr[:,ir]
-             ltran && (L = Q[:,ir]'*L) 
-             rtran && (R = R*Z[:,ir])
+             ltran && (L = Q[:,end-no+1:end]'*L) 
+             rtran && (R = R*Z[:,end-no+1:end])
           else
              # restore saved matrices
              Ar[ir,ir] = A1
@@ -588,14 +588,14 @@ function lsminreal2_lrtran(A::AbstractMatrix, E::AbstractMatrix,
          Q, Z, _, nr, niuc = sklf_rightfin!(view(Er,ir,ir), view(Ar,ir,ir), view(Br,ir,:), view(Cr,:,ir); 
                                            fast, atol1, atol2, rtol, withQ = ltran, withZ = rtran) 
          if niuc > 0
-            ir = ir[1:nr]
+             ir = ir[1:nr]
             # save intermediary results
             A1 = Ar[ir,ir]
             E1 = Er[ir,ir]
             B1 = Br[ir,:]
             C1 = Cr[:,ir]
-            ltran && (L = Q[:,ir]'*L) 
-            rtran && (R = R*Z[:,ir])
+            ltran && (L = Q[:,1:nr]'*L) 
+            rtran && (R = R*Z[:,1:nr])
         else
             # restore original matrices 
             Ar[ir,ir] = A1
@@ -617,8 +617,8 @@ function lsminreal2_lrtran(A::AbstractMatrix, E::AbstractMatrix,
              E1 = Er[ir,ir]
              B1 = Br[ir,:]
              C1 = Cr[:,ir]
-             ltran && (L = Q[:,ir]'*L)
-             rtran && (R = R*Z[:,ir])
+             ltran && (L = Q[:,end-no+1:end]'*L)
+             rtran && (R = R*Z[:,end-no+1:end])
           else
              # restore saved matrices
              Ar[ir,ir] = A1
