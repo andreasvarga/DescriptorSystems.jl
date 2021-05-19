@@ -190,28 +190,46 @@ Base.show(io::IO, sys::RationalTransferFunction) = show(io, MIME("text/plain"), 
 
 function Base.show(io::IO, mime::MIME{Symbol("text/plain")}, sys::RationalTransferFunction)
     summary(io, sys); println(io)
-    p,q = Polynomials.pqs(sys)
+    p, q = Polynomials.pqs(sys)
     if order(sys) == 0
         printpoly(io, p)
         println(io, "\n\nStatic gain.")  
         return
     end    
     if q == one(q)
-        printpoly(io, p)
+        printpoly(io, p, descending_powers=true)
     else
-        print(io,"(")
-        printpoly(io, p)
-        print(io, ") // (")
-        printpoly(io, q)
-        print(io, ")")
+        count(p.coeffs .!= 0) <= 1 ? printpoly(io, p, descending_powers=true) :
+             (print(io,"("); printpoly(io, p, descending_powers=true); print(io, ")") ) 
+        print(io, " // ")
+        count(q.coeffs .!= 0) <= 1 ? printpoly(io, q, descending_powers=true) :
+             (print(io,"("); printpoly(io, q, descending_powers=true); print(io, ")") ) 
     end
     sys.Ts < 0 && println(io, "\n\nSample time: unspecified.")
     sys.Ts > 0 && println(io, "\n\nSample time: $(sys.Ts) second(s).")
     iszero(sys.Ts) ? println(io, "\n\nContinuous-time rational transfer function model.") :
                      println(io, "Discrete-time rational transfer function model.") 
 end
-# Base.print(io::IO, R::VecOrMat{<:RationalTransferFunction}) = show(io, R)
-# Base.show(io::IO, R::VecOrMat{<:RationalTransferFunction}) = show(io, MIME("text/plain"), R)
+
+function show_rp(io::IO, sys::RationalTransferFunction)
+    p,q = Polynomials.pqs(sys)
+    if order(sys) == 0
+        printpoly(io, p, descending_powers=true)
+        return
+    end    
+    if q == one(q)
+        printpoly(io, p, descending_powers=true)
+    else
+        count(p.coeffs .!= 0) <= 1 ? printpoly(io, p, descending_powers=true) :
+             (print(io,"("); printpoly(io, p, descending_powers=true); print(io, ")") ) 
+        print(io, " // ")
+        count(q.coeffs .!= 0) <= 1 ? printpoly(io, q, descending_powers=true) :
+             (print(io,"("); printpoly(io, q, descending_powers=true); print(io, ")") ) 
+    end
+end
+
+Base.print(io::IO, R::VecOrMat{<:RationalTransferFunction}) = show(io, R)
+Base.show(io::IO, R::VecOrMat{<:RationalTransferFunction}) = show(io, MIME("text/plain"), R)
 
 # function Base.show(io::IO, mime::MIME{Symbol("text/plain")}, R::VecOrMat{<:AbstractRationalFunction})
 #     summary(io, R); println(io)
@@ -224,7 +242,28 @@ end
 #                      println(io, "Discrete-time rational transfer function matrix model.") 
 #     end
 # end
+# Base.print(io::IO, R::VecOrMat{<:RationalTransferFunction}) = show(io, R)
 
+#function Base.show(io::IO, R::Union{RationalTransferFunction,VecOrMat{<:RationalTransferFunction}})
+function Base.show(io::IO, mime::MIME{Symbol("text/plain")}, R::VecOrMat{<:RationalTransferFunction})
+    # Compose the name vectors
+    #println(io, "TransferFunction:")
+    #typeof(R) <: RationalTransferFunction && (show_rtf(io, R); return)
+    summary(io, R); println(io)
+    p, m = size(R,1), size(R,2)
+    for j=1:m
+         for i=1:p
+            println(io, "From input $j to output $i")
+            show_rp(io, R[i,j])
+            print(io, "\n\n")
+        end
+    end
+    Ts = sampling_time(R[1,1])
+    Ts < 0 && println(io, "Sample time: unspecified.")
+    Ts > 0 && println(io, "Sample time: $Ts second(s).")
+    iszero(Ts) ? println(io, "Continuous-time rational transfer function matrix model.") :
+                 println(io, "Discrete-time rational transfer function matrix model.") 
+end
 
 
 function promote_var(num::Polynomial, den::Polynomial)

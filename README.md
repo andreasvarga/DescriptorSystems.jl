@@ -71,8 +71,7 @@ The current version of the package includes the following categories of function
 
 ## Future plans
 
-The targeted release v1.0 will additionally include functions for several basic conversions to/from input-output representations as well as functions for time-response and frequency response computation.
-Later future developments will address support for several new classes of generalized LTI systems types and for polynomial system models.
+Future developments will address support for several new classes of generalized LTI systems types (e.g., for polynomial system models).
 
 ## Supplementary information
 

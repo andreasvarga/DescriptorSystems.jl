@@ -666,7 +666,7 @@ function lsminreal2_lrtran(A::AbstractMatrix, E::AbstractMatrix,
          Br[ir,:] = B1
          Cr[:,ir] = C1
       end
-      return Ar[ir,ir], Er[ir,ir], Br[ir,:], Cr[:,ir], Dr, ltran ? L[ir,:] : nothing, rtran ? R[:,ir] : nothing, nuc, nuo, rA22
+      return Ar[ir,ir], Er[ir,ir], Br[ir,:], Cr[:,ir], Dr, ltran ? L : nothing, rtran ? R : nothing, nuc, nuo, rA22
    else
       return Ar[ir,ir], Er[ir,ir], Br[ir,:], Cr[:,ir], Dr, L, R, nuc, nuo, 0
    end

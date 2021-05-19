@@ -102,7 +102,8 @@ The available functions in the `DescriptorSystems.jl` package cover both standar
 * **[`gh2norm`](@ref)**  `H2` norm of a descriptor system.
 * **[`glinfnorm`](@ref)**  `L∞` norm of a descriptor system.
 * **[`ghinfnorm`](@ref)**  `H∞` norm of a descriptor system.
-* **[`gnugap`](@ref)**  `ν-gap` distance between two descriptor systems.
+* **[`freqresp`](@ref)**   Frequency response of a descriptor system.
+* **[`timeresp`](@ref)**   Time response of a descriptor system.
 
 **Factorization of descriptor systems**
 

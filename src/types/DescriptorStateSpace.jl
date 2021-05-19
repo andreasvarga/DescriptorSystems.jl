@@ -295,10 +295,10 @@ function Base.show(io::IO, mime::MIME{Symbol("text/plain")}, sys::DescriptorStat
        show(io, mime, sys.C)
        (m > 0 && p > 0) ? println(io, "\n\nFeedthrough matrix D:") : println(io, "\n\nEmpty feedthrough matrix D.") 
        show(io, mime, sys.D)
-       sys.Ts < 0 && println(io, "Sample time: unspecified.")
-       sys.Ts > 0 && println(io, "Sample time: $(sys.Ts) second(s).")
+       sys.Ts < 0 && println(io, "\n\nSample time: unspecified.")
+       sys.Ts > 0 && println(io, "\n\nSample time: $(sys.Ts) second(s).")
        iszero(sys.Ts) ? println(io, "\n\nContinuous-time state-space model.") :
-                        println(io, "\n\nDiscrete-time state-space model.") 
+                        println(io, "Discrete-time state-space model.") 
     elseif m > 0 && p > 0
        println(io, "\nFeedthrough matrix D:")
        show(io, mime, sys.D)

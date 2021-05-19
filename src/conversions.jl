@@ -71,7 +71,7 @@ function dss2pm(sys::DescriptorStateSpace{T}; fast::Bool = true,
 end
 """
     c2d(sysc, Ts, meth = "zoh"; x0, u0, standard = true, fast = true, prewarp_freq = freq, 
-               atol = 0, atol1 = atol, atol2 = atol, rtol = n*ϵ) -> (sysd, xd0)
+               state_mapping = false, atol = 0, atol1 = atol, atol2 = atol, rtol = n*ϵ) -> (sysd, xd0, M)
 
 Compute for the continuous-time descriptor system `sysc = (A-sE,B,C,D)` with the proper 
 transfer function matrix `Gc(λ)` and for a sampling time `Ts`, the corresponding discretized
@@ -82,6 +82,10 @@ of `sysd` (i.e., with `Ed = I`), if `standard = true` (default),
 or a descriptor system realization if `standard = false`. 
 `xd0` is the mapped initial condition of the state of the discrete-time system `sysd` determined from the 
 initial conditions of the state `x0` and input `u0` of the continuous-time system `sysc`. 
+The keyword argument `state_mapping` specifies the option to compute a state mapping matrix `M` such that
+at each time moment `t`, the state `xd(t)` of the discretized system is related to the state `x(t)` 
+and input `u(t)` of the continuous-time system as `xd(t) = M*[x(t);u(t)]`, 
+if `state_mapping = true`, or  `M = nothing` if `state_mapping = false` (default). 
 
 The following discretization methods can be performed by appropriately selecting `meth`:
 
@@ -107,7 +111,7 @@ The default relative tolerance is `n*ϵ`, where `n` is the order of the square m
 The keyword argument `atol` can be used to simultaneously set `atol1 = atol` and `atol2 = atol`. 
 """
 function c2d(sysc::DescriptorStateSpace{T}, Ts::Real, meth::String = "zoh"; 
-             x0::Vector = zeros(T,sysc.nx), u0::Vector = zeros(T,sysc.nu), 
+             x0::Vector = zeros(T,sysc.nx), u0::Vector = zeros(T,sysc.nu), state_mapping::Bool = false, 
              prewarp_freq::Real = 0, standard::Bool = true, fast::Bool = true, 
              atol::Real = zero(float(real(T))), atol1::Real = atol, atol2::Real = atol, 
              rtol::Real = sysc.nx*eps(real(float(one(T))))*iszero(min(atol1,atol2))) where T
@@ -119,14 +123,17 @@ function c2d(sysc::DescriptorStateSpace{T}, Ts::Real, meth::String = "zoh";
     n == 0 && (return dss(sysc.D; Ts))
 
     meth = lowercase(meth)
+    state_mapping || ( M = nothing)
 
     if meth == "zoh" || meth == "foh" || meth == "impulse"
+       L = I;
        if sysc.E != I 
           # eliminate (if possible) all infinite eigenvalues in the continuous-time case with singular E
           if rcond(sysc.E) >= n*eps(float(real(T1)))
              A, E, B, C, D = dssdata(T1,sysc)
           else
-             ltran = !iszero(x0)  # determine the left projection for nonzero initial condition
+             # determine the left projection for nonzero initial condition or explicit need for state mapping
+             ltran = state_mapping || !iszero(x0)  
              sysc, L, _ = gir_lrtran(sysc; fast, ltran, finite = false, noseig = true, atol1, atol2, rtol)
              A, E, B, C, D = dssdata(sysc)
              n = size(A,1) 
@@ -135,7 +142,7 @@ function c2d(sysc::DescriptorStateSpace{T}, Ts::Real, meth::String = "zoh";
           end
 
           # quick exit in constant case  
-          n == 0 && (return dss(D; Ts), x0)
+          n == 0 && (state-mapping && (M = zeros(T1,n,m)); return dss(D; Ts), x0, M)
 
           # check properness in continuous-time case
           F = lu!(E;check=false)
@@ -145,19 +152,22 @@ function c2d(sysc::DescriptorStateSpace{T}, Ts::Real, meth::String = "zoh";
        else
            A, _, B, C, D = dssdata(T1,sysc)
        end
-       p, m = size(D)
+       m = size(D,2)
        if meth == "zoh"
           G = exp([ rmul!(A,Ts) rmul!(B,Ts); zeros(T1,m,n+m)])
-          return (dss(view(G,1:n,1:n), view(G,1:n,n+1:n+m), C, D; Ts), x0)
+          state_mapping && ( M = [L zeros(T1,n,m)])
+          return (dss(view(G,1:n,1:n), view(G,1:n,n+1:n+m), C, D; Ts), x0, M)
        elseif meth == "foh"
           G = exp([ rmul!(A,Ts) rmul!(B,Ts) zeros(T1,n,m); zeros(T1,m,n+m) 1/Ts*I; zeros(T1,m,n+2m)])
           Ad = view(G,1:n,1:n)
           G1 = view(G,1:n,n+1:n+m)
           G2 = view(G,1:n,n+m+1:n+2m)
-          return (dss(Ad, G1+(Ad-I)*G2, C, D+C*G2; Ts), x0-G2*u0)
+          state_mapping && ( M = [L -G2])
+          return (dss(Ad, G1+(Ad-I)*G2, C, D+C*G2; Ts), x0-G2*u0, M)
        else # meth == "impulse"
          G = exp(rmul!(A,Ts))
-         return (dss(G, G*B, C, C*B; Ts), x0)
+         state_mapping && ( M = [L zeros(T1,n,m)])
+         return (dss(G, G*B, C, C*B; Ts), x0, M)
        end
     elseif meth == "tustin"
        A, E, B, C, D = dssdata(T1,sysc)
@@ -165,14 +175,15 @@ function c2d(sysc::DescriptorStateSpace{T}, Ts::Real, meth::String = "zoh";
        if standard
           Ed = E-t/2*A   
           xd0 = Ed*x0 
-          F = lu!(Ed)
+          state_mapping ? F = lu(Ed) : F = lu!(Ed)
           X = ldiv!(F,B*t)
           Ad = rdiv!(E+t/2*A,F)    # Ad = (E + A*T/2)/(E - A*T/2)
           Bd = E*X                 # Bd = E * (E - A*T/2) \ B*T
           mul!(D,C,X,0.5,1)        # Dd = D + C*(E - A*T/2)\B*(T/2) = D + C*X/2
           rdiv!(C,F)               # Cd = C/(E - A*T/2)
           xd0 -= (X*u0)/2          # xd0 = (E - A*T/2)*x0 - (E - A*T/2)\B*(T/2)*u0 = (E - A*T/2)*x0 - X*u0/2
-          return (dss(Ad, Bd, C, D; Ts), xd0)
+          state_mapping && ( M = [Ed -X/2])
+          return (dss(Ad, Bd, C, D; Ts), xd0, M)
        else
          Ed = E-t/2*A              # Ed = E - A*T/2 
          X = Ed\(B*t)              # X = (E - A*T/2)\B*T 
@@ -180,7 +191,8 @@ function c2d(sysc::DescriptorStateSpace{T}, Ts::Real, meth::String = "zoh";
          Ad = E+t/2*A              # Ad = E + A*T/2;  Cd = C
          Bd = E*X                  # Bd = E * (E - A*T/2) \ B*T
          xd0 = x0 - (X*u0)/2       # xd0 = x0 - (E - A*T/2)\B*(T/2)*u0 = x0 - X*u0/2
-         return (dss(Ad, Ed, Bd, C, D; Ts), xd0)
+         state_mapping && ( M = [I -X/2])
+         return (dss(Ad, Ed, Bd, C, D; Ts), xd0, M)
       end
     else
        error("no such method")
@@ -280,4 +292,86 @@ function gbilin(sys::DescriptorStateSpace{T},g::RationalTransferFunction;
 
     return syst, ginv
     # end GBILIN
+end
+"""
+    timeresp(sys, u, t, x0 = zeros(sys.nx); interpolation = "zoh", state_history = false) -> (y, tout, x)
+
+Compute the time response of a proper descriptor system `sys = (A-λE,B,C,D)` to the input signals 
+described by `u` and `t`. The time vector `t` consists of regularly spaced time samples. The 
+matrix `u` has as many columns as the inputs of `sys` and its `i`-th row specifies 
+the input values at time `t[i]`. For discrete-time models, `u` should be sampled at the same rate as `sys`
+if `sys.Ts > 0` and `t` must have all time steps equal to `sys.Ts` or can be set to an empty vector. 
+The vector `x0` specifies the initial state vector at time `t[1]` and is set to zero when omitted. 
+
+The matrix `y` contains the resulting time history of the outputs of `sys` and 
+the vector `tout` contains the corresponding values of the time samples.
+The `i`-th row of `y` contains the output values at time `tout[i]`.  
+If the keyword parameter value `state_history = false` is used, then the matrix `x` contains 
+the resulting time history of the state vector and its `i`-th row contains 
+the state values at time `tout[i]`. By default, the state history is not computed and `x = nothing`.
+
+For continuous-time models, the input values are interpolated between samples. By default, 
+zero-order hold based interpolation is used. The linear interpolation method can be selected using 
+the keyword parameter `interpolation = "foh"`.
+"""
+function timeresp(sys::DescriptorStateSpace{T}, u::AbstractVecOrMat{<:Number}, t::AbstractVector{<:Real},  
+                  x0::AbstractVector{<:Number} = zeros(T,sys.nx); interpolation::String = "zoh", 
+                  state_history::Bool = false) where T
+
+    T1 = T <: BlasFloat ? T : promote_type(Float64,T) 
+    n = sys.nx 
+    p, m = sys.ny, sys.nu
+ 
+    N, m1 = size(u,1), size(u,2)
+    m == m1 || error("u must have as many columns as system inputs")
+    n == length(x0) || error("x0 must have the same length as the system state vector")
+
+    disc = !iszero(sys.Ts)
+    ns = length(t)
+    ns > 0 && ns != N && error("u must have the same number of rows as the number of values in t")
+    if ns > 1
+       dt = t[2]-t[1]
+       disc && sys.Ts > 0 && abs.(sys.Ts-dt) > 0.0000001*dt 
+       (any(diff(t) .<= 0) || any(isinf.(t)) || any(abs.(diff(t).-dt).> 0.00001*dt)) && 
+            error("time vector t must contain monotonically increasing and evenly spaced time samples")
+    end
+    if disc
+       # set tout
+       ns <= 1 && (dt = abs(sys.Ts) )
+       tout = Vector{real(T1)}(0:dt:(N-1)*dt) 
+    else
+       tout = t
+    end
+    p == 1 ? y = Vector{T1}(undef, N) : y = Matrix{T1}(undef, N, p) 
+    state_history ?  x = Matrix{T1}(undef, N, n) : x = nothing 
+    if disc
+       A, E, B, C, D = dssdata(T1,sys)
+       if E != I 
+          F = lu!(E;check=false)
+          (!issuccess(F) || rcond(UpperTriangular(F.U)) <= n*eps(float(real(T1)))) && error("systems with singular E not supported")
+          ldiv!(F,A); ldiv!(F,B)
+       end
+       xt = copy(x0)
+       for i = 1:N 
+           ut = u[i,:]
+           y[i,:] = C*xt + D*ut
+           state_history && (x[i,:] = xt) 
+           xt = A*xt + B*ut
+       end
+       return y, tout, x
+    else
+       state_mapping = state_history && (interpolation == "foh")
+       sysd, xt, M = c2d(sys, dt, interpolation; x0, u0 = u[1,:], state_mapping)
+       A, E, B, C, D = dssdata(sysd) 
+       n1 = size(A,1)
+       n1 < n && state_history && (@warn "State history computation is not possible"; state_history = false; x = nothing; M = nothing;)  
+       isnothing(M) || (M2 = view(M,:,n+1:n+m)) # assumes M = [I M2] (valid for "zoh" and "foh")
+       for i = 1:N 
+           ut = u[i,:]
+           y[i,:] = C*xt + D*ut
+           state_history && (isnothing(M) ? x[i,:] = xt : x[i,:] = xt - M2*ut ) 
+           xt = A*xt + B*ut
+       end
+       return y, tout, x
+   end
 end

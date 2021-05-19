@@ -155,13 +155,13 @@ end # gbilin
 
 a = [-4 -2;1 0]; b = [2;0]; c = [0.5 1]; d = [0]; x0 = [1,2]; u0 = [1];
 sysc = dss(a,b,c,d);
-@time sysd, xd0 = c2d(sysc,1; x0 = [1,2], u0 = [1]); 
+@time sysd, xd0, = c2d(sysc,1; x0 = [1,2], u0 = [1]); 
 EAt = exp(a); 
 @test dcgain(sysd) ≈ dcgain(sysc) && sort(gpole(sysd)) ≈ sort(exp.(gpole(sysc))) && 
       sysd.A ≈ EAt && sysd.B ≈ a\(EAt-I)*b
-@time sysd_foh, xd0 = c2d(sysc,1,"foh"; x0, u0); 
+@time sysd_foh, xd0, = c2d(sysc,1,"foh"; x0, u0); 
 @test dcgain(sysd_foh) ≈ dcgain(sysc) 
-@time sysd_imp, xd0 = c2d(sysc,1,"impulse"; x0, u0); 
+@time sysd_imp, xd0, = c2d(sysc,1,"impulse"; x0, u0); 
 @test sort(gpole(sysd_imp)) ≈ sort(exp.(gpole(sysc)))
 @time sysd1, xd1 = c2d(sysc,1,"tustin"; x0, u0, standard = true)
 @time sysd2, xd2 = c2d(sysc,1,"tustin"; x0, u0, standard = false)
@@ -187,23 +187,23 @@ EAt = exp(e1\a1);
 
 a = [-4 -2;1 0]; b = [2;0]; c = [0.5 1]; d = [0]; e = [1 2; 0 0]; x0 = [1,2]; u0 = [1];  
 sysc = dss(a,e,b,c,d);
-@time (sysd,xd0) = c2d(sysc,1; x0, u0); 
+@time sysd, xd0, M = c2d(sysc,1; x0, u0, state_mapping = true); 
 a1, e1, b1, c1, d1 = dssdata(gir(sysc,noseig=true));
 EAt = exp(e1\a1); 
 @test dcgain(sysd) ≈ dcgain(sysc) && sort(gpole(sysd)) ≈ sort(exp.(gpole(sysc))) && 
-      sysd.A ≈ EAt && sysd.B ≈ (e1\a1)\(EAt-I)*(e1\b1)
-@time sysd_foh, xd0 = c2d(sysc,1,"foh"; x0, u0); 
-@test dcgain(sysd_foh) ≈ dcgain(sysc) 
-@time sysd_imp, xd0 = c2d(sysc,1,"impulse"; x0, u0); 
-@test sort(gpole(sysd_imp)) ≈ sort(exp.(gpole(sysc)))
+      sysd.A ≈ EAt && sysd.B ≈ (e1\a1)\(EAt-I)*(e1\b1) && xd0 ≈ M*[x0;u0]
+@time sysd_foh, xd0, M = c2d(sysc,1,"foh"; x0, u0, state_mapping = true); 
+@test dcgain(sysd_foh) ≈ dcgain(sysc) && xd0 ≈ M*[x0;u0]
+@time sysd_imp, xd0, M = c2d(sysc,1,"impulse"; x0, u0, state_mapping = true); 
+@test sort(gpole(sysd_imp)) ≈ sort(exp.(gpole(sysc))) && xd0 ≈ M*[x0;u0]
 
-@time sysd1, xd0 = c2d(sysc,1,"tustin"; x0, u0, standard = true)
-@time sysd2, xd0 = c2d(sysc,1,"tustin"; x0, u0, standard = false)
+@time sysd1, xd0, = c2d(sysc,1,"tustin"; x0, u0, standard = true)
+@time sysd2, xd0, = c2d(sysc,1,"tustin"; x0, u0, standard = false)
 syst = gbilin(sysc,rtfbilin("Tustin"; Ts = 1)[1])[1] 
 @test gnrank(sysd1 - sysd2, atol=1.e-7) == 0 && iszero(sysd1-syst, atol=1.e-7)
 
-@time sysd1, xd0 = c2d(sysc,1,"tustin"; prewarp_freq=1, x0, u0, standard = true)
-@time sysd2, xd0 = c2d(sysc,1,"tustin"; prewarp_freq=1, x0, u0, standard = false)
+@time sysd1, xd0, = c2d(sysc,1,"tustin"; prewarp_freq=1, x0, u0, standard = true)
+@time sysd2, xd0, = c2d(sysc,1,"tustin"; prewarp_freq=1, x0, u0, standard = false)
 syst = gbilin(sysc,rtfbilin("Tustin"; Ts = 1, prewarp_freq=1)[1])[1] 
 @test gnrank(sysd1 - sysd2, atol=1.e-7) == 0 && iszero(sysd1-syst, atol=1.e-7) &&
       evalfr(sysc,fval=1) ≈ evalfr(sysd1,fval=1) && evalfr(sysc,fval=1) ≈ evalfr(sysd2,fval=1) 
@@ -226,6 +226,88 @@ R = rtf.([s^2+3*s+3 1; -1 2*s^2+7*s+4] ./ [(s+1)^2 s+2; (s+1)^3 (s+1)*(s+2)]);
 @test all(R .≈ dss2rm(dss(R))) 
 
 end # dss2pm & dss2rm
+
+@testset "timeresp" begin
+
+      a = [-4 -2;1 0]; b = [2 1;0 1]; c = [0.5 1]; d = [0 1]; x0 = [1,2]; u0 = [1, 1]; Ts = 1;
+      sysc = dss(a,b,c,d);
+      @time sysd, xd0, = c2d(sysc, Ts; x0, u0); 
+      @time y, tout, x = timeresp(sysd, ones(11,2), Int[], xd0; state_history = true)
+      
+      @time y1, tout1, x1 = timeresp(sysc, ones(11,2), tout, x0; state_history = true, interpolation = "zoh")
+      @test norm(y-y1,Inf) < 1.e-7 && norm(x-x1,Inf) < 1.e-7
+      
+      @time y2, tout2, x2 = timeresp(sysc, ones(11,2), tout, x0; state_history = true, interpolation = "foh")
+      @test norm(y-y2,Inf) < 1.e-7 && norm(x-x2,Inf) < 1.e-7
+      
+      ed = rand(2,2);
+      sysdd = dss(ed*sysd.A,ed,ed*sysd.B,sysd.C,sysd.D,Ts=sysd.Ts)
+      @time y3, tout3, x3 = timeresp(sysdd, ones(11,2), Int[], xd0; state_history = true)
+      @test norm(y-y3,Inf) < 1.e-7 && norm(x-x3,Inf) < 1.e-7
+      
+      u = rand(11,2);
+      @time sysd, xd0, M = c2d(sysc, Ts, "foh"; x0, u0 = u[1,:], state_mapping = true); 
+      
+      @time y, tout, x = timeresp(sysd, u, Int[], xd0; state_history = true)
+      
+      @time y2, tout2, x2 = timeresp(sysc, u, tout, x0; state_history = true, interpolation = "foh")
+      @test norm(y-y2,Inf) < 1.e-7 && norm(M*[x';-u']-x2',Inf) < 1.e-7
+      
+      a = [-4 -2;1 0]; b = [2 1;0 1]; c = [0.5 1]; d = [0 1]; x0 = [1,2]; u0 = [1, 1]; Ts = 1;
+      e = rand(2,2);
+      sysc = dss(e*a,e,e*b,c,d);
+      @time sysd, xd0, = c2d(sysc, Ts; x0, u0); 
+      @time y, tout, x = timeresp(sysd, ones(11,2),Int[],xd0;state_history = true)
+      
+      @time y1, tout1, x1 = timeresp(sysc, ones(11,2), tout, x0; state_history = true, interpolation = "zoh")
+      @test norm(y-y1,Inf) < 1.e-7 && norm(x-x1,Inf) < 1.e-7
+      
+      @time y2, tout2, x2 = timeresp(sysc, ones(11,2), tout, x0; state_history = true, interpolation = "foh")
+      @test norm(y-y2,Inf) < 1.e-7 && norm(x-x2,Inf) < 1.e-7
+      
+      u = rand(11,2);
+      @time sysd, xd0, M = c2d(sysc, Ts, "foh"; x0, u0 = u[1,:], state_mapping = true); 
+      
+      @time y, tout, x = timeresp(sysd, u, Int[], xd0; state_history = true)
+      
+      @time y2, tout2, x2 = timeresp(sysc, u, tout, x0; state_history = true, interpolation = "foh")
+      @test norm(y-y2,Inf) < 1.e-7 && norm(M*[x';-u']-x2',Inf) < 1.e-7
+      
+      a = [-4 -2;1 0]; b = [2 1;0 1]; c = [0.5 1]; d = [0 1]; x0 = [1,2]; u0 = [1, 1]; Ts = 1;
+      e = rand(Complex{Float64},2,2);
+      sysc = dss(e*a,e,e*b,c,d);
+      @time sysd, xd0, = c2d(sysc, Ts; x0, u0); 
+      @time y, tout, x = timeresp(sysd, ones(11,2),Int[],xd0;state_history = true)
+      
+      @time y1, tout1, x1 = timeresp(sysc, ones(11,2), tout, x0; state_history = true, interpolation = "zoh")
+      @test norm(y-y1,Inf) < 1.e-7 && norm(x-x1,Inf) < 1.e-7
+      
+      @time y2, tout2, x2 = timeresp(sysc, ones(11,2), tout, x0; state_history = true, interpolation = "foh")
+      @test norm(y-y2,Inf) < 1.e-7 && norm(x-x2,Inf) < 1.e-7
+      
+      u = exp.(im*rand(11,2));
+      @time sysd, xd0, M = c2d(sysc, Ts, "foh"; x0, u0 = u[1,:], state_mapping = true); 
+      
+      @time y, tout, x = timeresp(sysd, u, Int[], xd0; state_history = true)
+      
+      @time y2, tout2, x2 = timeresp(sysc, u, tout, x0; state_history = true, interpolation = "foh")
+      @test norm(y-y2,Inf) < 1.e-7 && norm(M*[x';-u']-x2',Inf) < 1.e-7
+
+      a = [-4 -2;1 0]; b = [2 1;0 1]; c = [0.5 1]; d = [0 1]; x0 = [1,2]; u0 = [1, 1]; Ts = 1;
+      e = [1 2; 0 0]; 
+      sysc = dss(a,e,b,c,d);
+      @time sysd, xd0, M = c2d(sysc, Ts; x0, u0, state_mapping = true); 
+
+      @time y, tout, x = timeresp(sysd, ones(11,2), Int[],xd0; state_history = true)
+
+      @time y1, tout1, x1 = timeresp(sysc, ones(11,2), tout, x0; state_history = true, interpolation = "zoh")
+      @test norm(y-y1,Inf) < 1.e-7 
+      
+      @time y2, tout2, x2 = timeresp(sysc, ones(11,2), tout, x0; state_history = true, interpolation = "foh")
+      @test norm(y-y2,Inf) < 1.e-7 
+
+     
+      end # timeresp    
 
 end #module
 
