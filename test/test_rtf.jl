@@ -269,6 +269,7 @@ s = rtf('s'); z = rtf('z');     # define the complex variables s and z
 @time Gc = [s^2 s/(s+1); 0 1/s] 
 @time Gd = [z^2 z/(z-2); 0 1/z] 
 @test all(transpose(transpose(Gc)) .== Gc)
+@test transpose(s) == s 
 
 # # s and z polynomials
 # s = Polynomial([0, 1],'s'); z = Polynomial([0, 1],'z');  
@@ -332,12 +333,14 @@ catch
 end
 
 try
-   s = sprint(show,rtf(1));
-   s = sprint(show,rtf('s'));
-   s = sprint(show,rtf('z'));
-   s = sprint(show,rtf('z',Ts=2));
-   λ = rtf('λ'); s = sprint(show,λ/(λ+1));
-   λ = rtf('λ',Ts=1); s = sprint(show,(λ^2+1)/5);
+   s = sprint(print,rtf(1));
+   s = sprint(print,rtf('s'));
+   s = sprint(print,rtf('z'));
+   s = sprint(print,rtf('z',Ts=2));
+   λ = rtf('λ'); s = sprint(print,λ/(λ+1));
+   λ = rtf('λ',Ts=1); s = sprint(print,(λ^2+1)/5);
+   sprint(print,Gc);
+   sprint(print,Gd);
    @test true   
 catch
    @test false

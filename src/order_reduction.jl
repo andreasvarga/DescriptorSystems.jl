@@ -32,7 +32,7 @@ function gss2ss(sys::DescriptorStateSpace{T}; Eshape = "ident", atol::Real = zer
     n = sys.nx
     (n == 0 || sys.E == I) && (return sys, n) 
 
-    T <: BlasFloat ? T1 = T : T1 = promote_type(Float64,T)
+    T1 = T <: BlasFloat ? T : promote_type(Float64,T)
 
     Ar, Er, Br, Cr, Dr = dssdata(T1,sys) 
         
