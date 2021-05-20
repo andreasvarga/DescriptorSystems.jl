@@ -134,7 +134,8 @@ function c2d(sysc::DescriptorStateSpace{T}, Ts::Real, meth::String = "zoh";
           else
              # determine the left projection for nonzero initial condition or explicit need for state mapping
              ltran = state_mapping || !iszero(x0)  
-             sysc, L, _ = gir_lrtran(sysc; fast, ltran, finite = false, noseig = true, atol1, atol2, rtol)
+             sysc, L, R = gir_lrtran(sysc; fast, ltran, rtran=true, finite = false, noseig = true, atol1, atol2, rtol)
+             println("L = $L  R = $R")
              A, E, B, C, D = dssdata(sysc)
              n = size(A,1) 
              # adjust initial condition
@@ -316,7 +317,9 @@ the keyword parameter `interpolation = "foh"`.
 """
 function timeresp(sys::DescriptorStateSpace{T}, u::AbstractVecOrMat{<:Number}, t::AbstractVector{<:Real},  
                   x0::AbstractVector{<:Number} = zeros(T,sys.nx); interpolation::String = "zoh", 
-                  state_history::Bool = false) where T
+                  state_history::Bool = false, fast::Bool = true, 
+                  atol::Real = zero(float(real(T))), atol1::Real = atol, atol2::Real = atol, 
+                  rtol::Real = sys.nx*eps(real(float(one(T))))*iszero(min(atol1,atol2))) where T
 
     T1 = T <: BlasFloat ? T : promote_type(Float64,T) 
     n = sys.nx 
@@ -361,7 +364,7 @@ function timeresp(sys::DescriptorStateSpace{T}, u::AbstractVecOrMat{<:Number}, t
        return y, tout, x
     else
        state_mapping = state_history && (interpolation == "foh")
-       sysd, xt, M = c2d(sys, dt, interpolation; x0, u0 = u[1,:], state_mapping)
+       sysd, xt, M = c2d(sys, dt, interpolation; x0, u0 = u[1,:], state_mapping, atol1, atol2, rtol, fast)
        A, E, B, C, D = dssdata(sysd) 
        n1 = size(A,1)
        n1 < n && state_history && (@warn "State history computation is not possible"; state_history = false; x = nothing; M = nothing;)  

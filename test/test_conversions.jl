@@ -296,14 +296,14 @@ end # dss2pm & dss2rm
       a = [-4 -2;1 0]; b = [2 1;0 1]; c = [0.5 1]; d = [0 1]; x0 = [1,2]; u0 = [1, 1]; Ts = 1;
       e = [1 2; 0 0]; 
       sysc = dss(a,e,b,c,d);
-      @time sysd, xd0, M = c2d(sysc, Ts; x0, u0, state_mapping = true); 
+      @time sysd, xd0, M = c2d(sysc, Ts; x0, u0, state_mapping = true, atol=1.e-7); 
 
-      @time y, tout, x = timeresp(sysd, ones(11,2), Int[],xd0; state_history = true)
+      @time y, tout, x = timeresp(sysd, ones(11,2), Int[],xd0; state_history = true, atol=1.e-7)
 
-      @time y1, tout1, x1 = timeresp(sysc, ones(11,2), tout, x0; state_history = true, interpolation = "zoh")
+      @time y1, tout1, x1 = timeresp(sysc, ones(11,2), tout, x0; state_history = true, interpolation = "zoh", atol=1.e-7)
       @test norm(y-y1,Inf) < 1.e-7 
       
-      @time y2, tout2, x2 = timeresp(sysc, ones(11,2), tout, x0; state_history = true, interpolation = "foh")
+      @time y2, tout2, x2 = timeresp(sysc, ones(11,2), tout, x0; state_history = true, interpolation = "foh", atol=1.e-7)
       @test norm(y-y2,Inf) < 1.e-7 
 
      

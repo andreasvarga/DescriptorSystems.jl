@@ -659,7 +659,9 @@ function lsminreal2_lrtran(A::AbstractMatrix, E::AbstractMatrix,
          ltran &&  mul!(view(L,i1,:), view(Ar,i1,i2), view(L,i2,:), -ONE, ONE) # (L[i1,:] -= Ar[i1,i2]*L[i2,:])
          rtran &&  mul!(view(R,:,i1), view(R,:,i2), view(Ar,i2,i1), -ONE, ONE) # (R[:,i1] -= R[:,i2]*Ar[i2,i1])
          ir = [i1; ir[rE+rA22+1:end]]
-      else
+         ltran && (L = L[ir,:])
+         rtran && (R = R[:,ir])
+  else
          # restore saved matrices
          Ar[ir,ir] = A1
          Er[ir,ir] = E1
