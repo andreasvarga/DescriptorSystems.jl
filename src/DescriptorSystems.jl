@@ -17,7 +17,7 @@ export DescriptorStateSpace, AbstractDescriptorStateSpace, dss, dssdata, rdss, r
 export RationalTransferFunction, rtf
 export gminreal, gir, gir_lrtran, gbalmr, gsvselect, gss2ss
 export gbilin, c2d, dss2rm, dss2pm, timeresp
-export confmap, rmconfmap, simplify, normalize, poles, gain, zpk, rtfbilin, numpoly, denpoly, isconstant, sampling_time
+export confmap, simplify, normalize, poles, gain, zpk, rtfbilin, numpoly, denpoly, isconstant, sampling_time
 export blockdiag, eye, rcond
 export gdual, ctranspose, inv, ldiv, rdiv, ginv
 export append, series, parallel, horzcat, vertcat

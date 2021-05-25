@@ -283,8 +283,8 @@ s = rtf('s'); z = rtf('z');     # define the complex variables s and z
 @test all(confmap.(confmap.(Gc,[g]),[ginv]) .== Gc)
 @test all(confmap.(confmap.(Gd,[ginv]),[g]) .== Gd)
 
-@test all(rmconfmap(rmconfmap(Gc,g),ginv) .== Gc)
-@test all(rmconfmap(rmconfmap(Gd,ginv),g) .== Gd)
+@test all(confmap(confmap(Gc,g),ginv) .== Gc)
+@test all(confmap(confmap(Gd,ginv),g) .== Gd)
 
 # concatenations
 s = rtf('s'); z = rtf('z');     # define the complex variables s and z  
