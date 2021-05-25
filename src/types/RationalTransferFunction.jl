@@ -231,24 +231,7 @@ end
 Base.print(io::IO, R::VecOrMat{<:RationalTransferFunction}) = show(io, R)
 Base.show(io::IO, R::VecOrMat{<:RationalTransferFunction}) = show(io, MIME("text/plain"), R)
 
-# function Base.show(io::IO, mime::MIME{Symbol("text/plain")}, R::VecOrMat{<:AbstractRationalFunction})
-#     summary(io, R); println(io)
-#     println("$R")
-#     if typeof(R) <: VecOrMat{<:RationalTransferFunction}
-#         Ts = sampling_time(R[1,1])
-#         Ts < 0 && println(io, "\n\nSample time: unspecified.")
-#         Ts > 0 && println(io, "\n\nSample time: $(sys.Ts) second(s).")
-#         iszero(Ts) ? println(io, "\n\nContinuous-time rational transfer function matrix model.") :
-#                      println(io, "Discrete-time rational transfer function matrix model.") 
-#     end
-# end
-# Base.print(io::IO, R::VecOrMat{<:RationalTransferFunction}) = show(io, R)
-
-#function Base.show(io::IO, R::Union{RationalTransferFunction,VecOrMat{<:RationalTransferFunction}})
 function Base.show(io::IO, mime::MIME{Symbol("text/plain")}, R::VecOrMat{<:RationalTransferFunction})
-    # Compose the name vectors
-    #println(io, "TransferFunction:")
-    #typeof(R) <: RationalTransferFunction && (show_rtf(io, R); return)
     summary(io, R); println(io)
     p, m = size(R,1), size(R,2)
     for j=1:m
@@ -626,21 +609,19 @@ function confmap(r::RationalTransferFunction,f::RationalTransferFunction)
     m = degree(r.num)
     n = degree(r.den)
     pol = f.den
-    n1 = degree(pol)
     return m >= n ? rtf(confmap(r.num,f).num,confmap(r.den,f).num*pol^(m-n),Ts = f.Ts,var = f.var) :
                     rtf(confmap(r.num,f).num*pol^(n-m),confmap(r.den,f).num,Ts = f.Ts,var = f.var) 
 end
 """
-    Rt = rmconfmap(R, f)
+    Rt = confmap(R, f)
 
 Apply elementwise the conformal mapping transformation `λ = f(δ)` to the rational transfer function matrix `R(λ)` 
 and return `Rt(δ) = R(f(δ))`. The resulting elements of `Rt` inherit the sampling time and variable of `f`.
 """
-function rmconfmap(R::VecOrMat{<:RationalTransferFunction},f::RationalTransferFunction) 
+function confmap(R::VecOrMat{<:RationalTransferFunction},f::RationalTransferFunction) 
     nrow = size(R,1)
     ncol = size(R,2)
     T = _eltype(R[1])
-    #Rt = similar(R,RationalTransferFunction{_eltype(R),f.var}, nrow, ncol)
     Rt = similar(R,RationalTransferFunction{T,f.var,Polynomial{T,f.var},sampling_time(R[1])}, nrow, ncol)
     for j = 1:ncol
         for i = 1:nrow

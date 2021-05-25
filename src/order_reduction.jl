@@ -190,12 +190,13 @@ function gir(SYS::DescriptorStateSpace{T}; atol::Real = zero(real(T)), atol1::Re
 end
 """
     gir_lrtran(sys; ltran = false, rtran = false, finite = true, infinite = true, contr = true, obs = true, 
-             noseig = false, fast = true, atol = 0, atol1 = atol, atol2 = atol, rtol = nϵ) -> (sysr, L, R)
+             noseig = false, fast = true, atol = 0, atol1 = atol, atol2 = atol, rtol = nϵ) -> (sysr, Q, Z)
 
 This is a special version of the function `gir` to additionally determine the left and right 
-projection matrices `L` and `R`, respectively, such that the matrices `Ar`, `Er`, `Br` and `Cr` of the resulting
-descriptor system `sysr = (Ar-λEr,Br,Cr,Dr)` are given by `Ar = L*A*R`, `Er = L*E*R`, `Br = L*B`, `Cr = C*R`. 
-`L = nothing` if `ltran = false` and `R = nothing` if `rtran = false`. 
+transformation matrices `Q = [Q1 Q2]` and `Z = [Z1 Z2]`, respectively, such that the matrices `Ar`, `Er`, `Br` and `Cr` of the resulting
+descriptor system `sysr = (Ar-λEr,Br,Cr,Dr)` are given by `Ar = Q1'*A*Z1`, `Er = Q1'*E*Z1`, `Br = Q1'*B`, `Cr = C*Z1`, 
+where the number of columns of `Q1` and `Z1` is equal to the order of matrix `Ar`. `Q` and `Z` result orthogonal if `noseig = false`. 
+`Q = nothing` if `ltran = false` and `Z = nothing` if `rtran = false`. 
 See [`gir`](@ref) for details on the rest of keyword parameters.
 """
 function gir_lrtran(SYS::DescriptorStateSpace{T}; ltran::Bool = false, rtran::Bool = false, atol::Real = zero(real(T)), atol1::Real = atol, atol2::Real = atol, 
@@ -206,10 +207,9 @@ function gir_lrtran(SYS::DescriptorStateSpace{T}; ltran::Bool = false, rtran::Bo
     A, E, B, C, D = dssdata(T1,SYS)
 
     E == I && (E = eye(T,size(A,1)))
-    A, E, B, C, D, L, R, = lsminreal2_lrtran(A, E, B, C, D; ltran, rtran, 
-                                             fast, atol1, atol2, rtol, 
-                                             finite, infinite, contr, obs, noseig) 
-    return dss(A, E, B, C, D, Ts = SYS.Ts), L, R
+    A, E, B, C, D, Q, Z, = lsminreal2_lrtran(A, E, B, C, D; withQ = ltran, withZ = rtran, 
+                                             fast, atol1, atol2, rtol, finite, infinite, contr, obs, noseig) 
+    return dss(A, E, B, C, D, Ts = SYS.Ts), Q, Z
 end
 """
     sysr = gminreal(sys; contr = true, obs = true, noseig = true, fast = true, 
@@ -493,15 +493,21 @@ function gbalmr(sys::DescriptorStateSpace{T}; balance::Bool = false, matchdc::Bo
 end
 function lsminreal2_lrtran(A::AbstractMatrix, E::AbstractMatrix, 
                     B::AbstractVecOrMat, C::AbstractMatrix, D::AbstractVecOrMat; 
-                    ltran::Bool = false, rtran::Bool = false, 
+                    withQ::Bool = false, withZ::Bool = false, 
                     atol1::Real = zero(real(eltype(A))), atol2::Real = zero(real(eltype(A))), 
                     rtol::Real =  (size(A,1)+1)*eps(real(float(one(real(eltype(A))))))*iszero(max(atol1,atol2)), 
                     fast::Bool = true, finite::Bool = true, infinite::Bool = true, 
                     contr::Bool = true, obs::Bool = true, noseig::Bool = true)
-   # This is a special version of lsminreal2 to also determine the left and right projection matrices 
-   # L and R, respectively, such that the matrices Ar, Er, Br, and Cr of the resulting descriptor system 
-   # (Ar-λEr,Br,Cr,Dr) are given by Ar = L*A*R, Er = L*E*R, Br = L*B, Cr = C*R. 
-   # L = nothing if ltran = false and R = nothing if rtran = false. 
+   #
+   # lsminreal2_ltran(A, E, B, C, D; withQ = false, withZ = false, fast = true, atol1 = 0, atol2 = 0, rtol, 
+   #                  finite = true, infinite = true, contr = true, obs = true, noseig = true) 
+   #                  -> (Ar, Er, Br, Cr, Dr, Q, Z, nuc, nuo, nse)
+
+   # This is a special version of lsminreal2 to also determine the left and right transformation matrices 
+   # Q = [Q1 Q2] and Z = [Z1 Z2], respectively, such that the matrices Ar, Er, Br, and Cr of the resulting descriptor system 
+   # (Ar-λEr,Br,Cr,Dr) are given by Ar = Q1'*A*Z1, Er = Q1'*E*Z1, Br = Q1'*B, Cr = C*Z1, where the number of columns of Q1 and Z1 
+   # is equal to the order of matrix Ar. Q and Z result orthogonal if noseig = false. 
+   # Q = nothing if withQ = false and Z = nothing if withZ = false. 
    n = LinearAlgebra.checksquare(A)
    (n,n) != size(E) && throw(DimensionMismatch("A and E must have the same dimensions"))
    p, m = size(D,1), size(D,2)
@@ -518,11 +524,10 @@ function lsminreal2_lrtran(A::AbstractMatrix, E::AbstractMatrix,
    C1 = copy_oftype(C,T)
    D1 = copy_oftype(D,T)  
 
-   ltran ? L = Matrix{T}(I,n,n) : L = nothing
-   rtran ? R = Matrix{T}(I,n,n) : R = nothing
+   withQ ? Q = Matrix{T}(I,n,n) : Q = nothing
+   withZ ? Z = Matrix{T}(I,n,n) : Z = nothing
 
-
-   n == 0 && (return A1, E1, B1, C1, D1, L, R, 0, 0, 0)
+   n == 0 && (return A1, E1, B1, C1, D1, Q, Z, 0, 0, 0)
 
    # save system matrices
    Ar = copy(A1)
@@ -531,10 +536,11 @@ function lsminreal2_lrtran(A::AbstractMatrix, E::AbstractMatrix,
    Dr = copy(D1)
    Er = copy(E1)
    ir = 1:n
+   iz1 = ir; iz2 = n+1:n; 
    if finite
       if contr  
-         m == 0 &&  (ir = 1:0; return Ar[ir,ir], Er[ir,ir], Br[ir,:], Cr[:,ir], Dr, L, R, n, 0, 0)
-         Q, Z, _, nr, nfuc = sklf_rightfin!(Ar, Er, Br, Cr; fast, atol1, atol2, rtol, withQ = ltran, withZ = rtran) 
+         m == 0 &&  (ir = 1:0; return Ar[ir,ir], Er[ir,ir], Br[ir,:], Cr[:,ir], Dr, Q, Z, n, 0, 0)
+         Q1, Z1, _, nr, nfuc = sklf_rightfin!(Ar, Er, Br, Cr; fast, atol1, atol2, rtol, withQ, withZ) 
          if nfuc > 0
             ir = 1:nr
             # save intermediary results
@@ -542,8 +548,9 @@ function lsminreal2_lrtran(A::AbstractMatrix, E::AbstractMatrix,
             E1 = Er[ir,ir]
             B1 = Br[ir,:]
             C1 = Cr[:,ir]
-            ltran && (L = Q[:,ir]'*L)
-            rtran && (R = R*Z[:,ir])
+            iz1 = ir; iz2 = nr+1:n
+            withQ && (Q = copy(Q1))
+            withZ && (Z = copy(Z1))
          else
             # restore original matrices 
             Ar = copy(A1)
@@ -556,18 +563,21 @@ function lsminreal2_lrtran(A::AbstractMatrix, E::AbstractMatrix,
          nr = n
       end
       if obs 
-         p == 0 &&  (ir = 1:0; return Ar[ir,ir], Er[ir,ir], Br[ir,:], Cr[:,ir], Dr, L, R, nfuc, nr, 0)
-         Q, Z, _, no, nfuo = sklf_leftfin!(view(Ar,ir,ir), view(Er,ir,ir), view(Cr,:,ir), view(Br,ir,:); 
-                                           fast, atol1, atol2, rtol, withQ = ltran, withZ = rtran) 
+         p == 0 &&  (ir = 1:0; return Ar[ir,ir], Er[ir,ir], Br[ir,:], Cr[:,ir], Dr, 
+                                      withQ ? Q[:,[iz1;iz2]] : Q, withZ ? Z[:,[iz1;iz2]] : Z, nfuc, nr, 0)
+         Q1, Z1, _, no, nfuo = sklf_leftfin!(view(Ar,ir,ir), view(Er,ir,ir), view(Cr,:,ir), view(Br,ir,:); 
+                                           fast, atol1, atol2, rtol, withQ, withZ) 
          if nfuo > 0
+             iz2 = [ir[1:end-no];iz2]
              ir = ir[end-no+1:end]
              # save intermediary results
              A1 = Ar[ir,ir]
              E1 = Er[ir,ir]
              B1 = Br[ir,:]
              C1 = Cr[:,ir]
-             ltran && (L = Q[:,end-no+1:end]'*L) 
-             rtran && (R = R*Z[:,end-no+1:end])
+             withQ && (Q[:,iz1] = Q[:,iz1]*Q1) 
+             withZ && (Z[:,iz1] = Z[:,iz1]*Z1)
+             iz1 = ir 
           else
              # restore saved matrices
              Ar[ir,ir] = A1
@@ -584,18 +594,21 @@ function lsminreal2_lrtran(A::AbstractMatrix, E::AbstractMatrix,
    end
    if infinite
       if contr  
-         m == 0 &&  (ir = 1:0; return Ar[ir,ir], Er[ir,ir], Br[ir,:], Cr[:,ir], Dr, L, R, n, 0, 0)
-         Q, Z, _, nr, niuc = sklf_rightfin!(view(Er,ir,ir), view(Ar,ir,ir), view(Br,ir,:), view(Cr,:,ir); 
-                                           fast, atol1, atol2, rtol, withQ = ltran, withZ = rtran) 
+         m == 0 &&  (ir = 1:0; return Ar[ir,ir], Er[ir,ir], Br[ir,:], Cr[:,ir], Dr, 
+                                      withQ ? Q[:,[iz1;iz2]] : Q, withZ ? Z[:,[iz1;iz2]] : Z, n, 0, 0)
+         Q1, Z1, _, nr, niuc = sklf_rightfin!(view(Er,ir,ir), view(Ar,ir,ir), view(Br,ir,:), view(Cr,:,ir); 
+                                           fast, atol1, atol2, rtol, withQ, withZ) 
          if niuc > 0
-             ir = ir[1:nr]
+            iz2 = [ir[nr+1:end];iz2]
+            ir = ir[1:nr]
             # save intermediary results
             A1 = Ar[ir,ir]
             E1 = Er[ir,ir]
             B1 = Br[ir,:]
             C1 = Cr[:,ir]
-            ltran && (L = Q[:,1:nr]'*L) 
-            rtran && (R = R*Z[:,1:nr])
+            withQ && (Q[:,iz1] = Q[:,iz1]*Q1) 
+            withZ && (Z[:,iz1] = Z[:,iz1]*Z1)
+            iz1 = ir 
         else
             # restore original matrices 
             Ar[ir,ir] = A1
@@ -607,19 +620,22 @@ function lsminreal2_lrtran(A::AbstractMatrix, E::AbstractMatrix,
          niuc = 0
       end
       if obs 
-         p == 0 &&  (ir = 1:0; return Ar[ir,ir], Er[ir,ir], Br[ir,:], Cr[:,ir], Dr, L, R, niuc, nr, 0)
-         Q, Z, _, no, niuo = sklf_leftfin!(view(Er,ir,ir), view(Ar,ir,ir), view(Cr,:,ir), view(Br,ir,:); 
-                                           fast, atol1, atol2, rtol, withQ = ltran, withZ = rtran) 
+        p == 0 &&  (ir = 1:0; return Ar[ir,ir], Er[ir,ir], Br[ir,:], Cr[:,ir], Dr, 
+                                      withQ ? Q[:,[iz1;iz2]] : Q, withZ ? Z[:,[iz1;iz2]] : Z, niuc, nr, 0)
+         Q1, Z1, _, no, niuo = sklf_leftfin!(view(Er,ir,ir), view(Ar,ir,ir), view(Cr,:,ir), view(Br,ir,:); 
+                                           fast, atol1, atol2, rtol, withQ, withZ) 
          if niuo > 0
+             iz2 = [ir[1:end-no];iz2]
              ir = ir[end-no+1:end]
              # save intermediary results
              A1 = Ar[ir,ir]
              E1 = Er[ir,ir]
              B1 = Br[ir,:]
              C1 = Cr[:,ir]
-             ltran && (L = Q[:,end-no+1:end]'*L)
-             rtran && (R = R*Z[:,end-no+1:end])
-          else
+             withQ && (Q[:,iz1] = Q[:,iz1]*Q1) 
+             withZ && (Z[:,iz1] = Z[:,iz1]*Z1)
+             iz1 = ir 
+         else
              # restore saved matrices
              Ar[ir,ir] = A1
              Er[ir,ir] = E1
@@ -637,39 +653,39 @@ function lsminreal2_lrtran(A::AbstractMatrix, E::AbstractMatrix,
    nuo = nfuo+niuo
    if noseig
       nm = length(ir)
-      ltran ? Q = Matrix{T}(I,nm,nm) : Q = nothing
-      rtran ? Z = Matrix{T}(I,nm,nm) : Z = nothing
-      rE, rA22  = _svdlikeAE!(view(Ar,ir,ir), view(Er,ir,ir), Q, Z, view(Br,ir,:), view(Cr,:,ir); 
-                              fast, atol1, atol2, rtol, withQ = ltran, withZ = rtran)
+      withQ ? Q1 = Matrix{T}(I,nm,nm) : Q1 = nothing
+      withZ ? Z1 = Matrix{T}(I,nm,nm) : Z1 = nothing
+      rE, rA22  = _svdlikeAE!(view(Ar,ir,ir), view(Er,ir,ir), Q1, Z1, view(Br,ir,:), view(Cr,:,ir); 
+                              fast, atol1, atol2, rtol, withQ, withZ)
       if rA22 > 0
-         ltran && (L = Q'*L) 
-         rtran && (R = R*Z)
+         withQ && (Q[:,iz1] = Q[:,iz1]*Q1) 
+         withZ && (Z[:,iz1] = Z[:,iz1]*Z1)
          i1 = ir[1:rE]
          i2 = ir[rE+1:rE+rA22]
          # make A22 = I
          fast ? (A22 = UpperTriangular(Ar[i2,i2])) : (A22 = Diagonal(Ar[i2,i2]))
          ldiv!(A22,view(Ar,i2,i1))
          ldiv!(A22,view(Br,i2,:))
-         ltran && ldiv!(A22,view(L,i2,:))
+         withQ && rdiv!(view(Q,:,i2),A22')
          # apply simplified residualization formulas
          mul!(Dr, view(Cr,:,i2), view(Br,i2,:), -ONE, ONE)               # Dr -= Cr[:,i2]*Br[i2,:]
          mul!(view(Br,i1,:), view(Ar,i1,i2), view(Br,i2,:), -ONE, ONE)   # Br[i1,:] -= Ar[i1,i2]*Br[i2,:]
          mul!(view(Cr,:,i1), view(Cr,:,i2), view(Ar,i2,i1), -ONE, ONE)   # Cr[:,i1] -= Cr[:,i2]*Ar[i2,i1]
          mul!(view(Ar,i1,i1), view(Ar,i1,i2), view(Ar,i2,i1), -ONE, ONE) # Ar[i1,i1] -= Ar[i1,i2]*Ar[i2,i1]
-         ltran &&  mul!(view(L,i1,:), view(Ar,i1,i2), view(L,i2,:), -ONE, ONE) # (L[i1,:] -= Ar[i1,i2]*L[i2,:])
-         rtran &&  mul!(view(R,:,i1), view(R,:,i2), view(Ar,i2,i1), -ONE, ONE) # (R[:,i1] -= R[:,i2]*Ar[i2,i1])
-         ir = [i1; ir[rE+rA22+1:end]]
-         ltran && (L = L[ir,:])
-         rtran && (R = R[:,ir])
-  else
+         withQ &&  mul!(view(Q,:,i1), view(Q,:,i2), Ar[i1,i2]', -ONE, ONE) # (Q[:,i1] -= Q[:,i2]*Ar[i1,i2]')
+         withZ &&  mul!(view(Z,:,i1), view(Z,:,i2), view(Ar,i2,i1), -ONE, ONE) # (Z[:,i1] -= Z[:,i2]*Ar[i2,i1])
+         iz2 = [ir[rE+1:rE+rA22];iz2]
+         ir =  [i1; ir[rE+rA22+1:end]]
+         iz1 = ir
+      else
          # restore saved matrices
          Ar[ir,ir] = A1
          Er[ir,ir] = E1
          Br[ir,:] = B1
          Cr[:,ir] = C1
       end
-      return Ar[ir,ir], Er[ir,ir], Br[ir,:], Cr[:,ir], Dr, ltran ? L : nothing, rtran ? R : nothing, nuc, nuo, rA22
+      return Ar[ir,ir], Er[ir,ir], Br[ir,:], Cr[:,ir], Dr, withQ ? Q[:,[iz1;iz2]] : Q, withZ ? Z[:,[iz1;iz2]] : Z, nuc, nuo, rA22
    else
-      return Ar[ir,ir], Er[ir,ir], Br[ir,:], Cr[:,ir], Dr, L, R, nuc, nuo, 0
+      return Ar[ir,ir], Er[ir,ir], Br[ir,:], Cr[:,ir], Dr, withQ ? Q[:,[iz1;iz2]] : Q, withZ ? Z[:,[iz1;iz2]] : Z, nuc, nuo, 0
    end
 end

@@ -71,7 +71,8 @@ function dss2pm(sys::DescriptorStateSpace{T}; fast::Bool = true,
 end
 """
     c2d(sysc, Ts, meth = "zoh"; x0, u0, standard = true, fast = true, prewarp_freq = freq, 
-               state_mapping = false, atol = 0, atol1 = atol, atol2 = atol, rtol = n*ϵ) -> (sysd, xd0, M)
+               state_mapping = false, simple_infeigs = true, 
+               atol = 0, atol1 = atol, atol2 = atol, rtol = n*ϵ) -> (sysd, xd0, Mx, Mu)
 
 Compute for the continuous-time descriptor system `sysc = (A-sE,B,C,D)` with the proper 
 transfer function matrix `Gc(λ)` and for a sampling time `Ts`, the corresponding discretized
@@ -80,12 +81,16 @@ according to the selected discretization method specified by `meth`.
 The keyword argument `standard` specifies the option to compute a standard state-space realization 
 of `sysd` (i.e., with `Ed = I`), if `standard = true` (default), 
 or a descriptor system realization if `standard = false`. 
+The keyword argument `simple_infeigs = true` indicates that only simple infinite eigenvalues 
+of the pair `(A,E)` are to be expected (default). The setting `simple_infeigs = false`
+indicates that possible uncontrollable or unobservable 
+higher order infinite generalized eigenvalues of the pair `(A,E)` are present and have to be removed. 
 `xd0` is the mapped initial condition of the state of the discrete-time system `sysd` determined from the 
 initial conditions of the state `x0` and input `u0` of the continuous-time system `sysc`. 
-The keyword argument `state_mapping` specifies the option to compute a state mapping matrix `M` such that
-at each time moment `t`, the state `xd(t)` of the discretized system is related to the state `x(t)` 
-and input `u(t)` of the continuous-time system as `xd(t) = M*[x(t);u(t)]`, 
-if `state_mapping = true`, or  `M = nothing` if `state_mapping = false` (default). 
+The keyword argument `state_mapping = true` specifies the option to compute the state mapping matrices `Mx` and `Mu` such that 
+the values `xc(t)` and `xd(t)` of the system state vectors of the continuous-time system `sysc` and of the discrete-time system
+`sysd`, respectively, and of the input vector `u(t)` are related as `xc(t) = Mx*xd(t)+Mu*u(t)`.   
+If `state_mapping = false` (the default option), then `Mx = nothing` and `Mu = nothing`.
 
 The following discretization methods can be performed by appropriately selecting `meth`:
 
@@ -110,65 +115,60 @@ and the relative tolerance for the nonzero elements of `A`, `B`, `C`, `D` and `E
 The default relative tolerance is `n*ϵ`, where `n` is the order of the square matrices `A` and `E`, and  `ϵ` is the working machine epsilon. 
 The keyword argument `atol` can be used to simultaneously set `atol1 = atol` and `atol2 = atol`. 
 """
-function c2d(sysc::DescriptorStateSpace{T}, Ts::Real, meth::String = "zoh"; 
+function c2d(sysc::DescriptorStateSpace{T}, Ts::Real, meth::String = "zoh"; simple_infeigs::Bool = true,
              x0::Vector = zeros(T,sysc.nx), u0::Vector = zeros(T,sysc.nu), state_mapping::Bool = false, 
              prewarp_freq::Real = 0, standard::Bool = true, fast::Bool = true, 
              atol::Real = zero(float(real(T))), atol1::Real = atol, atol2::Real = atol, 
              rtol::Real = sysc.nx*eps(real(float(one(T))))*iszero(min(atol1,atol2))) where T
 
     T1 = T <: BlasFloat ? T : promote_type(Float64,T) 
+    ONE = one(T1)
     n = sysc.nx 
+    m = sysc.nu
+    length(x0) == n || error("initial state vector and system state vector dimensions must coincide")
+    length(u0) == m || error("initial input vector and system input vector dimensions must coincide")
 
+    state_mapping || ( Mx = nothing; Mu = nothing)
     # quick exit in constant case  
-    n == 0 && (return dss(sysc.D; Ts))
+    n == 0 && (return dss(sysc.D; Ts), x0, state_mapping ? zeros(T1,0,0) : Mx, state_mapping ? zeros(T1,0,m) : Mu)
 
     meth = lowercase(meth)
-    state_mapping || ( M = nothing)
 
     if meth == "zoh" || meth == "foh" || meth == "impulse"
-       L = I;
        if sysc.E != I 
           # eliminate (if possible) all infinite eigenvalues in the continuous-time case with singular E
           if rcond(sysc.E) >= n*eps(float(real(T1)))
              A, E, B, C, D = dssdata(T1,sysc)
+             F = lu!(E)
+             # get rid of E matrix
+             ldiv!(F,A); ldiv!(F,B)
+             state_mapping && (Mx = I; Mu = zeros(T1,n,m))
           else
-             # determine the left projection for nonzero initial condition or explicit need for state mapping
-             ltran = state_mapping || !iszero(x0)  
-             sysc, L, R = gir_lrtran(sysc; fast, ltran, rtran=true, finite = false, noseig = true, atol1, atol2, rtol)
-             println("L = $L  R = $R")
-             A, E, B, C, D = dssdata(sysc)
-             n = size(A,1) 
-             # adjust initial condition
-             ltran ? (x0 = L*x0) : x0 = zeros(T1,n)
+             A, B, C, D, xt0, Mx, Mu = state_map(sysc, x0; state_mapping, simple_infeigs, fast, atol1, atol2, rtol) 
+             n, m = size(B) 
+             isnothing(Mx) && (state_mapping = false)
+             state_mapping && norm(Mx*xt0+Mu*u0-x0,Inf) >= eps(norm(x0,Inf)*100) && (@warn "Inconsistent state initial condition: try x0 = Mx*xd0+Mu*u0")
+             x0 = copy(xt0)
           end
-
-          # quick exit in constant case  
-          n == 0 && (state-mapping && (M = zeros(T1,n,m)); return dss(D; Ts), x0, M)
-
-          # check properness in continuous-time case
-          F = lu!(E;check=false)
-          (!issuccess(F) || rcond(UpperTriangular(F.U)) <= n*eps(float(real(T1)))) && error("improper systems not supported")
-          # get rid of E matrix
-          ldiv!(F,A); ldiv!(F,B)
        else
-           A, _, B, C, D = dssdata(T1,sysc)
+          A, _, B, C, D = dssdata(T1,sysc)
+          state_mapping && (Mx = I; Mu = zeros(T1,n,m))
        end
        m = size(D,2)
        if meth == "zoh"
           G = exp([ rmul!(A,Ts) rmul!(B,Ts); zeros(T1,m,n+m)])
-          state_mapping && ( M = [L zeros(T1,n,m)])
-          return (dss(view(G,1:n,1:n), view(G,1:n,n+1:n+m), C, D; Ts), x0, M)
+          return (dss(view(G,1:n,1:n), view(G,1:n,n+1:n+m), C, D; Ts), x0, Mx, Mu)
        elseif meth == "foh"
           G = exp([ rmul!(A,Ts) rmul!(B,Ts) zeros(T1,n,m); zeros(T1,m,n+m) 1/Ts*I; zeros(T1,m,n+2m)])
           Ad = view(G,1:n,1:n)
           G1 = view(G,1:n,n+1:n+m)
           G2 = view(G,1:n,n+m+1:n+2m)
-          state_mapping && ( M = [L -G2])
-          return (dss(Ad, G1+(Ad-I)*G2, C, D+C*G2; Ts), x0-G2*u0, M)
+          # discrete to continuous state map Mx = M1 Mu = Mu+Mx*G2
+          state_mapping && mul!(Mu, Mx, G2, ONE, ONE) 
+          return (dss(Ad, G1+(Ad-I)*G2, C, D+C*G2; Ts), x0-G2*u0, Mx, Mu)
        else # meth == "impulse"
          G = exp(rmul!(A,Ts))
-         state_mapping && ( M = [L zeros(T1,n,m)])
-         return (dss(G, G*B, C, C*B; Ts), x0, M)
+         return (dss(G, G*B, C, C*B; Ts), x0, Mx, Mu)
        end
     elseif meth == "tustin"
        A, E, B, C, D = dssdata(T1,sysc)
@@ -183,8 +183,8 @@ function c2d(sysc::DescriptorStateSpace{T}, Ts::Real, meth::String = "zoh";
           mul!(D,C,X,0.5,1)        # Dd = D + C*(E - A*T/2)\B*(T/2) = D + C*X/2
           rdiv!(C,F)               # Cd = C/(E - A*T/2)
           xd0 -= (X*u0)/2          # xd0 = (E - A*T/2)*x0 - (E - A*T/2)\B*(T/2)*u0 = (E - A*T/2)*x0 - X*u0/2
-          state_mapping && ( M = [Ed -X/2])
-          return (dss(Ad, Bd, C, D; Ts), xd0, M)
+          state_mapping && ( Mx = inv(F); Mu = copy(ldiv!(F,X/2)))
+          return (dss(Ad, Bd, C, D; Ts), xd0, Mx, Mu)
        else
          Ed = E-t/2*A              # Ed = E - A*T/2 
          X = Ed\(B*t)              # X = (E - A*T/2)\B*T 
@@ -192,12 +192,76 @@ function c2d(sysc::DescriptorStateSpace{T}, Ts::Real, meth::String = "zoh";
          Ad = E+t/2*A              # Ad = E + A*T/2;  Cd = C
          Bd = E*X                  # Bd = E * (E - A*T/2) \ B*T
          xd0 = x0 - (X*u0)/2       # xd0 = x0 - (E - A*T/2)\B*(T/2)*u0 = x0 - X*u0/2
-         state_mapping && ( M = [I -X/2])
-         return (dss(Ad, Ed, Bd, C, D; Ts), xd0, M)
+         state_mapping && ( Mx = I; Mu = X/2)
+         return (dss(Ad, Ed, Bd, C, D; Ts), xd0, Mx, Mu)
       end
     else
        error("no such method")
     end                        
+end
+function state_map(sys::DescriptorStateSpace{T}, x0::Vector; state_mapping::Bool = false, simple_infeigs::Bool = true,  
+                   fast::Bool = true, atol1::Real = zero(float(real(T))), atol2::Real = zero(float(real(T))),  
+                   rtol::Real = sys.nx*eps(real(float(one(T))))*iszero(min(atol1,atol2))) where T
+   #
+   #  Ar, Br, Cr, Dr, xr0, Mx, Mu = state_map(sys,x0; state-mapping, simple_infeigs, fast, atol1, atol2, rtol)
+   #
+   # Return for a proper system sys = (A-λE,B,C,D), the state space matrices Ar, Br, Cr, Dr of an equivalent reduced order standard system
+   # sysr = (Ar-λI,Br,Cr,Dr), the reduced initial state xr0, and the state mapping matrices Mx and Mu such that the values x(t) and xr(t)  
+   # of the system state vectors of the systems sys and sysr and the input vector u(t) are related as x(t) = Mx*xr(t)+Mu*u(t) 
+   # if state_mapping = true and Mx = nothing and Mu = nothing if state_mapping = false. 
+   # Higher order uncontrollable or unobservable infinite eigenvalues can be eliminated if simple_infeigs = false. 
+   # By default, simple infinite eigenvalues for the pair (A,E) are assumed (simple_infeigs = true). 
+   T1 = T <: BlasFloat ? T : promote_type(Float64,T) 
+   n = sys.nx
+   nullx0 = iszero(x0)
+   # determine the right orthogonal projection for nonzero initial condition or explicit need for state mapping
+   simple_infeigs || ((sys, L, R) = gir_lrtran(sys; fast, rtran = state_mapping || !nullx0, finite = false, noseig = false, atol1, atol2, rtol) )   
+         
+   A, E, B, C, D = dssdata(T1,sys)
+   n1, m = size(B) 
+   if n1 < n
+      state_mapping && (@warn "state mapping disabled being not feasible: try simple_infeigs = true"; state_mapping = false; Mx = nothing; Mu = nothing)
+      # adjust initial condition
+      nullx0 ? x0 = zeros(T1,n1) : x0 = R[:,1:n1]'*x0 
+   end
+
+   ONE = one(T)
+   state_mapping || (Mx = nothing; Mu = nothing)
+   Z = Matrix{T1}(I,n1,n1) 
+   n, rA22  = _svdlikeAE!(A, E, nothing, Z, B, C; fast, atol1, atol2, rtol, withQ = false)
+   n+rA22 == n1 || error("improper systems not supported")
+   if rA22 == 0
+      xt = copy(x0)
+      state_mapping && (Mx = I; Mu = zeros(T1,n,m))
+   else
+      i1 = 1:n
+      i2 = n+1:n1
+      # adjust initial condition
+      Z1 = view(Z,:,i1)
+      Z2 = view(Z,:,i2)
+      A21 = view(A,i2,i1)
+      B2 = view(B,i2,:)
+      xt = Z1'*x0 
+      # make A22 = I
+      fast ? (A22 = UpperTriangular(A[i2,i2])) : (A22 = Diagonal(A[i2,i2]))
+      ldiv!(A22,A21)  # inv(A22)*A21 -> A21
+      ldiv!(A22,B2)   # inv(A22)*B2 -> B2
+      # apply simplified residualization formulas
+      mul!(D, view(C,:,i2), B2, -ONE, ONE)               # D -= C2*B2
+      mul!(view(B,i1,:), view(A,i1,i2), B2, -ONE, ONE)   # B1 -= A12*B2
+      mul!(view(C,:,i1), view(C,:,i2), A21, -ONE, ONE)   # C1 -= C2*A21
+      mul!(view(A,i1,i1), view(A,i1,i2), A21, -ONE, ONE) # A11 -= A12*A21
+      # state_mapping && rank(B2; atol = atol1, rtol) < rA22 &&  
+      #    (@warn "state mapping disabled being not feasible"; state_mapping = false; Mx = nothing; Mu = nothing)
+      state_mapping && (mul!(Z1, Z2, A21, ONE, ONE); Mx = copy(Z1); Mu = -Z2*B2)   
+      A = A[i1,i1]; E = E[i1,i1]; B = B[i1,:]; C = C[:,i1] 
+   end   
+   # quick exit in constant case  
+   n == 0 && (return A, B, C, D, xt, Mx, Mu)
+   fast ? (Ec = UpperTriangular(E)) : (Ec = Diagonal(E))
+   # get rid of E matrix
+   ldiv!(Ec,A); ldiv!(Ec,B)
+   return A, B, C, D, xt, Mx, Mu
 end
 
 """
@@ -295,7 +359,8 @@ function gbilin(sys::DescriptorStateSpace{T},g::RationalTransferFunction;
     # end GBILIN
 end
 """
-    timeresp(sys, u, t, x0 = zeros(sys.nx); interpolation = "zoh", state_history = false) -> (y, tout, x)
+    timeresp(sys, u, t, x0 = zeros(sys.nx); interpolation = "zoh", state_history = false,
+            fast = true, atol = 0, atol1 = atol, atol2 = atol, rtol = n*ϵ) -> (y, tout, x)
 
 Compute the time response of a proper descriptor system `sys = (A-λE,B,C,D)` to the input signals 
 described by `u` and `t`. The time vector `t` consists of regularly spaced time samples. The 
@@ -314,6 +379,17 @@ the state values at time `tout[i]`. By default, the state history is not compute
 For continuous-time models, the input values are interpolated between samples. By default, 
 zero-order hold based interpolation is used. The linear interpolation method can be selected using 
 the keyword parameter `interpolation = "foh"`.
+
+The underlying pencil manipulation algorithms employ rank determinations based on either the use of 
+rank revealing QR-decomposition with column pivoting, if `fast = true` (default), or the SVD-decomposition,
+if `fast = false`. The rank decision based on the SVD-decomposition is generally more reliable, 
+but the involved computational effort is higher.
+
+The keyword arguments `atol1`, `atol2` and `rtol` specify, respectively, 
+the absolute tolerance for the nonzero elements of `A`, `B`, `C`, `D`, the absolute tolerance for the nonzero elements of `E`, 
+and the relative tolerance for the nonzero elements of `A`, `B`, `C`, `D` and `E`.  
+The default relative tolerance is `n*ϵ`, where `n` is the order of the square matrices `A` and `E`, and  `ϵ` is the working machine epsilon. 
+The keyword argument `atol` can be used to simultaneously set `atol1 = atol` and `atol2 = atol`. 
 """
 function timeresp(sys::DescriptorStateSpace{T}, u::AbstractVecOrMat{<:Number}, t::AbstractVector{<:Real},  
                   x0::AbstractVector{<:Number} = zeros(T,sys.nx); interpolation::String = "zoh", 
@@ -349,32 +425,33 @@ function timeresp(sys::DescriptorStateSpace{T}, u::AbstractVecOrMat{<:Number}, t
     state_history ?  x = Matrix{T1}(undef, N, n) : x = nothing 
     if disc
        A, E, B, C, D = dssdata(T1,sys)
-       if E != I 
-          F = lu!(E;check=false)
-          (!issuccess(F) || rcond(UpperTriangular(F.U)) <= n*eps(float(real(T1)))) && error("systems with singular E not supported")
-          ldiv!(F,A); ldiv!(F,B)
+       if E == I 
+          idmap = true
+          xt = copy(x0)
+       else
+          F = lu(E;check=false)
+          if issuccess(F) && rcond(UpperTriangular(F.U)) > n*eps(float(real(T1))) 
+             ldiv!(F,A); ldiv!(F,B)
+             idmap = true
+             xt = copy(x0)
+          else
+            A, B, C, D, xt, Mx, Mu = state_map(sys, x0; state_mapping = state_history, fast, atol1, atol2, rtol)  
+            state_history = !isnothing(Mx)
+            idmap = state_history && Mx == I && iszero(Mu)
+          end
        end
-       xt = copy(x0)
-       for i = 1:N 
-           ut = u[i,:]
-           y[i,:] = C*xt + D*ut
-           state_history && (x[i,:] = xt) 
-           xt = A*xt + B*ut
-       end
-       return y, tout, x
     else
-       state_mapping = state_history && (interpolation == "foh")
-       sysd, xt, M = c2d(sys, dt, interpolation; x0, u0 = u[1,:], state_mapping, atol1, atol2, rtol, fast)
+       sysd, xt, Mx, Mu = c2d(sys, dt, interpolation; x0, u0 = u[1,:], state_mapping = state_history, atol1, atol2, rtol, fast)
        A, E, B, C, D = dssdata(sysd) 
        n1 = size(A,1)
-       n1 < n && state_history && (@warn "State history computation is not possible"; state_history = false; x = nothing; M = nothing;)  
-       isnothing(M) || (M2 = view(M,:,n+1:n+m)) # assumes M = [I M2] (valid for "zoh" and "foh")
-       for i = 1:N 
-           ut = u[i,:]
-           y[i,:] = C*xt + D*ut
-           state_history && (isnothing(M) ? x[i,:] = xt : x[i,:] = xt - M2*ut ) 
-           xt = A*xt + B*ut
-       end
-       return y, tout, x
+       n1 < n && state_history && (@warn "State history computation is not possible: try simple_infeigs = true"; state_history = false; x = nothing)  
+       idmap = state_history && Mx == I && iszero(Mu)
    end
+   for i = 1:N 
+      ut = view(u,i,:)
+      y[i,:] = C*xt + D*ut
+      state_history && (x[i,:] = idmap ? xt : Mx*xt + Mu*ut) 
+      xt = A*xt + B*ut
+   end
+   return y, tout, x
 end
