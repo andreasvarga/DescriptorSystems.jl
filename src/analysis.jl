@@ -310,6 +310,7 @@ function gpoleinfo(SYS::DescriptorStateSpace{T}; smarg::Real = SYS.Ts == 0 ? 0 :
                      nfuev = nfuev, nhev = 0, nrank = n, miev = Int[], mip = Int[], 
                      rki = Int[], lki = Int[], regular = true, proper = true, stable = (nfsev == n))
     else
+       krinfo = nothing
        E = copy_oftype(SYS.E,T1)
        if norm(E,Inf) > atol2 
           epsm = eps(float(one(real(T))))
@@ -327,7 +328,7 @@ function gpoleinfo(SYS::DescriptorStateSpace{T}; smarg::Real = SYS.Ts == 0 ? 0 :
           val, mip, krinfo = pzeros(A, E; fast = fast, atol1 = atol1, atol2 = atol2, rtol = rtol )
        end
        nfsev, nfsbev, nfuev = eigvals_info(val[isfinite.(val)], smarg, disc, offset)
-       all(isfinite.(val)) && 
+       isnothing(krinfo) && 
            (return val, (nfev = n, niev = 0, nisev = 0, nip = 0, nfsev = nfsev, nfsbev = nfsbev, 
                         nfuev = nfuev, nhev = 0, nrank = n, miev = Int[], mip = Int[], 
                         rki = Int[], lki = Int[], regular = true, proper = true, stable = (nfsev == n)))

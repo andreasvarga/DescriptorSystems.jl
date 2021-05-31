@@ -15,7 +15,7 @@ import Polynomials: AbstractRationalFunction, AbstractPolynomial, poles, isconst
 
 export DescriptorStateSpace, AbstractDescriptorStateSpace, dss, dssdata, rdss, rss, iszero, order
 export RationalTransferFunction, rtf
-export gminreal, gir, gir_lrtran, gbalmr, gsvselect, gss2ss
+export gminreal, gir, gir_lrtran, gbalmr, gsvselect, gss2ss, dss2ss
 export gbilin, c2d, dss2rm, dss2pm, timeresp
 export confmap, simplify, normalize, poles, gain, zpk, rtfbilin, numpoly, denpoly, isconstant, sampling_time
 export blockdiag, eye, rcond

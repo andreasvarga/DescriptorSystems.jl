@@ -110,8 +110,179 @@ function gss2ss(sys::DescriptorStateSpace{T}; Eshape = "ident", atol::Real = zer
     
     # end GSS2SS
 end
-    
-    
+"""
+
+     dss2ss(sys, x0 = 0; state-mapping = false, simple_infeigs = true, fast = true, atol1, atol2, rtol) 
+               -> (sysr, xr0, Mx, Mu)
+
+Return for a proper descriptor system `sys = (A-λE,B,C,D)` and initial state `x0`, 
+the equivalent reduced order standard system `sysr = (Ar-λI,Br,Cr,Dr)` and 
+the corresponding reduced consistent initial state `xr0`.
+
+If `state_mapping = true`, the state mapping matrices `Mx` and `Mu` are also determined such that 
+the values `x(t)` and `xr(t)` of the state vectors of the systems `sys` and `sysr`, respectively,
+and the input vector `u(t)` are related as `x(t) = Mx*xr(t)+Mu*u(t)`.
+In this case, higher order uncontrollable infinite eigenvalues can be eliminated if `simple_infeigs = false`.
+
+By default, `state_mapping = false` and `Mx = nothing` and `Mu = nothing`. 
+In this case, higher order uncontrollable or unobservable infinite eigenvalues 
+can be eliminated if `simple_infeigs = false`. 
+
+By default, `simple_infeigs = true`, and simple infinite eigenvalues for the pair `(A,E)` are assumed and eliminated. 
+
+The underlying pencil manipulation algorithms employ rank determinations based on either the use of 
+rank revealing QR-decomposition with column pivoting, if `fast = true` (default), or the SVD-decomposition,
+if `fast = false`. The rank decision based on the SVD-decomposition is generally more reliable, 
+but the involved computational effort is higher.
+
+The keyword arguments `atol1`, `atol2` and `rtol` specify, respectively, 
+the absolute tolerance for the nonzero elements of `A`, `B`, `C`, `D`, the absolute tolerance for the nonzero elements of `E`, 
+and the relative tolerance for the nonzero elements of `A`, `B`, `C`, `D` and `E`.  
+The default relative tolerance is `n*ϵ`, where `n` is the order of the square matrices `A` and `E`, and  `ϵ` is the working machine epsilon. 
+"""
+function dss2ss(sys::DescriptorStateSpace{T}, x0::Vector = zeros(T,sys.nx); state_mapping::Bool = false, simple_infeigs::Bool = true,  
+                   fast::Bool = true, atol::Real = zero(float(real(T))), atol1::Real = atol, atol2::Real = atol,  
+                   rtol::Real = sys.nx*eps(real(float(one(T))))*iszero(min(atol1,atol2))) where T
+   T1 = T <: BlasFloat ? T : promote_type(Float64,T) 
+   n = sys.nx
+   m = sys.nu
+   nullx0 = iszero(x0)
+   sys.E == I && (return sys, copy_oftype(x0,T1), state_mapping ? I : nothing, state_mapping ? zeros(T1,n,m) : nothing)
+
+   # eliminate uncontrollable/unobservable infinite and nonzero eigenvalues
+   simple_infeigs || state_mapping || 
+      ((sys, L, Z) = gir_lrtran(sys; fast, rtran = !nullx0, finite = false, noseig = false, atol1, atol2, rtol) )   
+       
+   A, E, B, C, D = dssdata(T1,sys)
+   n1, m = size(B) 
+   if n1 < n
+      state_mapping && (@warn "state mapping disabled being not feasible: try simple_infeigs = true"; state_mapping = false)
+      # adjust initial condition
+      nullx0 ? x0 = zeros(T1,n1) : x0 = Z[:,1:n1]'*x0 
+   end
+   
+   ONE = one(T1)
+   state_mapping || (Mx = nothing; Mu = nothing)
+   if simple_infeigs
+      Z = Matrix{T1}(I,n1,n1) 
+      n, rA22  = _svdlikeAE!(A, E, nothing, Z, B, C; fast, atol1, atol2, rtol, withQ = false)
+      n+rA22 == n1 || error("The system is possibly improper: try with simple_infeigs = false")  
+      if rA22 == 0
+         # get rid of E matrix, exploit upper triangular or diagonal shape
+         fast ? (F = UpperTriangular(E)) : (F = Diagonal(E))
+         ldiv!(F,A); ldiv!(F,B)
+         state_mapping && (Mx = Z; Mu = zeros(T1,n,m))
+         return dss(A, B, C, D, Ts = sys.Ts), Z'*x0, Mx, Mu
+      else
+         i1 = 1:n
+         i2 = n+1:n1
+         # adjust initial condition
+         Z1 = view(Z,:,i1)
+         Z2 = view(Z,:,i2)
+         A11 = view(A,i1,i1)
+         E11 = view(E,i1,i1)
+         A12 = view(A,i1,i2)
+         A21 = view(A,i2,i1)
+         B1 = view(B,i1,:)
+         B2 = view(B,i2,:)
+         C1 = view(C,:,i1)
+         C2 = view(C,:,i2)
+         xt = Z1'*x0 
+         # make A22 = I, exploit upper triangular or diagonal shape
+         fast ? (A22 = UpperTriangular(A[i2,i2])) : (A22 = Diagonal(A[i2,i2]))
+         ldiv!(A22,A21)  # inv(A22)*A21 -> A21
+         ldiv!(A22,B2)   # inv(A22)*B2 -> B2
+         # apply simplified residualization formulas
+         mul!(D, C2, B2, -ONE, ONE)     # D -> D - C2*B2
+         mul!(B1, A12, B2, -ONE, ONE)   # B1 -> B1 - A12*B2
+         mul!(C1, C2, A21, -ONE, ONE)   # C1 -> C1 - C2*A21
+         mul!(A11, A12, A21, -ONE, ONE) # A11 -> A11 - A12*A21
+         # state_mapping && rank(B2; atol = atol1, rtol) < rA22 &&  
+         #    (@warn "state mapping disabled being not feasible"; state_mapping = false; Mx = nothing; Mu = nothing)
+         state_mapping && (mul!(Z1, Z2, A21, ONE, ONE); Mx = copy(Z1); Mu = -Z2*B2)   
+         # quick exit in constant case  
+         n == 0 && (return dss(A11, B1, C1, D, Ts = sys.Ts), xt, Mx, Mu)
+         # get rid of E matrix, exploit upper triangular or diagonal shape
+         fast ? (F = UpperTriangular(E11)) : (F = Diagonal(E11))
+         ldiv!(F,A11); ldiv!(F,B1)
+         return dss(A11, B1, C1, D, Ts = sys.Ts), xt, Mx, Mu
+      end   
+   else
+      # separate infinite eigenvalues in the trailing part; leading E11 is upper triangular
+      Z = Matrix{T1}(I,n1,n1) 
+      _, blkdims = MatrixPencils.fisplit!(A, E, nothing, Z, B, C; fast, finite_infinite = true, atol1, atol2, rtol, withQ = false) 
+      nf, ni = blkdims
+      if ni == 0
+         # get rid of E matrix, exploit upper triangular shape
+         F = UpperTriangular(E)
+         ldiv!(F,A); ldiv!(F,B)
+         state_mapping && (Mx = Z; Mu = zeros(T1,n,m))
+         return dss(A, B, C, D, Ts = sys.Ts), Z'*x0, Mx, Mu
+      end
+      i1 = 1:nf
+      # separate uncontrollable infinite eigenvalues
+      i2 = nf+1:nf+ni
+      # save trailing matrices of A, E, B and C 
+      Ai = A[i2,i2]
+      Ei = E[i2,i2]
+      Bi = B[i2,:]
+      Ci = C[:,i2]
+      Qi = nothing
+      Zi = Matrix{T}(I,ni,ni)
+      Qi, Zi, _, _, niuc = sklf_rightfin!(view(E,i2,i2), view(A,i2,i2), view(B,i2,:), view(C,:,i2);
+                                          fast, atol1, atol2, rtol, withQ = false, withZ = true) 
+      if niuc == 0
+         # restore original matrices if all infinite eigenvalues are controllable
+         A[i2,i2] = copy(Ai)
+         E[i2,i2] = copy(Ei)
+         B[i2,:] = copy(Bi)
+         C[:,i2] = copy(Ci)
+      else
+         # apply the left transformation Zi to Z2, A12 and E12 
+         Z[:,i2] = view(Z,:,i2)*Zi
+         A[i1,i2] = view(A,i1,i2)*Zi
+         E[i1,i2] = view(E,i1,i2)*Zi
+      end
+      
+      # refine structure information
+      nic = ni-niuc
+      i2 = nf+1:nf+nic
+      if norm(view(E,i2,i2),Inf) <= atol2 + rtol*norm(E,Inf)
+         # only simple controllable infinite eigenvalues
+         Z1 = view(Z,:,i1)
+         Z2 = view(Z,:,i2)
+         A11 = view(A,i1,i1)
+         A12 = view(A,i1,i2)
+         B1 = view(B,i1,:)
+         B2 = view(B,i2,:)
+         C1 = view(C,:,i1)
+         C2 = view(C,:,i2)
+         E11 = view(E,i1,i1)
+         E12 = view(E,i1,i2)
+         # xt = Z1'*x0 
+         # make A22 = I
+         A22 = UpperTriangular(A[i2,i2])
+         ldiv!(A22,B2)   # inv(A22)*B2 -> B2
+         # make E11 = I
+         F = UpperTriangular(E11)
+         # inv(E1)[A11 A12] -> [A11 A12]; inv(E1)*E12 -> E12; inv(E1)*B1 -> B1
+         ldiv!(F,view(A,i1,:)); ldiv!(F,E12); ldiv!(F,B1)
+         # make leading part of E block diagonal (i.e., diag(I,0))
+         mul!(C2, C1, E12, -ONE, ONE)   # C2 -> C2 - C1*E12
+         mul!(A12, A11, E12, -ONE, ONE)   # A12 -> A12 - A11*E12
+         # apply simplified residualization formulas
+         mul!(D, C2, B2, -ONE, ONE)     # D -> D - C2*B2
+         mul!(B1, A12, B2, -ONE, ONE)   # B1 -> B1 - A12*B2
+         xt = Z1'*x0 + E12*(Z2'*x0)     # determine consistent reduced initial state
+         mul!(Z2, Z1, E12, -ONE, ONE)   # Z2 -> Z2 - Z1*E12
+         state_mapping && (Mx = copy(Z1); Mu = -Z2*B2)   
+         return dss(A11, B1, C1, D, Ts = sys.Ts), xt, Mx, Mu
+      else
+         error("controllable higher order infinite eigenvalues present")
+      end
+   end
+   # end DSS2SS
+end      
 """
     sysr = gir(sys; finite = true, infinite = true, contr = true, obs = true, noseig = false,
                fast = true, atol = 0, atol1 = atol, atol2 = atol, rtol = nϵ) 
@@ -688,4 +859,53 @@ function lsminreal2_lrtran(A::AbstractMatrix, E::AbstractMatrix,
    else
       return Ar[ir,ir], Er[ir,ir], Br[ir,:], Cr[:,ir], Dr, withQ ? Q[:,[iz1;iz2]] : Q, withZ ? Z[:,[iz1;iz2]] : Z, nuc, nuo, 0
    end
+end
+function lsminreal2_spec(A::AbstractMatrix, E::AbstractMatrix, B::AbstractVecOrMat, C::AbstractMatrix;  
+                    withQ::Bool = false, withZ::Bool = false, 
+                    atol1::Real = zero(real(eltype(A))), atol2::Real = zero(real(eltype(A))), 
+                    rtol::Real =  (size(A,1)+1)*eps(real(float(one(real(eltype(A))))))*iszero(max(atol1,atol2)), 
+                    fast::Bool = true)
+   #
+   # lsminreal2_ltran(A, E, B, C, D; withQ = false, withZ = false, fast = true, atol1 = 0, atol2 = 0, rtol, 
+   #                  finite = true, infinite = true, contr = true, obs = true, noseig = true) 
+   #                  -> (Ar, Er, Br, Cr, Dr, Q, Z, nuc, nuo, nse)
+
+   # This is a special version of lsminreal2 to also determine the left and right transformation matrices 
+   # Q = [Q1 Q2] and Z = [Z1 Z2], respectively, such that the matrices Ar, Er, Br, and Cr of the resulting descriptor system 
+   # (Ar-λEr,Br,Cr,Dr) are given by Ar = Q1'*A*Z1, Er = Q1'*E*Z1, Br = Q1'*B, Cr = C*Z1, where the number of columns of Q1 and Z1 
+   # is equal to the order of matrix Ar. Q and Z result orthogonal if noseig = false. 
+   # Q = nothing if withQ = false and Z = nothing if withZ = false. 
+   n = LinearAlgebra.checksquare(A)
+   (n,n) != size(E) && throw(DimensionMismatch("A and E must have the same dimensions"))
+   n1, m = size(B,1), size(B,2)
+   n == n1 || throw(DimensionMismatch("A and B must have the same number of rows"))
+   n == size(C,2) || throw(DimensionMismatch("A and C must have the same number of columns"))
+   T = promote_type(eltype(A), eltype(E), eltype(B), eltype(C))
+   T <: BlasFloat || (T = promote_type(Float64,T)) 
+   
+   A1 = copy_oftype(A,T)   
+   E1 = copy_oftype(E,T)
+   B1 = copy_oftype(B,T)
+   C1 = copy_oftype(C,T)
+
+   withQ ? Q = Matrix{T}(I,n,n) : Q = nothing
+   withZ ? Z = Matrix{T}(I,n,n) : Z = nothing
+
+   n == 0 && (return A1, E1, B1, C1, D1, Q, Z, 0)
+
+   # save system matrices
+   Ar = copy(A1)
+   Br = copy(B1)
+   Cr = copy(C1)
+   Er = copy(E1)
+   m == 0 &&  (return Ar, Er, Br, Cr, Q, Z, n)
+   Q, Z, _, _, niuc = sklf_rightfin!(Er, Ar, Br, Cr; fast, atol1, atol2, rtol, withQ, withZ) 
+   if niuc == 0
+      # restore original matrices 
+      Ar = copy(A1)
+      Er = copy(E1)
+      Br = copy(B1)
+      Cr = copy(C1)
+   end
+   return Ar, Er, Br, Cr, Q, Z, niuc
 end

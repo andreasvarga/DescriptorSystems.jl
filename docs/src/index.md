@@ -85,6 +85,7 @@ The available functions in the `DescriptorSystems.jl` package cover both standar
 * **[`gir`](@ref)**   Irreducible realization of descriptor systems.
 * **[`gbalmr`](@ref)**   Reduced-order approximations of descriptor systems using balancing related methods.
 * **[`gss2ss`](@ref)**   Conversion to SVD-like forms without non-dynamic modes.
+* **[`dss2ss`](@ref)**   Conversion of descriptor systems to standard form.
 
 **Descriptor system analysis**
 

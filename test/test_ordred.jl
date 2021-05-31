@@ -19,6 +19,28 @@ sys = rdss(0,0,0);
 sys1, r = gss2ss(sys);
 @test iszero(sys-sys1) && r == 0
 
+# Example: Kunkel & Mehrmann 2006 (two simple infinite eigenvalues, one uncontrollable, one non-dynamic)
+a = [0 1 0 0; 1 0 0 0; -1 0 0 1; 0 1 1 1]; e = [1 0 0 0;0 0 1 0;0 0 0 0; 0 0 0 0]; 
+b = [0;0;0;-1]; c = [0 0 1 0]; d = [0]; x0 = [1,2,0,1]; u0 = [1,]; 
+sysc = dss(a,e,b,c,d);
+
+# inconsistent initial condition
+sysrc, xt0, Mx, Mu = dss2ss(sysc, x0; state_mapping = true, simple_infeigs=false);
+@test iszero(sysc-sysrc,atol=1.e-7) && norm(Mx*xt0+Mu*u0-x0) > 0.1 
+x1 = Mx*xt0+Mu*u0;
+sysrc, xt2, Mx, Mu = dss2ss(sysc, x1; state_mapping = true, simple_infeigs=false);
+@test iszero(sysc-sysrc,atol=1.e-7) && norm(Mx*xt2+Mu*u0-x1) < 0.00001 
+
+# inconsistent initial condition
+sysrc, xt1, Mx1, Mu1 = dss2ss(sysc, x0; state_mapping = true, simple_infeigs=true);
+@test iszero(sysc-sysrc,atol=1.e-7) && norm(Mx1*xt1+Mu1*u0-x0) > 0.1 
+x1 = Mx1*xt1+Mu1*u0;
+sysrc, xt3, Mx1, Mu1 = dss2ss(sysc, x1; state_mapping = true, simple_infeigs=true);
+@test iszero(sysc-sysrc,atol=1.e-7) && norm(Mx1*xt3+Mu1*u0-x1) < 0.00001 
+
+sys1, r = gss2ss(sysc);
+@test iszero(sysc-sys1) && r == 2
+
 a = [8.872223171059933e-01     1.082089117437485e-01    -1.536042862271242e+00
                          0    -5.047254200920694e-01    -5.841082955835114e-02
                          0                         0     1.966838801162540e-01];
@@ -33,16 +55,36 @@ d = [0     0
 e = [4.992358310049688e-01     6.088864643615568e-02    -8.643241045903737e-01
                          0                         0                         0
                          0                         0                         0];
+sysc = dss(a,e,b,c,d); 
+x0 = [1,2,-1]; u0 = [1,-1]; 
 
-sys = dss(a,e,b,c,d); 
-sys1, r = gss2ss(sys)
-@test iszero(sys-sys1,atol=1.e-7) && r == 1
+# inconsistent initial condition
+sysrc, xt0, Mx, Mu = dss2ss(sysc, x0; state_mapping = true, simple_infeigs=false);
+@test iszero(sysc-sysrc,atol=1.e-7) && norm(Mx*xt0+Mu*u0-x0) > 0.1 
+x1 = Mx*xt0+Mu*u0;
+sysrc, xt2, Mx, Mu = dss2ss(sysc, x1; state_mapping = true, simple_infeigs=false);
+@test iszero(sysc-sysrc,atol=1.e-7) && norm(Mx*xt2+Mu*u0-x1) < 0.00001 
+
+# inconsistent initial condition
+sysrc, xt1, Mx1, Mu1 = dss2ss(sysc, x0; state_mapping = true, simple_infeigs=true);
+@test iszero(sysc-sysrc,atol=1.e-7) && norm(Mx1*xt1+Mu1*u0-x0) > 0.1 
+x1 = Mx1*xt1+Mu1*u0;
+sysrc, xt3, Mx1, Mu1 = dss2ss(sysc, x1; state_mapping = true, simple_infeigs=true);
+@test iszero(sysc-sysrc,atol=1.e-7) && norm(Mx1*xt3+Mu1*u0-x1) < 0.00001 
+
+
+sys1, r = gss2ss(sysc)
+@test iszero(sysc-sys1,atol=1.e-7) && r == 1
 
 Ty = Float64
 for Ty in (Float64,Complex{Float64})
 sys = rdss(T = Ty,7,2,3);
 sys1, r = gss2ss(sys);
 @test iszero(sys-sys1,atol=1.e-7) && r == 7 && sys1.E == I
+
+sys2, xt0, Mx, Mu = dss2ss(sys; state_mapping = true, simple_infeigs=false);
+@test iszero(sys2-sys,atol=1.e-7) 
+
 
 sys1, r = gss2ss(sys,Eshape="triu");
 @test iszero(sys-sys1,atol=1.e-7) && r == 7 && istriu(sys1.E)
@@ -60,6 +102,9 @@ sys1, r = gss2ss(sys,Eshape="diag");
 sys = rdss(T = Ty,3,2,3,id=ones(Int,2));
 sys1, r = gss2ss(sys);
 @test iszero(sys-sys1,atol=1.e-7) && r == 3 && sys1.E == I
+
+sys2, xt0, Mx, Mu = dss2ss(sys; state_mapping = true, simple_infeigs=false);
+@test iszero(sys2-sys,atol=1.e-7) 
 
 sys1, r = gss2ss(sys,Eshape="triu");
 @test iszero(sys-sys1,atol=1.e-7) && r == 3 && istriu(sys1.E)
@@ -84,6 +129,19 @@ sys1, r = gss2ss(sys,Eshape="diag");
 sys = rdss(T = Ty,3,2,2,id=[ones(Int,2); 2*ones(Int,1)],disc=true);
 sys1  = gminreal(gss2ss(sys/sys)[1],atol=1.e-7)
 @test iszero(sys1-I,atol=1.e-7)
+
+sys = rdss(T = Ty,3,2,2,id = [ones(Int,2); 2*ones(Int,1)],disc=true);
+sys1  = gminreal(gss2ss(sys/sys)[1],atol=1.e-7);
+@test iszero(sys1-I,atol=1.e-7)
+
+sys = rdss(T = Ty,3,2,2,id = ones(Int,2), iduc=[ones(Int,2); 2*ones(Int,1)],disc=true);
+sys2, xt0, Mx, Mu = dss2ss(sys; fast = true, atol=1.e-7, state_mapping = true, simple_infeigs=false);
+@test iszero(sys2-sys,atol=1.e-7) 
+
+sys = rdss(T = Ty,3,2,2,id = ones(Int,2), iduc=[ones(Int,2); 2*ones(Int,1)],disc=true);
+sys2, xt0, Mx, Mu = dss2ss(sys; fast = false, atol=1.e-7, state_mapping = true, simple_infeigs=false);
+@test iszero(sys2-sys,atol=1.e-7) 
+
 
 end #Ty
 

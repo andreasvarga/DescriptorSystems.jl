@@ -55,7 +55,7 @@ The current version of the package includes the following categories of function
 
 * Basic operations on descriptor system models
 
-* Basic conversions of descriptor system models
+* Basic conversions of descriptor system models, including discretization
 
 * Interconnecting descriptor system models
 
@@ -69,10 +69,12 @@ The current version of the package includes the following categories of function
 
 * Solution of model-matching problems
 
+* Time response computation
+
 ## Future plans
 
 Future developments will address support for several new classes of generalized LTI systems types (e.g., for polynomial system models).
 
 ## Supplementary information
 
-Supplementary information on the existing and planned functionality is also available in the documentation of the [`DSTOOLS`](https://github.com/andreasvarga/DescriptorSystemTools) collection available on [arXiv](https://arxiv.org/abs/1707.07140).
+Supplementary information on the existing functionality is also available on [arXiv](https://arxiv.org/abs/1707.07140) in the documentation of the companion Matlab [`DSTOOLS`](https://github.com/andreasvarga/DescriptorSystemTools) collection.

@@ -2,7 +2,7 @@
 
 ## Version 1.0.0
 
-This is the first major release which implements the targeted functionality available in the companion [`DSTOOLS`](https://github.com/andreasvarga/DescriptorSystemTools) toolbox developed for MATLAB. The latest additions include functions for discretization of descriptor systems, conversion to input-output form (rational or polynomial transfer function matrix), for computation of generalized inverses and for time response determination. Also a function has been implemented
+This is the first major release which implements the targeted functionality available in the companion [`DSTOOLS`](https://github.com/andreasvarga/DescriptorSystemTools) toolbox developed for MATLAB. The latest additions include new functions for conversion of descriptor systems to standard form with determination of consistent initial state and state mapping matrices, discretization of descriptor systems, conversion to input-output form (rational or polynomial transfer function matrix), computation of generalized inverses and determination of time responses. Also a function has been implemented
 to compute the left and right projection matrices associated with the computation of minimal realizations.  Several bug fixes have been also performed. 
 
 ## Version 0.7.0
