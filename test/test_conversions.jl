@@ -153,7 +153,7 @@ val = rand(Ty,4)
 end #Ty
 end # gbilin
 
-@testset "c2d" begin
+@testset "c2d - descriptor systems" begin
 
 a = [-4 -2;1 0]; b = [2;0]; c = [0.5 1]; d = [0]; x0 = [1,2]; u0 = [1];
 sysc = dss(a,b,c,d);
@@ -240,6 +240,74 @@ x0 = Mx*xd0+Mu*u0;
 
 
 end # c2d
+
+@testset "c2d - rational transfer functions" begin
+
+s = rtf('s'); z = rtf('z',Ts=1);
+rc = 1/s;
+
+rd1 = 1/(z-1);
+@time rd = c2d(rc, 1, "zoh"); 
+@test rd1 ≈ rd
+
+rd2 = 0.5*(z+1)/(z-1);
+@time rd = c2d(rc, 1, "foh"); 
+@test rd2 ≈ rd
+
+rd3 = z/(z-1);
+@time rd = c2d(rc, 1, "impulse"); 
+@test rd3 ≈ rd
+
+rd4 = 0.5*(z+1)/(z-1);
+@time rd = c2d(rc, 1, "tustin"); 
+@test rd4 ≈ rd
+
+rd5 = 1.0001/(z-1);
+@time rd = c2d(rc, 1, "matched"); 
+@test norm((rd5-rd).num.coeffs,Inf) < 0.001
+
+
+rc = 1/(s+1); 
+
+z1 = exp(-1);
+rd1 = (1-z1)/(z-z1);
+@time rd = c2d(rc, 1, "zoh"); 
+@test rd1 ≈ rd
+
+z2 = 1-2*z1;
+rd2 = (z1*z+z2)/(z-z1); 
+@time rd = c2d(rc, 1, "foh"); 
+@test rd2 ≈ rd
+
+rd3 = z/(z-z1);
+@time rd = c2d(rc, 1, "impulse"); 
+@test rd3 ≈ rd
+
+rd4 = 1/3*(z+1)/(z-1/3);
+@time rd = c2d(rc, 1, "tustin"); 
+@test rd4 ≈ rd
+
+rd5 = (1-z1)/(z-z1);
+@time rd = c2d(rc, 1, "matched"); 
+@test rd5 ≈ rd
+
+rc = s+1; 
+
+rd4 = (3*z-1)/(z+1);
+@time rd = c2d(rc, 1, "tustin"); 
+@test rd4 ≈ rd
+
+z1 = exp(-1);
+k1 = 1/(1-z1); 
+rd5 = k1*(z-z1);
+@time rd = c2d(rc, 1, "matched"); 
+@test rd5 ≈ rd
+
+s = rtf('s'); 
+Gc = [s^2 s/(s+1); 0 1/s]
+@time Gd = c2d(Gc, 1, "matched");
+
+end 
 
 @testset "dss2pm & dss2rm" begin
 

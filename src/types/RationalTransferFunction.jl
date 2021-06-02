@@ -591,46 +591,6 @@ function normalize(f::RationalTransferFunction)
     rtf(f.num/k,f.den/k,Ts = f.Ts)
 end
 """
-    rt = confmap(r, f)
-
-Apply the conformal mapping transformation `λ = f(δ)` to the rational transfer function `r(λ)` 
-and return `rt(δ) = r(f(δ))`. The resulting `rt` inherits the sampling time and variable of `f`.
-"""
-function confmap(pol::Polynomial,f::RationalTransferFunction) 
-    # perform Horner's algorithm
-    n = length(pol)-1
-    s = pol[n]*one(f)
-    for i in n-1:-1:0
-        s = s*f + pol[i]
-    end
-    return rtf(s,Ts = f.Ts)
-end 
-function confmap(r::RationalTransferFunction,f::RationalTransferFunction) 
-    m = degree(r.num)
-    n = degree(r.den)
-    pol = f.den
-    return m >= n ? rtf(confmap(r.num,f).num,confmap(r.den,f).num*pol^(m-n),Ts = f.Ts,var = f.var) :
-                    rtf(confmap(r.num,f).num*pol^(n-m),confmap(r.den,f).num,Ts = f.Ts,var = f.var) 
-end
-"""
-    Rt = confmap(R, f)
-
-Apply elementwise the conformal mapping transformation `λ = f(δ)` to the rational transfer function matrix `R(λ)` 
-and return `Rt(δ) = R(f(δ))`. The resulting elements of `Rt` inherit the sampling time and variable of `f`.
-"""
-function confmap(R::VecOrMat{<:RationalTransferFunction},f::RationalTransferFunction) 
-    nrow = size(R,1)
-    ncol = size(R,2)
-    T = _eltype(R[1])
-    Rt = similar(R,RationalTransferFunction{T,f.var,Polynomial{T,f.var},sampling_time(R[1])}, nrow, ncol)
-    for j = 1:ncol
-        for i = 1:nrow
-            Rt[i,j] = confmap(R[i,j],f)
-        end
-    end
-    return Rt 
-end
-"""
      simplify(r; atol = 0, rtol = atol)
 
 Simplify the rational transfer function `r(λ)` by cancellation of common divisors of numerator and denominator. 
@@ -639,7 +599,7 @@ numerator and denominator coefficients.
 """
 function simplify(r::RationalTransferFunction; atol::Real = 0, rtol::Real=10*eps(float(real(_eltype(r))))) 
     m = degree(r.num)
-    (macroexpand == 0 || degree(r.den) == 0) && (return r)
+    (m == 0 || degree(r.den) == 0) && (return r)
     pnum = r.num.coeffs
     pden = r.den.coeffs
     d, u, w,  = MatrixPencils.polgcdvw(pnum, pden, atol = atol, rtol = rtol, maxnit = 3)

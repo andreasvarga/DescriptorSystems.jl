@@ -121,6 +121,8 @@ function c2d(sysc::DescriptorStateSpace{T}, Ts::Real, meth::String = "zoh"; simp
              atol::Real = zero(float(real(T))), atol1::Real = atol, atol2::Real = atol, 
              rtol::Real = sysc.nx*eps(real(float(one(T))))*iszero(min(atol1,atol2))) where T
 
+    sysc.Ts == 0 || error("c2d can not be applied to a discrete-time system")
+    Ts > 0 || error("the sampling time Ts must be positive")
     T1 = T <: BlasFloat ? T : promote_type(Float64,T) 
     ONE = one(T1)
     n = sysc.nx 
@@ -195,20 +197,132 @@ function c2d(sysc::DescriptorStateSpace{T}, Ts::Real, meth::String = "zoh"; simp
           state_mapping && ( Mx = inv(F); Mu = copy(ldiv!(F,X/2)))
           return (dss(Ad, Bd, C, D; Ts), xd0, Mx, Mu)
        else
-         Ed = E-t/2*A              # Ed = E - A*T/2 
-         X = Ed\(B*t)              # X = (E - A*T/2)\B*T 
-         mul!(D,C,X,0.5,1.)        # Dd = D + (T/2)*C*(E - A*T/2)\B = D + C*X/2
-         Ad = E+t/2*A              # Ad = E + A*T/2;  Cd = C
-         Bd = E*X                  # Bd = E * (E - A*T/2) \ B*T
-         xd0 = x0 - (X*u0)/2       # xd0 = x0 - (E - A*T/2)\B*(T/2)*u0 = x0 - X*u0/2
-         state_mapping && ( Mx = I; Mu = X/2)
-         return (dss(Ad, Ed, Bd, C, D; Ts), xd0, Mx, Mu)
-      end
+          Ed = E-t/2*A              # Ed = E - A*T/2 
+          X = Ed\(B*t)              # X = (E - A*T/2)\B*T 
+          mul!(D,C,X,0.5,1.)        # Dd = D + (T/2)*C*(E - A*T/2)\B = D + C*X/2
+          Ad = E+t/2*A              # Ad = E + A*T/2;  Cd = C
+          Bd = E*X                  # Bd = E * (E - A*T/2) \ B*T
+          xd0 = x0 - (X*u0)/2       # xd0 = x0 - (E - A*T/2)\B*(T/2)*u0 = x0 - X*u0/2
+          state_mapping && ( Mx = I; Mu = X/2)
+          return (dss(Ad, Ed, Bd, C, D; Ts), xd0, Mx, Mu)
+       end
     else
        error("no such method")
     end                        
     # end C2D
 end
+"""
+    rd = c2d(rc, Ts, meth = "zoh"; prewarp_freq = freq, atol = 0, rtol = n*ϵ) 
+
+Compute for the continuous-time rational transfer function `rc` and for a sampling time `Ts`, 
+the corresponding discretized rational transfer function `rd`   
+according to the selected discretization method specified by `meth`. 
+
+The following discretization methods can be performed by appropriately selecting `meth`:
+
+    "zoh"     - zero-order hold on the inputs (default); 
+
+    "foh"     - linear interpolation of inputs (also known as first-order hold);
+
+    "impulse" - impulse-invariant discretization; 
+
+    "matched" - matched pole-zero method (see [1]); 
+
+    "Tustin"  - Tustin transformation (also known as trapezoidal integration): a nonzero prewarping frequency
+                `freq` can be specified using the keyword parameter `prewarp_freq = freq` to ensure 
+                `rd(exp(im*freq*Ts)) = rc(im*freq)`.
+
+The keyword arguments `atol` and `rtol` specify, respectively, 
+the absolute and relative tolerances, respectively, 
+for the nonzero coefficients of the numerator and denominator polynomials of  `rc`.  
+The default relative tolerance is `n*ϵ`, where `n` is the order of `rc` 
+(i.e., the maximum degree of the numerator and denominator polynomials) and  `ϵ` is the working machine epsilon. 
+
+_References_:
+
+[1] G.F. Franklin, D.J. Powell and  M.L. Workman, Digital Control of Dynamic Systems (3rd Edition), Prentice Hall, 1997.
+"""
+function c2d(rc::RationalTransferFunction, Ts::Real, meth::String = "zoh";  
+             prewarp_freq::Real = 0, atol::Real = zero(float(real(eltype(eltype(rc))))), 
+             rtol::Real = order(rc)*eps(real(float(one(eltype(eltype(rc))))))*iszero(atol))
+    rc.Ts == 0 || error("c2d can not be applied to a discrete-time system")
+    Ts > 0 || error("the sampling time Ts must be positive")
+    T = eltype(eltype(rc))
+
+    # quick exit in constant case  
+    m = degree(rc.num)
+    n = degree(rc.den)
+    m <= 0 && n == 0 && (return rtf(rc; Ts, var = :z))
+
+    meth = lowercase(meth)
+
+    if meth == "zoh" || meth == "foh" || meth == "impulse"
+       m > n && error("the selected discretization method is not applicable to improper rational transfer functions")
+       return dss2rm(c2d(dss(rc), Ts, meth)[1]; fast = true, atol1 = atol, atol2 = atol, rtol, gaintol = atol)[1,1] 
+    elseif meth == "tustin"
+       return confmap(rc,rtfbilin(meth; Ts, prewarp_freq)[1])
+    elseif meth == "matched"
+       zd = exp.(Ts*rc.zeros)
+       m < n-1 && (zd = [zd; -ones(n-1-m)]; m = n-1)
+       num = m == 0 ? one(Polynomial{Float64,:z}(1)) : fromroots(zd; var = :z)
+       den = n == 0 ? one(Polynomial{Float64,:z}(1)) : fromroots(exp.(Ts*rc.poles); var = :z)
+      #  t = dcgain(rc)
+      #  isfinite(t) ? k = t*den(1)/num(1) : (f1 = 0.001*rand(); f2 = exp(f1); k = evalfr(rc,f1)*den(f2)/num(f2))
+       k = dcgain(rc)*den(1)/num(1) 
+       isfinite(k) || (f1 = 0.001*rand(); f2 = exp(f1); k = evalfr(rc,f1)*den(f2)/num(f2))
+       T <: Complex || (num = Polynomial(real(num.coeffs), :z); den = Polynomial(real(den.coeffs), :z); k = real(k))
+       return rtf(k*num,den; Ts) 
+    else
+       error("no such method")
+    end                        
+    # end C2D
+end
+"""
+    Rd = c2d(Rc, Ts, meth = "zoh"; prewarp_freq = freq, atol = 0, rtol = n*ϵ) 
+
+Compute for the continuous-time rational transfer function matrix `Rc` and for a sampling time `Ts`, 
+the corresponding discretized rational transfer function matrix `Rd`   
+according to the selected discretization method specified by `meth`. 
+   
+The following discretization methods can be performed by appropriately selecting `meth`:
+   
+      "zoh"     - zero-order hold on the inputs (default); 
+
+      "foh"     - linear interpolation of inputs (also known as first-order hold);
+
+      "impulse" - impulse-invariant discretization; 
+      
+      "matched" - matched pole-zero method (see [1]); 
+      
+      "Tustin"  - Tustin transformation (also known as trapezoidal integration): a nonzero prewarping frequency
+                  `freq` can be specified using the keyword parameter `prewarp_freq = freq` to ensure 
+                  `Rd(exp(im*freq*Ts)) = Rc(im*freq)`.
+      
+The keyword arguments `atol` and `rtol` specify, respectively, 
+the absolute and relative tolerances, respectively, 
+for the nonzero coefficients of the numerator and denominator polynomials of the elements of `Rc`.  
+The default relative tolerance is `10*ϵ`, where `ϵ` is the working machine epsilon. 
+
+_References_:
+
+[1] G.F. Franklin, D.J. Powell and  M.L. Workman, Digital Control of Dynamic Systems (3rd Edition), Prentice Hall, 1997.
+"""
+function c2d(Rc::VecOrMat{<:RationalTransferFunction}, Ts::Real, meth::String = "zoh";  
+                 prewarp_freq::Real = 0, atol::Real = zero(float(real(_eltype(Rc)))),                 
+                 rtol::Real = 10*eps(real(float(one(_eltype(Rc)))))*iszero(atol))
+    nrow = size(Rc,1)
+    ncol = size(Rc,2)
+    T = _eltype(Rc)
+    T1 = T <: BlasFloat ? T : promote_type(Float64,T) 
+    Rd = similar(Rc, RationalTransferFunction{T1,:z,Polynomial{T1,:z},Ts}, nrow, ncol)
+    for j = 1:ncol
+        for i = 1:nrow
+            Rd[i,j] = c2d(Rc[i,j], Ts, meth; prewarp_freq, atol, rtol)
+        end
+    end
+    return Rd 
+end
+
 """
     gbilin(sys, g; compact = true, minimal = false, standard = true, atol = 0, atol1 = atol, atol2 = atol, rtol = n*ϵ) -> (syst, ginv)
 
@@ -403,4 +517,44 @@ function timeresp(sys::DescriptorStateSpace{T}, u::AbstractVecOrMat{<:Number}, t
       xt = A*xt + B*ut
    end
    return y, tout, x
+end
+"""
+    rt = confmap(r, f)
+
+Apply the conformal mapping transformation `λ = f(δ)` to the rational transfer function `r(λ)` 
+and return `rt(δ) = r(f(δ))`. The resulting `rt` inherits the sampling time and variable of `f`.
+"""
+function confmap(pol::Polynomial,f::RationalTransferFunction) 
+    # perform Horner's algorithm
+    n = length(pol)-1
+    s = pol[n]*one(f)
+    for i in n-1:-1:0
+        s = s*f + pol[i]
+    end
+    return rtf(s,Ts = f.Ts)
+end 
+function confmap(r::RationalTransferFunction,f::RationalTransferFunction) 
+    m = degree(r.num)
+    n = degree(r.den)
+    pol = f.den
+    return m >= n ? rtf(confmap(r.num,f).num,confmap(r.den,f).num*pol^(m-n),Ts = f.Ts,var = f.var) :
+                    rtf(confmap(r.num,f).num*pol^(n-m),confmap(r.den,f).num,Ts = f.Ts,var = f.var) 
+end
+"""
+    Rt = confmap(R, f)
+
+Apply elementwise the conformal mapping transformation `λ = f(δ)` to the rational transfer function matrix `R(λ)` 
+and return `Rt(δ) = R(f(δ))`. The resulting elements of `Rt` inherit the sampling time and variable of `f`.
+"""
+function confmap(R::VecOrMat{<:RationalTransferFunction},f::RationalTransferFunction) 
+    nrow = size(R,1)
+    ncol = size(R,2)
+    T = promote_type(_eltype(R[1]),_eltype(f))
+    Rt = similar(R,RationalTransferFunction{T,f.var,Polynomial{T,f.var},sampling_time(R[1])}, nrow, ncol)
+    for j = 1:ncol
+        for i = 1:nrow
+            Rt[i,j] = confmap(R[i,j],f)
+        end
+    end
+    return Rt 
 end
