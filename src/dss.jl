@@ -279,7 +279,7 @@ IEEE Transactions on Automatic Control, vol. AC-26, pp. 111-129, 1981.
 #     dss(poly2pm(numpoly.(R)), poly2pm(denpoly.(R)); Ts = Ts, contr = contr, obs = obs, 
 #             noseig = noseig, minimal = minimal, atol = atol, rtol = rtol)
 # end
-function dss(R::VecOrMat{<:RationalTransferFunction}; Ts::Union{Real,Missing} = missing, 
+function dss(R::VecOrMat{<:RationalTransferFunction}; Ts::Union{Real,Missing,Nothing} = missing, 
              minimal::Bool = false, contr::Bool = false, obs::Bool = false, noseig::Bool = false, 
              atol::Real = zero(float(real(_eltype(R)))), rtol::Real = 100*eps(one(atol))*iszero(atol)) 
     length(R) == 0 && (return dss(zeros(_eltype(R),size(R)...),Ts = Ts))
@@ -288,12 +288,25 @@ function dss(R::VecOrMat{<:RationalTransferFunction}; Ts::Union{Real,Missing} = 
     dss(poly2pm(numpoly.(R)), poly2pm(denpoly.(R)); Ts = Ts, contr = contr, obs = obs, 
             noseig = noseig, minimal = minimal, atol = atol, rtol = rtol)
 end
-function dss(R::RationalTransferFunction; Ts::Union{Real,Missing} = missing, 
+function dss(R::VecOrMat{<:RationalFunction}; Ts::Real = 0, 
+             minimal::Bool = false, contr::Bool = false, obs::Bool = false, noseig::Bool = false, 
+             atol::Real = zero(float(real(eltype(eltype(eltype(R)))))), rtol::Real = 100*eps(one(atol))*iszero(atol)) 
+    length(R) == 0 && (return dss(zeros(eltype(eltype(eltype(G))),size(R)...),Ts = Ts))
+    dss(poly2pm(numerator.(R)), poly2pm(denominator.(R)); Ts = Ts, contr = contr, obs = obs, 
+            noseig = noseig, minimal = minimal, atol = atol, rtol = rtol)
+end
+function dss(R::RationalTransferFunction; Ts::Union{Real,Missing,Nothing} = missing, 
              minimal::Bool = false, contr::Bool = false, obs::Bool = false, noseig::Bool = false, 
              atol::Real = zero(float(real(_eltype(R)))), rtol::Real = 100*eps(one(atol))*iszero(atol)) 
     ismissing(Ts) && (Ts = R.Ts)
     isnothing(Ts) && (Ts = 0)
     dss(poly2pm(numpoly(R)), poly2pm(denpoly(R)); Ts = Ts, contr = contr, obs = obs, 
+            noseig = noseig, minimal = minimal, atol = atol, rtol = rtol)
+end
+function dss(R::RationalFunction; Ts::Real = 0, 
+             minimal::Bool = false, contr::Bool = false, obs::Bool = false, noseig::Bool = false, 
+             atol::Real = zero(float(real(eltype(eltype(R))))), rtol::Real = 100*eps(one(atol))*iszero(atol)) 
+    dss(poly2pm(numerator(R)), poly2pm(denominator(R)); Ts = Ts, contr = contr, obs = obs, 
             noseig = noseig, minimal = minimal, atol = atol, rtol = rtol)
 end
 """

@@ -19,6 +19,12 @@ pkg> add DescriptorSystems
 pkg> test DescriptorSystems
 ````
 
+For a short interactive demonstration of main functions execute 
+
+````JULIA
+julia>  include("test/DSToolsDemo.jl")
+````
+
 ## About
 
 `DescriptorSystems.jl` is a collection of Julia functions for numerical computations related to generalized state-space (descriptor) system representations in the continuous-time form
