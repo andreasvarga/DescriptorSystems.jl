@@ -3,10 +3,12 @@ module Runtests
 using Test, DescriptorSystems
 
 @testset "Test DescriptorSystems" begin
+# test constructors
 include("test_dss.jl")
 include("test_rtf.jl")
 include("test_polrat.jl")
 include("test_connections.jl")
+# test basic functions
 include("test_conversions.jl")
 include("test_ordred.jl")
 include("test_analysis.jl")
@@ -21,6 +23,8 @@ include("test_covers.jl")
 include("test_linsol.jl")
 include("test_ginv.jl")
 include("test_model_matching.jl")
+# test demo
+include("DSToolsDemo.jl")
 end
 
 end
