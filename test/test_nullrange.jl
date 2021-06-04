@@ -4,10 +4,13 @@ using DescriptorSystems
 using LinearAlgebra
 using Polynomials
 using Test
+using Random
 
 
 println("Test_nullrange")
 @testset "nullrange" begin
+
+Random.seed!(2123)
 
 @testset "grange" begin
 

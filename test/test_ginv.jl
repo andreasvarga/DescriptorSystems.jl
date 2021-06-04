@@ -10,7 +10,7 @@ println("Test_ginv")
 Random.seed!(2123)
 @testset "ginv" begin
 
-fast = true; Ty = Complex{Float64}; #Ty = Float64  
+fast = true; Ty = Complex{Float64}; Ty = Float64  
 disc = true;   
 
 # random examples
@@ -142,27 +142,21 @@ sys = rss(2,3,2; T = Ty, disc)*rdss(2,2,3; T = Ty, disc);
 @time sysinv, info = ginv(sys, type = "1-2-3-4", atol=1.e-7);
 @test iszero(sys*sysinv*sys-sys,atol=1.e-7) && iszero(sysinv*sys*sysinv-sysinv,atol=1.e-7) &&
       iszero(sys*sysinv-(sys*sysinv)',atol=1.e-7) && iszero(sysinv*sys-(sysinv*sys)',atol=1.e-7) &&
-      info.nrank == 2 && info.nfp == 0 && 
-      sort(real(gzero(sysinv,atol=1.e-7))) ≈ sort(real(gpole(sys,atol=1.e-7))) &&
-      sort(abs.(gzero(sysinv,atol=1.e-7))) ≈ sort(abs.(gpole(sys,atol=1.e-7))) 
+      info.nrank == 2 && info.nfp == 0  
 
 # 1-2-3 inverse
 sys = rss(2,3,2; T = Ty, disc)*rdss(2,2,3; T = Ty, disc);
 @time sysinv, info = ginv(sys, type = "1-2-3", atol=1.e-7);
 @test iszero(sys*sysinv*sys-sys,atol=1.e-7) && iszero(sysinv*sys*sysinv-sysinv,atol=1.e-7) &&
       iszero(sys*sysinv-(sys*sysinv)',atol=1.e-7) &&
-      info.nrank == 2 && info.nfp == 2 && 
-      sort(real(gzero(sysinv,atol=1.e-7))) ≈ sort(real(gpole(sys,atol=1.e-7))) &&
-      sort(abs.(gzero(sysinv,atol=1.e-7))) ≈ sort(abs.(gpole(sys,atol=1.e-7))) 
+      info.nrank == 2 && info.nfp == 2 
 
 # 1-2-4 inverse
 sys = rss(2,3,2; T = Ty, disc)*rdss(2,2,3; T = Ty, disc);
 @time sysinv, info = ginv(sys, type = "1-2-4", atol=1.e-7);
 @test iszero(sys*sysinv*sys-sys,atol=1.e-7) && iszero(sysinv*sys*sysinv-sysinv,atol=1.e-7) &&
        iszero(sysinv*sys-(sysinv*sys)',atol=1.e-7) &&
-      info.nrank == 2 && info.nfp == 2 && 
-      sort(real(gzero(sysinv,atol=1.e-7))) ≈ sort(real(gpole(sys,atol=1.e-7))) &&
-      sort(abs.(gzero(sysinv,atol=1.e-7))) ≈ sort(abs.(gpole(sys,atol=1.e-7))) 
+      info.nrank == 2 && info.nfp == 2 
 
 sys = rss(0,3,2; T = Ty, disc)*rss(0,2,3; T = Ty, disc);
 @time sysinv, info = ginv(sys, type = "1-2-3-4", atol=1.e-7);
