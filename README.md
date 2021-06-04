@@ -19,10 +19,12 @@ pkg> add DescriptorSystems
 pkg> test DescriptorSystems
 ````
 
-For a short interactive demonstration of main functions execute 
+For a short interactive demonstration of the main functions execute 
 
 ````JULIA
-julia>  include("test/DSToolsDemo.jl")
+using DescriptorSystems
+cd(joinpath(pkgdir(DescriptorSystems), "test"))
+include("DSToolsDemo.jl")
 ````
 
 ## About

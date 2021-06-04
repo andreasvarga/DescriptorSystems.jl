@@ -357,8 +357,14 @@ function dss(P::Array{T,3};
     sysdata = pm2ls(P, contr = contr, obs = obs, noseig = noseig, minimal = minimal, atol = atol, rtol = rtol)
     return DescriptorStateSpace{eltype(sysdata[1])}(sysdata..., Ts)
 end
-dss(P::Union{VecOrMat{<:Polynomial},Polynomial}; kwargs...)  =
-    dss(poly2pm(P); kwargs...)
+dss(P::Union{VecOrMat{<:Polynomial},Polynomial}; kwargs...)  = dss(poly2pm(P); kwargs...)
+function dss(P::LaurentPolynomial; kwargs...)
+    n = degree(P)
+    m = length(P)-1-n
+    T = eltype(P)
+    t = Polynomial{T,Polynomials.indeterminate(P)}([zeros(T,m);one(T)][:])
+    dss(poly2pm(Polynomial(P*t)),poly2pm(t); kwargs...)
+end
 """
     sys = dss(T, U, V, W; fast = true, contr = false, obs = false, minimal = false, atol = 0, rtol) 
            
@@ -443,5 +449,5 @@ function dssdata(T::Type,sys::DescriptorStateSpace)
     #eltype(sys) == T ? (return sys.A, sys.E, sys.B, sys.C, sys.D) :
     return copy_oftype(sys.A,T), sys.E == I ? I : copy_oftype(sys.E,T), copy_oftype(sys.B,T), copy_oftype(sys.C,T), copy_oftype(sys.D,T)
 end
- 
+
 

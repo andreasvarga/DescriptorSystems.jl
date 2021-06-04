@@ -14,7 +14,6 @@ function pause()
     readline()  
 end
 
-
 s = rtf('s'); z = rtf('z'); # define the complex variables s and z  
 println("s = rtf('s'); z = rtf('z'); # define the complex variables s and z ")
 pause()

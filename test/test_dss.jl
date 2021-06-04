@@ -2,6 +2,7 @@ module Test_dss
 
 using DescriptorSystems
 using LinearAlgebra
+using Polynomials
 using Test
 
 println("Test_dss")
@@ -151,6 +152,23 @@ sysd = dss(A, E, B, C, D, Ts = -1)
 # property names
 @test propertynames(C_111) == (:nx, :ny, :nu, :A, :E, :B, :C, :D, :Ts)
 @test propertynames(D_111) == (:nx, :ny, :nu, :A, :E, :B, :C, :D, :Ts)
+
+# Building descriptor systems from rational functions and rational matrices
+s = Polynomial([0, 1],'s'); 
+g = (s+0.01)/(1+0.01*s);
+sys1 = dss(g);
+G  = [s^2 s/(s+1); 0 one(s)/s]     # define the 2-by-2 rational matrix G(s)
+sys2 = dss(G);
+
+# from Laurent polynomial
+t = LaurentPolynomial([1],-1,:z)
+p = LaurentPolynomial([24,10,-15,0,1,3],-2,:z)
+q = LaurentPolynomial([1,0,1],-1,:z)
+p = LaurentPolynomial([24,10,-15,0,1,3],-2,:z)
+@test p ≈ 24t^2+10t-15+t^(-2)
+
+dss2rm(dss(p,Ts=1))
+
 
 # Errors
 @test_throws ErrorException C_111 + C_222             # Dimension mismatch

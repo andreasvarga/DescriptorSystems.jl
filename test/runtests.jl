@@ -23,8 +23,6 @@ include("test_covers.jl")
 include("test_linsol.jl")
 include("test_ginv.jl")
 include("test_model_matching.jl")
-# test demo
-include("DSToolsDemo.jl")
 end
 
 end
