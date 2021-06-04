@@ -162,9 +162,8 @@ sys2 = dss(G);
 
 # from Laurent polynomial
 t = LaurentPolynomial([1],-1,:z)
-p = LaurentPolynomial([24,10,-15,0,1,3],-2,:z)
+p = LaurentPolynomial([24,10,-15,0,1],-2,:z)
 q = LaurentPolynomial([1,0,1],-1,:z)
-p = LaurentPolynomial([24,10,-15,0,1,3],-2,:z)
 @test p ≈ 24t^2+10t-15+t^(-2)
 
 dss2rm(dss(p,Ts=1))
