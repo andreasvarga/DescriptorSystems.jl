@@ -1,16 +1,14 @@
 module Test_nullrange
 
 using DescriptorSystems
+using MatrixPencils
 using LinearAlgebra
 using Polynomials
 using Test
-using Random
 
 
 println("Test_nullrange")
 @testset "nullrange" begin
-
-Random.seed!(2123)
 
 @testset "grange" begin
 
@@ -1089,7 +1087,7 @@ sys = dss(gn,gd,minimal = true, atol = 1.e-7);
 # random examples
 p = 5; m1 = 2; m2 = 2; m = m1+m2; n = 5;  
 
-Ty = Float64; fast = true; simple = false; polynomial = false;
+Ty = Float64; fast = true; simple = false; polynomial = true;
 for Ty in (Float64, Complex{Float64})
 
 #sysgf = rss(n,p,mgf,T = Ty,disc=false);
@@ -1104,7 +1102,7 @@ sys = rss(n,p,m,T = Ty, disc=false);
 @time nl, info = glnull(sys,m2, atol=1.e-7,polynomial = polynomial, simple = false); info 
 @test gnrank(nl[:,1:p]*sys[:,1:m1],atol=1.e-7) == 0 &&    
       gnrank(nl[:,1:p]*sys[:,m1+1:m1+m2]-nl[:,p+1:p+m2],atol= 1.e-7) == 0 &&
-      (polynomial ? all(isinf.(gpole(nl,atol=1.e-7))) : true) &&
+      (polynomial ? all(isinf.(ordeigvals(nl.A,nl.E)[1])) : true) &&
       info.nrank == m1 && info.degs == [1, 2, 2] && info.stdim == [2, 3]
 
 # discrete, descriptor
@@ -1112,7 +1110,7 @@ sys = rdss(n,p,m,T = Ty, disc=true);
 @time nl, info = glnull(sys,m2, atol=1.e-7,polynomial = polynomial, simple = false); info 
 @test gnrank(nl[:,1:p]*sys[:,1:m1],atol=1.e-7) == 0 &&    
       gnrank(nl[:,1:p]*sys[:,m1+1:m1+m2]-nl[:,p+1:p+m2],atol= 1.e-7) == 0 &&
-      (polynomial ? all(isinf.(gpole(nl,atol=1.e-7))) : true) &&
+      (polynomial ? all(isinf.(ordeigvals(nl.A,nl.E)[1])) : true) &&
       info.nrank == m1 && info.degs == [1, 2, 2] && info.stdim == [2, 3]
 
 # discrete, descriptor 
@@ -1121,15 +1119,15 @@ sys = rdss(n,p,m,T = Ty, disc=true);
 @test gnrank(nl[:,1:p]*sys[:,1:m1],atol=1.e-7) == 0 &&    
       gnrank(nl[:,1:p]*sys[:,m1+1:m1+m2]-nl[:,p+1:p+m2],atol= 1.e-7) == 0 &&
       (polynomial || gnrank(nl[:,1:p]*nl[:,1:p]'-I,atol= 1.e-7) == 0) &&
-      (polynomial ? all(isinf.(gpole(nl,atol=1.e-7))) : true) &&
+      (polynomial ? all(isinf.(ordeigvals(nl.A,nl.E)[1])) : true) &&
       info.nrank == m1 && info.degs == [1, 2, 2] && info.stdim == [2, 3]
    
 # discrete, polynomial
 sys = rdss(n,p,m,T = Ty, disc=true, id=[3*ones(Int,1);2*ones(Int,1)]);
-@time nl, info = glnull(sys,m2, atol=1.e-7,polynomial = polynomial, simple = false); info 
+@time nl, info = glnull(sys, m2, atol=1.e-7,polynomial = polynomial, simple = false); info 
 @test gnrank(nl[:,1:p]*sys[:,1:m1],atol=1.e-7) == 0 &&    
       gnrank(nl[:,1:p]*sys[:,m1+1:m1+m2]-nl[:,p+1:p+m2],atol= 1.e-7) == 0 &&
-      (polynomial ? all(isinf.(gpole(nl,atol=1.e-7))) : true) &&
+      (polynomial ? all(isinf.(ordeigvals(nl.A,nl.E)[1])) : true) &&
       info.nrank == m1 && info.degs == [2, 3, 3] && info.stdim == [2, 3, 3]
 
 # simple basis
@@ -1138,7 +1136,7 @@ sys = rss(n,p,m,T = Ty, disc=false);
 @time nl, info = glnull(sys,m2, atol=1.e-7,polynomial = polynomial, simple = true); info 
 @test gnrank(nl[:,1:p]*sys[:,1:m1],atol=1.e-7) == 0 &&    
       gnrank(nl[:,1:p]*sys[:,m1+1:m1+m2]-nl[:,p+1:p+m2],atol= 1.e-7) == 0 &&
-      (polynomial ? all(isinf.(gpole(nl,atol=1.e-7))) : true) &&
+      (polynomial ? all(isinf.(ordeigvals(nl.A,nl.E)[1])) : true) &&
       info.nrank == m1 && info.degs == [1, 2, 2] && info.stdim == (polynomial ? [3, 3, 2] : [2, 2, 1])
 
 # discrete, descriptor
@@ -1146,7 +1144,7 @@ sys = rdss(n,p,m,T = Ty, disc=true);
 @time nl, info = glnull(sys,m2, atol=1.e-7,polynomial = polynomial, simple = true); info 
 @test gnrank(nl[:,1:p]*sys[:,1:m1],atol=1.e-7) == 0 &&    
       gnrank(nl[:,1:p]*sys[:,m1+1:m1+m2]-nl[:,p+1:p+m2],atol= 1.e-7) == 0 &&
-      (polynomial ? all(isinf.(gpole(nl,atol=1.e-7))) : true) &&
+      (polynomial ? all(isinf.(ordeigvals(nl.A,nl.E)[1])) : true) &&
       info.nrank == m1 && info.degs == [1, 2, 2] && info.stdim == (polynomial ? [3, 3, 2] : [2, 2, 1])
 
 # discrete, descriptor
@@ -1155,7 +1153,7 @@ sys = rdss(n,p,m,T = Ty, disc=true);
 @test gnrank(nl[:,1:p]*sys[:,1:m1],atol=1.e-7) == 0 &&    
       gnrank(nl[:,1:p]*sys[:,m1+1:m1+m2]-nl[:,p+1:p+m2],atol= 1.e-7) == 0 &&
       (polynomial || gnrank(nl[1,1:p]*nl[1,1:p]'-I,atol= 1.e-7) == 0) &&
-      (polynomial ? all(isinf.(gpole(nl,atol=1.e-7))) : true) &&
+      (polynomial ? all(isinf.(ordeigvals(nl.A,nl.E)[1])) : true) &&
       info.nrank == m1 && info.degs == [1, 2, 2] && info.stdim == (polynomial ? [3, 3, 2] : [2, 2, 1])
       
 # discrete, polynomial
@@ -1163,7 +1161,7 @@ sys = rdss(5,p,m,T = Ty, disc=true, id=[3*ones(Int,1);2*ones(Int,1)]);
 @time nl, info = glnull(sys,m2, atol=1.e-7,polynomial = polynomial, simple = true); info 
 @test gnrank(nl[:,1:p]*sys[:,1:m1],atol=1.e-7) == 0 &&    
       gnrank(nl[:,1:p]*sys[:,m1+1:m1+m2]-nl[:,p+1:p+m2],atol= 1.e-7) == 0 &&
-      (polynomial ? all(isinf.(gpole(nl,atol=1.e-7))) : true) &&
+      (polynomial ? all(isinf.(ordeigvals(nl.A,nl.E)[1])) : true) &&
       info.nrank == m1 && info.degs == [2, 3, 3] && info.stdim == (polynomial ? [4, 4, 3] : [3, 3, 2] )
 
 

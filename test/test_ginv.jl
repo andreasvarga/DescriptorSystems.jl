@@ -7,10 +7,10 @@ using Random
 using Test
 
 println("Test_ginv")
-Random.seed!(2123)
+Random.seed!(2173)
 @testset "ginv" begin
 
-fast = true; Ty = Complex{Float64}; Ty = Float64  
+fast = true; Ty = Complex{Float64}; #Ty = Float64  
 disc = true;   
 
 # random examples
