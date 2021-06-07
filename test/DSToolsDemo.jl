@@ -49,7 +49,7 @@ display(gzero(sysc))
 pause()
 
 println("Descriptor systems (A-λE,B,C,D) with singular pole pencil A-λE are not supported in DSTOOLS!")
-println("Non-regular A-λE can be detected in several ways. ")
+println("Non-regular A-λE can be detected in several ways.\n ")
 println("(1) non-regular A-λE can be detected when building a descriptor system ")
 println("A = zeros(1,1); E = zeros(1,1); B = ones(1,1); C = ones(1,1); D = zeros(1,1);")
 println("dss(A,E,B,C,D,check_reg = true)")
@@ -82,15 +82,15 @@ pause()
 println("Let's try some decomposition and factorization functions\n")
 
 println("Use gsdec to compute the separation of proper and polynomial parts of Gc(s)")
-println("sysf, sysi = gsdec(sysc); # Gc(s) = Gcp(s) + Gci(s)")
-sysf, sysi = gsdec(sysc); 
-println("@test iszero(sysc-sysf-sysi)  # checking the decomposition")
-println(@test iszero(sysc-sysf-sysi))
+println("sysp, sysi = gsdec(sysc); # Gc(s) = Gcp(s) + Gci(s)")
+sysp, sysi = gsdec(sysc); 
+println("@test iszero(sysc-sysp-sysi)  # checking the decomposition")
+println(@test iszero(sysc-sysp-sysi))
 pause()
-println("dss2rm(sysf)  # display proper part Gcp(s)")
-println(dss2rm(sysf))
+println("dss2rm(sysp)  # display proper part Gcp(s)")
+println(dss2rm(sysp))
 pause()
-println("gpole(sysf)  # display polynomial part Gcp(s)")
+println("dss2rm(sysi)  # display polynomial part Gci(s)")
 println(dss2rm(sysi))
 pause()
 
@@ -129,7 +129,7 @@ println("@test maximum(abs.(gpole(sysmi))) < 1 && maximum(abs.(gpole(sysni))) < 
 println(@test maximum(abs.(gpole(sysmi))) < 1 && maximum(abs.(gpole(sysni))) < 1  )   
 pause()
 
-println("@test isempty(gzero(gminreal([sysn;sysm]))) # checking the innerness: conj(M(z))*M(z)-I = 0")
+println("@test iszero(sysmi'*sysmi-I) # checking the innerness of M(z): conj(M(z))*M(z)-I = 0")
 println(@test iszero(sysmi'*sysmi-I))
 pause()
 
@@ -143,15 +143,13 @@ println("s = Polynomial([0, 1],'s'); ")
 s = Polynomial([0, 1],'s'); 
 println("num = [(s-1) s 1; 0 (s-2) (s-2); (s-1) (s^2+2*s-2) (2*s-1)]; # numerators")
 num = [(s-1) s 1; 0 (s-2) (s-2); (s-1) (s^2+2*s-2) (2*s-1)]; # numerators
-println(num)
 pause()
 println("den = [(s+2) (s+2) (s+2); 1 (s+1)^2 (s+1)^2; (s+2) (s+1)*(s+2) (s+1)*(s+2)]; # denominators")
 den = [(s+2) (s+2) (s+2); 1 (s+1)^2 (s+1)^2; (s+2) (s+1)*(s+2) (s+1)*(s+2)]; # denominators
-println(den)
 pause()
 println("sys = dss(num,den,minimal = true, atol = 1.e-7);  # build a minimal descriptor realization")
 sys = dss(num,den,minimal = true, atol = 1.e-7); 
-println(sys)
+# println(sys)
 pause()
 println("Analysis of some properties")
 println("gpole(sys);  # the system is stable")
@@ -172,7 +170,7 @@ println("sysi, syso, info = giofac(sys)")
 sysi, syso, info = giofac(sys);
 pause()
 
-println("Checking the factorization: Gi(:,1:nr)(s)*Go(s)-G(s) = 0")
+println("Checking the factorization: Gi(:,1:nr)(s)*Go(s) = G(s)")
 println("@test iszero(sysi[:,1:nr]*syso-sys,atol1=1.e-7)")
 println(@test iszero(sysi[:,1:nr]*syso-sys,atol1=1.e-7))
 pause()
@@ -204,19 +202,19 @@ println("s = Polynomial([0, 1],'s'); # define polynomial s")
 s = Polynomial([0, 1],'s'); 
 println("num =  [ s+1 s+3 s^2+3*s; s+2 s^2+2*s 0 ]; # numerators")
 num =  [ s+1 s+3 s^2+3*s; s+2 s^2+2*s 0 ]; # numerators
-println(num)
+# println(num)
 pause()
 println("den = [s^2+3*s+2 s^2+3*s+2 s^2+3*s+2; s^2+3*s+2 s^2+3*s+2 s^2+3*s+2]; # denominators")
 den = [s^2+3*s+2 s^2+3*s+2 s^2+3*s+2; s^2+3*s+2 s^2+3*s+2 s^2+3*s+2]; # denominators
-println(den)
+# println(den)
 pause()
 println("sysg = dss(num,den,minimal = true, atol = 1.e-7);  # build a minimal descriptor realization of G(s)")
 sysg = dss(num,den,minimal = true, atol = 1.e-7); 
-println(sysg)
+# println(sysg)
 pause()
 println("sysf = dss([1 0;0 1.]);  # build a minimal descriptor realization of F(s) = I")
 sysf = dss([1 0;0 1.]);
-println(sysf)
+# println(sysf)
 pause()
 
 println("zer = gzero(sysg)   # G(s) has no zeros, thus stable right inverses exist")
@@ -224,16 +222,16 @@ zer = gzero(sysg)         # G(s) has no zeros, thus stable right inverses exist
 println("zer = $zer")
 pause()
 
-println("Compute a stable right inverse with poles in [-1 -2 -3] by using")
+println("Compute a stable right inverse with poles in [-1 -2 -3] using")
 println("sysx, info = grsol(sysg,sysf,poles = [-1, -2, -3]);")
 sysx, info = grsol(sysg, sysf, poles = [-1, -2, -3]); 
-println(sysx)
+# println(sysx)
 pause() 
 
 println("Checking the solution: G(s)*X(s) - I = 0")
-println("iszero(sysg*sysx-I,atol=1.e-7) == 0")
+println("@test iszero(sysg*sysx-I,atol=1.e-7)")
 println(@test iszero(sysg*sysx-I,atol=1.e-7))   #  G(s)*X(s) - I = 0
-pause 
+pause() 
           
 println("Check assigned poles: gpole(sysx) = [-1, -2, -3]")
 println(@test sort(gpole(sysx)) ≈ sort([-1, -2, -3]))
@@ -271,8 +269,9 @@ sysx2,sysy2, = grmcover2(sysgen,2);
 println(@test order(gminreal(sysx2)) == 2)
 pause() 
 
-println("Checking the solution: iszero(sysg*sysx2-I,atol=1.e-7) == true")
-println(@test iszero(sysg*sysx2-I,atol=1.e-7) )  #  G(s)*X(s) - I = 0
+println("Checking the solution: G(s)*X2(s) = I")
+println("@test iszero(sysg*sysx2-I,atol=1.e-7)" )  
+println(@test iszero(sysg*sysx2-I,atol=1.e-7) )  #  G(s)*X2(s) - I = 0
 pause() 
 
 println("The least order inverse is unstable: max(real(gpole(sysx2))) > 0")
@@ -280,12 +279,12 @@ println(@test maximum(real(gpole(sysx2))) > 0)
 pause() 
 
 println("Checking the minimal cover reduction results: X2(s) = X0(s)+XN(s)*Y2(s)")
-println("iszero(sysx2-sysgen[:,1:2]-sysgen[:,3]*sysy2,atol=1.e-7) == true")
+println("@test iszero(sysx2-sysgen[:,1:2]-sysgen[:,3]*sysy2,atol=1.e-7)")
 println(@test iszero(sysx2-sysgen[:,1:2]-sysgen[:,3]*sysy2,atol=1.e-7) )
 pause() 
 
-println("\nSolution of a H∞ model matching problem  min||X(s)*G(s)-F(s)||")
-println("Setting up an example taken from Francis' book (1987)")
+println("\nSolution of an H∞ model matching problem  min||X(s)*G(s)-F(s)||")
+println("\nSetting up an example taken from Francis' book (1987)")
 println("s = Polynomial([0, 1],'s');")
 println("W = (s+1)/(10s+1); # weighting function") 
 println("G = dss([ -(s-1)/(s^2+s+1)*W; (s^2-2*s)/(s^2+s+1)*W], minimal=true);")
@@ -300,6 +299,7 @@ pause()
 println("\nWe employ the γ-iteration based solution proposed by Francis (1987)")
 
 println("Xopt, info = grasol(G, F, mindeg = true, atol = 1.e-7);")
+println("This will take some time at first execution!!!")
 Xopt, info = grasol(G, F, mindeg = true, atol = 1.e-7); 
 println("Optimum of approximation error: info.mindist = $(info.mindist)")
 pause() 
@@ -360,7 +360,7 @@ println("zer_new = ")
 display(zer_new)
 pause()
 
-println("Compute the ν-gap distance between models using Vinnicombe's formula")
+println("Compute the ν-gap distance between the two models using Vinnicombe's formula")
 println("nugap = gnugap(sys,syst)[1]")
 nugap = gnugap(sys,syst)[1]
 println("The resulting ν-gap distance $nugap reflects well to the s-variable perturbation")

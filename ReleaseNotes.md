@@ -1,5 +1,9 @@
 # Release Notes
 
+## Version 1.0.1
+
+This minor release only improves the demonstration script `DSToolsDemo.jl`.
+
 ## Version 1.0.0
 
 This is the first major release which implements the targeted functionality available in the companion [`DSTOOLS`](https://github.com/andreasvarga/DescriptorSystemTools) toolbox developed for MATLAB. The latest additions include new functions for conversion of descriptor systems to standard form with determination of consistent initial state and state mapping matrices, discretization of descriptor systems and rational transfer functions, conversion to input-output form (rational or polynomial transfer function matrix), computation of generalized inverses and determination of time responses. Also a function has been implemented
