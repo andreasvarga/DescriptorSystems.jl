@@ -1,8 +1,12 @@
 # Release Notes
 
+## Version 1.1.0
+
+This minor release relies on release `v2.0` (or higher) of `MatrixEquations.jl`, which employs `LinearMaps.jl` (instead of `LinearOperators.jl` in previous releases). 
+
 ## Version 1.0.1
 
-This minor release only improves the demonstration script `DSToolsDemo.jl`.
+This patch release only improves the demonstration script `DSToolsDemo.jl`.
 
 ## Version 1.0.0
 

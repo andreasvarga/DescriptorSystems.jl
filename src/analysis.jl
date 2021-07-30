@@ -193,7 +193,7 @@ working machine epsilon.
 The keyword argument `atol` can be used to simultaneously set `atol1 = atol` and `atol2 = atol`. 
 """
 function gzeroinfo(SYS::DescriptorStateSpace{T}; smarg::Real = SYS.Ts == 0 ? 0 : 1, fast = false, 
-                   atol::Real = zero(real(T)), atol1::Real = atol, atol2::Real = atol, 
+                   atol::Real = zero(float(real(T))), atol1::Real = atol, atol2::Real = atol, 
                    rtol::Real = SYS.nx*eps(real(float(one(T))))*iszero(min(atol1,atol2)), 
                    offset::Real = sqrt(eps(float(real(T)))) ) where T
     val, miz, krinfo = spzeros(dssdata(SYS)...; fast = fast, atol1 = atol1, atol2 = atol2, rtol = rtol)
@@ -296,7 +296,7 @@ working machine epsilon.
 The keyword argument `atol` can be used to simultaneously set `atol1 = atol` and `atol2 = atol`. 
 """
 function gpoleinfo(SYS::DescriptorStateSpace{T}; smarg::Real = SYS.Ts == 0 ? 0 : 1, fast = false, 
-                   atol::Real = zero(real(T)), atol1::Real = atol, atol2::Real = atol, 
+                   atol::Real = zero(float(real(T))), atol1::Real = atol, atol2::Real = atol, 
                    rtol::Real = SYS.nx*eps(real(float(one(T))))*iszero(min(atol1,atol2)), 
                    offset::Real = sqrt(eps(float(real(T))))) where T
     disc = (SYS.Ts != 0)
@@ -370,7 +370,7 @@ The default relative tolerance is `n*ϵ`, where `n` is the size of  `A`, and `ϵ
 working machine epsilon. 
 The keyword argument `atol` can be used to simultaneously set `atol1 = atol` and `atol2 = atol`. 
 """
-function isregular(SYS::DescriptorStateSpace{T}; atol::Real = zero(real(T)), atol1::Real = atol, atol2::Real = atol, 
+function isregular(SYS::DescriptorStateSpace{T}; atol::Real = zero(float(real(T))), atol1::Real = atol, atol2::Real = atol, 
     rtol::Real = SYS.nx*eps(real(float(one(T))))*iszero(min(atol1,atol2))) where T
     SYS.E == I && (return true)
     epsm = eps(float(one(real(T))))
@@ -396,7 +396,7 @@ and the relative tolerance for the nonzero elements of `A`, `B`, `C`, `D` and `E
 The default relative tolerance is `n*ϵ`, where `n` is the order of `A` and `ϵ` is the working machine epsilon. 
 The keyword argument `atol` can be used to simultaneously set `atol1 = atol` and `atol2 = atol`. 
 """
-function isproper(SYS::DescriptorStateSpace{T}; fast::Bool = true, atol::Real = zero(real(T)), atol1::Real = atol, atol2::Real = atol, 
+function isproper(SYS::DescriptorStateSpace{T}; fast::Bool = true, atol::Real = zero(float(real(T))), atol1::Real = atol, atol2::Real = atol, 
     rtol::Real = SYS.nx*eps(real(float(one(T))))*iszero(min(atol1,atol2))) where T
     (SYS.E == I || SYS.nx == 0)   && (return true)
     epsm = eps(float(one(real(T))))
@@ -474,7 +474,7 @@ and `n` is the order of the system `sys`. The keyword argument `atol` can be use
 to simultaneously set `atol1 = atol` and `atol2 = atol`. 
 """   
 function ghanorm(sys::DescriptorStateSpace{T}; fast::Bool = true, 
-                 atol::Real = zero(real(T)), atol1::Real = atol, atol2::Real = atol, 
+                 atol::Real = zero(float(real(T))), atol1::Real = atol, atol2::Real = atol, 
                  rtol::Real = sys.nx*eps(real(float(one(T))))*iszero(min(atol1,atol2)))  where T 
     
     T1 = T <: BlasFloat ? T : promote_type(Float64,T) 
@@ -548,7 +548,7 @@ and `n` is the order of the system `sys`. The keyword argument `atol` can be use
 to simultaneously set `atol1 = atol` and `atol2 = atol`.  
 """   
 function gh2norm(sys::DescriptorStateSpace{T}; fast::Bool = true, offset::Real = sqrt(eps(float(real(T)))), 
-                 atol::Real = zero(real(T)), atol1::Real = atol, atol2::Real = atol, atolinf::Real = atol, 
+                 atol::Real = zero(float(real(T))), atol1::Real = atol, atol2::Real = atol, atolinf::Real = atol, 
                  rtol::Real = sys.nx*eps(real(float(one(T))))*iszero(min(atol1,atol2)))  where T 
     return gl2norm(sys; h2norm = true, fast = fast, offset = offset, atol1 = atol1, atol2 = atol2, atolinf = atolinf, rtol = rtol)
     
@@ -593,7 +593,7 @@ and `n` is the order of the system `sys`. The keyword argument `atol` can be use
 to simultaneously set `atol1 = atol`, `atol2 = atol` and `atol3 = atol`. 
 """   
 function gl2norm(sys::DescriptorStateSpace{T}; h2norm::Bool = false, fast::Bool = true, 
-                 offset::Real = sqrt(eps(float(real(T)))), atol::Real = zero(real(T)), atol1::Real = atol, atol2::Real = atol, atol3::Real = atol, 
+                 offset::Real = sqrt(eps(float(real(T)))), atol::Real = zero(float(real(T))), atol1::Real = atol, atol2::Real = atol, atol3::Real = atol, 
                  atolinf::Real = atol, rtol::Real = sys.nx*eps(real(float(one(T))))*iszero(min(atol1,atol2)))  where T 
     
     T1 = T <: BlasFloat ? T : promote_type(Float64,T) 
@@ -681,8 +681,8 @@ The default relative tolerance is `n*ϵ`, where `ϵ` is the working machine epsi
 and `n` is the order of the system `sys`. 
 The keyword argument `atol` can be used to simultaneously set `atol1 = atol` and `atol2 = atol`. 
 """   
-function ghinfnorm(sys::DescriptorStateSpace{T}; rtolinf::Real = real(T)(0.001), fast::Bool = true, offset::Real = sqrt(eps(float(real(T)))), 
-                   atol::Real = zero(real(T)), atol1::Real = atol, atol2::Real = atol,  
+function ghinfnorm(sys::DescriptorStateSpace{T}; rtolinf::Real = float(real(T))(0.001), fast::Bool = true, offset::Real = sqrt(eps(float(real(T)))), 
+                   atol::Real = zero(float(real(T))), atol1::Real = atol, atol2::Real = atol,  
                    rtol::Real = (size(sys.A,1)*eps(real(float(one(T)))))*iszero(min(atol1,atol2)))  where T 
     return glinfnorm(sys; hinfnorm = true, rtolinf = rtolinf, fast = fast, offset = offset, atol1 = atol1, atol2 = atol2, rtol = rtol)
 
@@ -723,8 +723,8 @@ The default relative tolerance is `n*ϵ`, where `ϵ` is the working machine epsi
 and `n` is the order of the system `sys`. 
 The keyword argument `atol` can be used to simultaneously set `atol1 = atol` and `atol2 = atol`. 
 """   
-function glinfnorm(sys::DescriptorStateSpace{T}; hinfnorm::Bool = false, rtolinf::Real = real(T)(0.001), fast::Bool = true, 
-                   offset::Real = sqrt(eps(float(real(T)))), atol::Real = zero(real(T)), atol1::Real = atol, atol2::Real = atol,  
+function glinfnorm(sys::DescriptorStateSpace{T}; hinfnorm::Bool = false, rtolinf::Real = float(real(T))(0.001), fast::Bool = true, 
+                   offset::Real = sqrt(eps(float(real(T)))), atol::Real = zero(float(real(T))), atol1::Real = atol, atol2::Real = atol,  
                    rtol::Real = sys.nx*eps(real(float(one(T))))*iszero(min(atol1,atol2)))  where T 
     
     T1 = T <: BlasFloat ? T : promote_type(Float64,T) 
