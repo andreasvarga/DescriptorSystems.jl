@@ -26,7 +26,7 @@ defined by the 4-tuple `SYS = (A-λE,B,C,D)`, then:
 
 The dimensions `nx`, `ny` and `nu` can be obtained as `SYS.nx`, `SYS.ny` and `SYS.nu`, respectively. 
 """
-struct DescriptorStateSpace{T} <: AbstractLTISystem
+struct DescriptorStateSpace{T} <: AbstractDescriptorStateSpace 
     A::Matrix{T}
     E::Union{Matrix{T},UniformScaling}
     B::Matrix{T}

@@ -521,7 +521,7 @@ sys = dss(a,b,c,d);
       round(fpeak,digits = 3) ≈ round(2.695926597795647,digits=3)
 
 sys = dss(a+im*a,b+im*b,c+im*c,d+im*d);
-@time hinfnorm, fpeak = ghinfnorm(sys,rtolinf = 0.0000001)
+@time hinfnorm, fpeak = glinfnorm(sys,rtolinf = 0.0000001)
 @test opnorm(evalfr(sys,im*fpeak)) ≈ hinfnorm &&
       abs(hinfnorm - 56.237554184492573) < 1.e-6 &&  # compare with Matlab results
       abs(fpeak+3.952242830041314) < 0.001
@@ -537,7 +537,7 @@ sys = dss(e*a,e,e*b,c,d);
 a = [-1 2;-3 -2]; b = [2 3 4; 1 2 3]; c = [1 4; 2 2; 1 3]; d = zeros(3,3);
 e = rand(Complex{Float64},2,2);
 sys = dss(e*(a+im*a),e,e*(b+im*b),c+im*c,d+im*d);
-@time hinfnorm, fpeak = ghinfnorm(sys,rtolinf = 0.0000001)
+@time hinfnorm, fpeak = glinfnorm(sys,rtolinf = 0.0000001)
 @test opnorm(evalfr(sys,im*fpeak)) ≈ hinfnorm &&
       abs(hinfnorm - 56.237554184492573) < 1.e-6 &&  # compare with Matlab results
       abs(fpeak+3.952242830041314) < 0.001

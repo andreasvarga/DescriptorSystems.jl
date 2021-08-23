@@ -760,12 +760,12 @@ function glinfnorm(sys::DescriptorStateSpace{T}; hinfnorm::Bool = false, rtolinf
     # check for poles on the boundary of the stability domain
     E == I ? ft = eigvals(A) : ft = eigvals(A,E); ft = ft[isfinite.(ft)]
     if disc
-        hinfnorm && all(abs.(ft) .> 1-β) && (return Inf, NaN)
+        hinfnorm && any(abs.(ft) .> 1-β) && (return Inf, NaN)
         for i = 1:length(ft)
             abs(ft[i]) >= 1-β && abs(ft[i]) <= 1+β && (return Inf, complx ? imag(log(complex(ft[i]))/Ts) : abs(log(complex(ft[i]))/Ts))
         end
     else
-        hinfnorm && all(real.(ft) .> -β) && (return Inf, NaN)
+        hinfnorm && any(real.(ft) .> -β) && (return Inf, NaN)
         for i = 1:length(ft)
             real(ft[i]) >= -β && real(ft[i]) <= β && (return Inf, complx ? imag(ft[i]) : abs(imag(ft[i])))
         end
@@ -777,53 +777,27 @@ function glinfnorm(sys::DescriptorStateSpace{T}; hinfnorm::Bool = false, rtolinf
     # end GLINFNORM
 end
 function norminfc(a, e, b, c, d, ft0, tol)
+
+   T = eltype(a)
+   TR = real(T)
+   ny, nu = size(d)
+   min(ny, nu) == 0 && (return TR(0), TR(0))
+   
    # Continuous-time L∞ norm computation
    # It is assumed that A-λE has no eigenvalues on the extended imaginary axis
 
    # Tolerance for jw-axis mode detection
-   T = eltype(a)
    compl = T <: Complex
-   TR = real(T)
    epsm = eps(TR)
    toljw1 = 100 * epsm;       # for simple roots
    toljw2 = 10 * sqrt(epsm);  # for double root
    
    # Problem dimensions
    nx = size(a,1)
-   ny, nu = size(d)
    desc = e != I
-   
-   if desc
-      # Reduce (A,E) to (generalized) upper-Hessenberg form for
-      # fast frequency response computation 
-      at = copy(a)
-      et = copy(e)
-      bt = copy(b)
-      ct = copy(c)
-      # first reduce E to upper triangular form 
-      _, tau = LinearAlgebra.LAPACK.geqrf!(et)
-      compl ? tran = 'C' : tran = 'T'
-      LinearAlgebra.LAPACK.ormqr!('L', tran, et, tau, at)
-      LinearAlgebra.LAPACK.ormqr!('L', tran, et, tau, bt)
-      # reduce A to Hessenberg form and keep E upper triangular
-      _, _, Q, Z = MatrixPencils.gghrd!('I', 'I',  1, nx, at, et, similar(at),similar(et))
-      if compl 
-         bc = Q'*bt; cc = c*Z; ac = at; ec = et; dc = d;
-      else
-         bc = complex(Q'*bt); cc = complex(c*Z); ac = complex(at); ec = complex(et); dc = complex(d);
-      end
-   else
-      # Reduce A to upper Hessenberg form for
-      # fast frequency response computation 
-      Ha = hessenberg(a)
-      ac = Ha.H
-      if compl 
-         bc = Ha.Q'*b; cc = c*Ha.Q; dc = d; 
-      else
-         bc = complex(Ha.Q'*b); cc = complex(c*Ha.Q); dc = complex(d);
-      end
-   end
-  
+   # reduce to complex Hessenberg form
+   ac, ec, bc, cc, dc = chess(a, e, b, c, d)
+    
    # Build a new vector TESTFRQ of test frequencies containing the peaking
    # frequency for each mode (or an approximation thereof for non-resonant modes).
    # Add frequency w = 0 and set GMIN = || D || and FPEAK to infinity
@@ -835,7 +809,7 @@ function norminfc(a, e, b, c, d, ft0, tol)
    #  temp = w0[ikeep].*sqrt.(offset2)
    #  compl ? testfrq = [-temp; [0]; temp] : testfrq = [[0]; temp]
    compl ? testfrq = [-w0; [0]; w0] : testfrq = [[0]; w0]
-
+   
    gmin = opnorm(d)
    fpeak = Inf
 
@@ -909,13 +883,17 @@ function norminfc(a, e, b, c, d, ft0, tol)
    end #while  
 end  
 function norminfd(a, e, b, c, d, ft0, Ts, tol)
+
+   T = eltype(a)
+   TR = real(T)
+   ny, nu = size(d)
+   min(ny, nu) == 0 && (return TR(0), TR(0))
+
    # Discrete-time L∞ norm computation
    # It is assumed that A-λE has no eigenvalues on the unit circle
 
    # Tolerance for detection of unit circle modes
-   T = eltype(a)
    compl = T <: Complex
-   TR = real(T)
    epsm = eps(TR)
    toluc1 = 100 * epsm       # for simple roots
    toluc2 = 10 * sqrt(epsm)  # for double root
@@ -924,37 +902,8 @@ function norminfd(a, e, b, c, d, ft0, Ts, tol)
    nx = size(a,1);
    ny, nu = size(d)
    desc = e != I
-      
-   if desc
-      # Reduce (A,E) to (generalized) upper-Hessenberg form for
-      # fast frequency response computation 
-      at = copy(a)
-      et = copy(e)
-      bt = copy(b)
-      ct = copy(c)
-      # first reduce E to upper triangular form 
-      _, tau = LinearAlgebra.LAPACK.geqrf!(et)
-      compl ? tran = 'C' : tran = 'T'
-      LinearAlgebra.LAPACK.ormqr!('L', tran, et, tau, at)
-      LinearAlgebra.LAPACK.ormqr!('L', tran, et, tau, bt)
-      # reduce A to Hessenberg form and keep E upper triangular
-      _, _, Q, Z = MatrixPencils.gghrd!('I', 'I',  1, nx, at, et, similar(at),similar(et))
-      if compl 
-         bc = Q'*bt; cc = c*Z; ac = at; ec = et; dc = d;
-      else
-         bc = complex(Q'*bt); cc = complex(c*Z); ac = complex(at); ec = complex(et); dc = complex(d);
-      end
-   else
-      # Reduce A to upper Hessenberg form for
-      # fast frequency response computation 
-      Ha = hessenberg(a)
-      ac = Ha.H
-      if compl 
-         bc = Ha.Q'*b; cc = c*Ha.Q; dc = d; 
-      else
-         bc = complex(Ha.Q'*b); cc = complex(c*Ha.Q); dc = complex(d);
-      end
-   end
+   # reduce to complex Hessenberg form
+   ac, ec, bc, cc, dc = chess(a, e, b, c, d)
    
    # Build a new vector TESTFRQ of test frequencies containing the peaking
    # frequency for each mode (or an approximation thereof for non-resonant modes).
@@ -983,8 +932,6 @@ function norminfd(a, e, b, c, d, ft0, Ts, tol)
    end
    gmin == 0 && (return TR(0), TR(0))
 
-   # gmin = 0.001
-   
    # Modified gamma iterations (Bruinsma-Steinbuch algorithm) starts:
    iter = 1;
    while iter < 30

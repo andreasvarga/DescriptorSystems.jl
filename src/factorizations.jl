@@ -315,10 +315,10 @@ while for a discrete-time system, the boundary of `Cs` contains
 the complex numbers with moduli within the interval `[1-β,1+β]`. 
 The default value used for `β` is `sqrt(ϵ)`, where `ϵ` is the working machine precision. 
 
-The resulting named triple `ìnfo` contains `(nrank, nfuz, niuz) `, where `ìnfo.nrank = r`, 
-the normal rank of `G(λ)`, `ìnfo.nfuz` is the number of finite zeros of `syso` on 
-the boundary of `Cs`, and `ìnfo.niuz` is the number of infinite zeros of `syso`. 
-`ìnfo.nfuz` is set to `missing` if `minphase = false`. 
+The resulting named triple `info` contains `(nrank, nfuz, niuz) `, where `info.nrank = r`, 
+the normal rank of `G(λ)`, `info.nfuz` is the number of finite zeros of `syso` on 
+the boundary of `Cs`, and `info.niuz` is the number of infinite zeros of `syso`. 
+`info.nfuz` is set to `missing` if `minphase = false`. 
 
 _Note:_ `syso` may generally contain a _free inner factor_, which can be eliminated by 
 removing the finite unobservable eigenvalues. 
@@ -383,10 +383,10 @@ while for a discrete-time system, the boundary of `Cs` contains
 the complex numbers with moduli within the interval `[1-β,1+β]`. 
 The default value used for `β` is `sqrt(ϵ)`, where `ϵ` is the working machine precision. 
 
-The resulting named triple `ìnfo` contains `(nrank, nfuz, niuz) `, where `ìnfo.nrank = r`, 
-the normal rank of `G(λ)`, `ìnfo.nfuz` is the number of finite zeros of `syso` on 
-the boundary of `Cs`, and `ìnfo.niuz` is the number of infinite zeros of `syso`. 
-`ìnfo.nfuz` is set to `missing` if `minphase = false`. 
+The resulting named triple `info` contains `(nrank, nfuz, niuz) `, where `info.nrank = r`, 
+the normal rank of `G(λ)`, `info.nfuz` is the number of finite zeros of `syso` on 
+the boundary of `Cs`, and `info.niuz` is the number of infinite zeros of `syso`. 
+`info.nfuz` is set to `missing` if `minphase = false`. 
 
 _Note:_ `syso` may generally contain a _free inner factor_, which can be eliminated by 
 removing the finite unobservable eigenvalues. 

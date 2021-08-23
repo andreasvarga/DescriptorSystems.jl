@@ -1,5 +1,4 @@
 module DescriptorSystems
-# Release V0.7*
 
 using LinearAlgebra
 using MatrixEquations
@@ -21,7 +20,7 @@ export confmap, simplify, normalize, poles, gain, zpk, rtfbilin, numpoly, denpol
 export blockdiag, eye, rcond
 export gdual, ctranspose, inv, ldiv, rdiv, ginv
 export append, series, parallel, horzcat, vertcat
-export order, evalfr, dcgain, opnorm, freqresp
+export order, evalfr, dcgain, opnorm, freqresp, chess
 export gpole, gzero, gpoleinfo, gzeroinfo, gnrank, isregular, isproper, isstable, 
        glinfnorm, ghinfnorm, gl2norm, gh2norm, ghanorm, gnugap
 export gsdec, grnull, glnull, grange, gcrange, grsol, glsol, grmcover1, grmcover2, glmcover1, glmcover2
@@ -32,6 +31,7 @@ export gnehari, glinfldp, glasol, grasol
 
 abstract type AbstractDynamicalSystem end
 abstract type AbstractLTISystem <: AbstractDynamicalSystem end
+abstract type AbstractDescriptorStateSpace <: AbstractLTISystem end
 
 
 include("types/DescriptorStateSpace.jl")

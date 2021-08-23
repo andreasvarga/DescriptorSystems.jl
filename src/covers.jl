@@ -26,13 +26,13 @@ where the pencil `[Ao-λEo; Co]` is in a (observability) staircase form,
 with `νl[i] x νl[i+1]` full row rank diagonal blocks, for `i = 1, ..., nl`, 
 with `νl[nl+1] := p1`. 
 
-The resulting named triple `ìnfo` contains `(stdim, tcond, fnorm) `, 
-where `ìnfo.stdim = νl` is a vector which contains the column dimensions of the
-blocks of the staircase form `[Ao-λEo; Co]`, `ìnfo.tcond` is the maximum of 
+The resulting named triple `info` contains `(stdim, tcond, fnorm) `, 
+where `info.stdim = νl` is a vector which contains the column dimensions of the
+blocks of the staircase form `[Ao-λEo; Co]`, `info.tcond` is the maximum of 
 the Frobenius-norm condition numbers of the employed non-orthogonal 
-transformation matrices, and `ìnfo.fnorm` is 
+transformation matrices, and `info.fnorm` is 
 the Frobenius-norm of the (internally) employed output-injection gain to reduce the order. 
-Large values of  `ìnfo.tcond` or `ìnfo.fnorm` indicate possible loss of 
+Large values of  `info.tcond` or `info.fnorm` indicate possible loss of 
 numerical stability of computations. 
 
 The keyword arguments `atol1`, `atol2`, and `rtol`, specify, respectively, 
@@ -52,7 +52,7 @@ _Note:_ `glmcover1` also works for arbitrary descriptor system `sys1`,
 if `sys2` is proper. For an improper system `sys1`, the order 
 reduction is performed only for the proper part of `sys1`, while the 
 polynomial part of `sys1` is included without modification in the  
-resulting realization of `sysx`. In this case, `ìnfo.stdim = νl` contains
+resulting realization of `sysx`. In this case, `info.stdim = νl` contains
 the information corresponding to the proper part of `sysx`. 
 
 _Method:_ The dual of method  of [1] is used to compute Type 1 minimum dynamic covers 
@@ -110,14 +110,14 @@ where the pencil `[Ao-λEo; Co]` is in a (observability) staircase form,
 with `νl[i] x νl[i+1]` full row rank diagonal blocks, for `i = 1, ..., nl`, 
 with `νl[nl+1] := p1`. 
 
-The resulting named triple `ìnfo` contains `(stdim, tcond, fnorm, gnorm) `, 
-where `ìnfo.stdim = νl` is a vector which contains the column dimensions of the
-blocks of the staircase form `[Ao-λEo; Co]`, `ìnfo.tcond` is the maximum of 
+The resulting named triple `info` contains `(stdim, tcond, fnorm, gnorm) `, 
+where `info.stdim = νl` is a vector which contains the column dimensions of the
+blocks of the staircase form `[Ao-λEo; Co]`, `info.tcond` is the maximum of 
 the Frobenius-norm condition numbers of the employed non-orthogonal 
-transformation matrices, `ìnfo.fnorm` is 
+transformation matrices, `info.fnorm` is 
 the Frobenius-norm of the (internally) employed output-injection gain to reduce the order, and 
-`ìnfo.gnorm` is the Frobenius-norm of the (internally) employed output-feedforward gain. 
-Large values of  `ìnfo.tcond`,`ìnfo.fnorm` or `ìnfo.gnorm` indicate possible loss of 
+`info.gnorm` is the Frobenius-norm of the (internally) employed output-feedforward gain. 
+Large values of  `info.tcond`,`info.fnorm` or `info.gnorm` indicate possible loss of 
 numerical stability of computations. 
 
 The keyword arguments `atol1`, `atol2`, and `rtol`, specify, respectively, 
@@ -137,7 +137,7 @@ _Note:_ `glmcover2` also works for arbitrary descriptor system `sys1`,
 if `sys2` is proper. For an improper system `sys1`, the order 
 reduction is performed only for the proper part of `sys1`, while the 
 polynomial part of `sys1` is included without modification in the  
-resulting realization of `sysx`. In this case, `ìnfo.stdim = νl` contains
+resulting realization of `sysx`. In this case, `info.stdim = νl` contains
 the information corresponding to the proper part of `sysx`. 
 
 _Method:_ The dual of method  of [1] is used to compute Type 2 minimum dynamic covers 
@@ -195,13 +195,13 @@ where the pencil `[Br Ar-λEr]` is in a (controllability) staircase form,
 with `νr[i] x νr[i-1]` full row rank diagonal blocks, for `i = 1, ..., nr`, 
 with `νr[0] := m1`. 
 
-The resulting named triple `ìnfo` contains `(stdim, tcond, fnorm) `, 
-where `ìnfo.stdim = νr` is a vector which contains the row dimensions of the
-blocks of the staircase form `[Br Ar-λEr]`, `ìnfo.tcond` is the maximum of 
+The resulting named triple `info` contains `(stdim, tcond, fnorm) `, 
+where `info.stdim = νr` is a vector which contains the row dimensions of the
+blocks of the staircase form `[Br Ar-λEr]`, `info.tcond` is the maximum of 
 the Frobenius-norm condition numbers of the employed non-orthogonal 
-transformation matrices, and `ìnfo.fnorm` is 
+transformation matrices, and `info.fnorm` is 
 the Frobenius-norm of the (internally) employed state-feedback to reduce the order. 
-Large values of  `ìnfo.tcond` or `ìnfo.fnorm` indicate possible loss of 
+Large values of  `info.tcond` or `info.fnorm` indicate possible loss of 
 numerical stability of computations. 
 
 The keyword arguments `atol1`, `atol2`, and `rtol`, specify, respectively, 
@@ -221,7 +221,7 @@ _Note:_ `grmcover1` also works for arbitrary descriptor system `sys1`,
 if `sys2` is proper. For an improper system `sys1`, the order 
 reduction is performed only for the proper part of `sys1`, while the 
 polynomial part of `sys1` is included without modification in the  
-resulting realization of `sysx`. In this case, `ìnfo.stdim = νr` contains
+resulting realization of `sysx`. In this case, `info.stdim = νr` contains
 the information corresponding to the proper part of `sysx`. 
 
 _Method:_ The method  of [1] is used to compute Type 1 minimum dynamic covers 
@@ -421,15 +421,15 @@ where the pencil `[Br Ar-λEr]` is in a (controllability) staircase form,
 with `νr[i] x νr[i-1]` full row rank diagonal blocks, for `i = 1, ..., nr`, 
 with `νr[0] := m1`. 
 
-The resulting named triple `ìnfo` contains `(stdim, tcond, fnorm, gnorm) `, 
-where `ìnfo.stdim = νr` is a vector which contains the row dimensions of the
-blocks of the staircase form `[Br Ar-λEr]`, `ìnfo.tcond` is the maximum of 
+The resulting named triple `info` contains `(stdim, tcond, fnorm, gnorm) `, 
+where `info.stdim = νr` is a vector which contains the row dimensions of the
+blocks of the staircase form `[Br Ar-λEr]`, `info.tcond` is the maximum of 
 the Frobenius-norm condition numbers of the employed non-orthogonal 
-transformation matrices, `ìnfo.fnorm` is 
+transformation matrices, `info.fnorm` is 
 the Frobenius-norm of the (internally) employed state-feedback gain to reduce the order,
-`ìnfo.gnorm` is 
+`info.gnorm` is 
 the Frobenius-norm of the (internally) employed feedforward gain to reduce the order. 
-Large values of  `ìnfo.tcond`, `ìnfo.fnorm`  or  `ìnfo.gnorm` indicate possible loss of 
+Large values of  `info.tcond`, `info.fnorm`  or  `info.gnorm` indicate possible loss of 
 numerical stability of computations. 
 
 The keyword arguments `atol1`, `atol2`, and `rtol`, specify, respectively, 
@@ -449,7 +449,7 @@ _Note:_ `grmcover2` also works for arbitrary descriptor system `sys1`,
 if `sys2` is proper. For an improper system `sys1`, the order 
 reduction is performed only for the proper part of `sys1`, while the 
 polynomial part of `sys1` is included without modification in the  
-resulting realization of `sysx`. In this case, `ìnfo.stdim = νr` contains
+resulting realization of `sysx`. In this case, `info.stdim = νr` contains
 the information corresponding to the proper part of `sysx`. 
 
 _Method:_ The method  of [1] is used to compute Type 2 minimum dynamic covers 

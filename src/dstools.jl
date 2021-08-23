@@ -27,6 +27,73 @@ function freqresp(sys::DescriptorStateSpace{T}, ω::Union{AbstractVector{<:Real}
     a, e, b, c, d = dssdata(T1,sys)
     Ts = abs(sys.Ts)
     disc = !iszero(Ts)
+    # Create the complex frequency scaling
+    sw = disc ? im*abs(sys.Ts) : im
+    desc = !(e == I)
+    # reduce to complex Hessenberg form
+    ac, ec, bc, cc, dc = chess(a, e, b, c, d)
+    N = length(ω)
+    H = similar(dc, eltype(dc), sys.ny, sys.nu, N)
+    bct = similar(bc) 
+    for i = 1:N
+        if isinf(ω[i])
+           # exceptional call to evalfr
+           H[:,:,i] = evalfr(sys, fval=Inf)
+        else
+           Hi = view(H,:,:,i)
+           copyto!(Hi,dc)
+           copyto!(bct,bc)
+           w = disc ? -exp(sw*ω[i]) : -sw*ω[i]
+           desc ? ldiv!(UpperHessenberg(ac+w*ec),bct) : ldiv!(ac,bct,shift = w)
+           mul!(Hi,cc,bct,-ONE,ONE)
+        end
+    end
+    return H
+end
+function chess(a::MT, e::Union{MT,UniformScaling}, b::MT, c::MT, d::MT) where {T <: BlasFloat, MT<: AbstractMatrix{T}}
+    # reduce the descriptor system (A-λE,B,C,D) to an equivalent complex descriptor system 
+    # (Ac-λEc,Bc,Cc,Dc) such that Ac-λEc is in an upper Hessenberg form 
+    # Note: This function is only used in the context of efficient frequency response computations. 
+    desc = !(e == I)
+    if desc
+        # Reduce (A,E) to (generalized) upper-Hessenberg form for
+        # fast frequency response computation 
+        at = copy(a)
+        et = copy(e)
+        bt = copy(b)
+        # first reduce E to upper triangular form 
+        _, tau = LinearAlgebra.LAPACK.geqrf!(et)
+        T <: Complex ? tran = 'C' : tran = 'T'
+        LinearAlgebra.LAPACK.ormqr!('L', tran, et, tau, at)
+        LinearAlgebra.LAPACK.ormqr!('L', tran, et, tau, bt)
+        # reduce A to Hessenberg form and keep E upper triangular
+        _, _, Q, Z = MatrixPencils.gghrd!('I', 'I',  1, size(at,1), at, et, similar(at),similar(et))
+        if T <: Complex 
+           bc = Q'*bt; cc = c*Z; ac = at; ec = et; dc = d;
+        else
+           bc = complex(Q'*bt); cc = complex(c*Z); ac = complex(at); ec = complex(et); dc = complex(d);
+        end
+    else
+        # Reduce A to upper Hessenberg form for
+        # fast frequency response computation 
+        Ha = hessenberg(a)
+        ac = Ha.H
+        if T <: Complex 
+           bc = Ha.Q'*b; cc = c*Ha.Q; dc = d; 
+        else
+           bc = complex(Ha.Q'*b); cc = complex(c*Ha.Q); dc = complex(d);
+        end
+        ec = e
+    end
+    return ac, ec, bc, cc, dc
+end
+function freqresp1(sys::DescriptorStateSpace{T}, ω::Union{AbstractVector{<:Real},Real}) where T
+    T1 = T <: BlasFloat ? T : promote_type(Float64,T) 
+    ONE = one(T1)
+    typeof(ω) <: Real && (ω = [ω])
+    a, e, b, c, d = dssdata(T1,sys)
+    Ts = abs(sys.Ts)
+    disc = !iszero(Ts)
     # Create the complex frequency vector w
     if disc
         w = exp.(ω*(im*abs(sys.Ts)))
@@ -79,7 +146,7 @@ function freqresp(sys::DescriptorStateSpace{T}, ω::Union{AbstractVector{<:Real}
            mul!(Hi,cc,bct,-ONE,ONE)
         end
     end
-return H
+    return H
 end
 """
     nx = order(sys)

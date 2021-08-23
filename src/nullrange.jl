@@ -15,9 +15,9 @@ The number of rows of `R(λ)` is the normal rank `r` of `G(λ)`.
 The rows of `R(λ)` form a rational basis of the coimage space of the rational matrix `G(λ)`. 
 A selected set of zeros of `G(λ)` are included as zeros of `R(λ)`. 
 
-The resulting named triple `ìnfo` contains `(nrank, nfuz, niuz) `, where `ìnfo.nrank = r`, 
-the normal rank of `G(λ)`, `ìnfo.nfuz` is the number of finite zeros of `sys` on 
-the boundary of the stability domain `Cs`, and `ìnfo.niuz` is the number of infinite zeros of `sys` in 
+The resulting named triple `info` contains `(nrank, nfuz, niuz) `, where `info.nrank = r`, 
+the normal rank of `G(λ)`, `info.nfuz` is the number of finite zeros of `sys` on 
+the boundary of the stability domain `Cs`, and `info.niuz` is the number of infinite zeros of `sys` in 
 the continuous-time case and is set to `0` in the discrete-time case. 
 
 The following options can be selected via the keyword parameter `zeros` for which zeros of `G(λ)` 
@@ -105,9 +105,9 @@ The number of columns of `R(λ)` is the normal rank `r` of `G(λ)`.
 The columns of `R(λ)` form a rational basis of the range (or image) space of the rational matrix `G(λ)`. 
 A selected set of zeros of `G(λ)` are included as zeros of `R(λ)`. 
 
-The resulting named triple `ìnfo` contains `(nrank, nfuz, niuz) `, where `ìnfo.nrank = r`, 
-the normal rank of `G(λ)`, `ìnfo.nfuz` is the number of finite zeros of `sys` on 
-the boundary of the stability domain `Cs`, and `ìnfo.niuz` is the number of infinite zeros of `sys` in 
+The resulting named triple `info` contains `(nrank, nfuz, niuz) `, where `info.nrank = r`, 
+the normal rank of `G(λ)`, `info.nfuz` is the number of finite zeros of `sys` on 
+the boundary of the stability domain `Cs`, and `info.niuz` is the number of infinite zeros of `sys` in 
 the continuous-time case and is set to `0` in the discrete-time case. 
 
 Depending on the value of the keyword parameter `zeros`, the following options can be selected 

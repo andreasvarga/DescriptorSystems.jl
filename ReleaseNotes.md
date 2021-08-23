@@ -1,5 +1,9 @@
 # Release Notes
 
+## Version 1.1.1
+
+This patch release uses a new preprocessing routine for reduction of system matrices to Hessenberg forms in the computation of frequency responses.  
+
 ## Version 1.1.0
 
 This minor release relies on release `v2.0` (or higher) of `MatrixEquations.jl`, which employs `LinearMaps.jl` (instead of `LinearOperators.jl` in previous releases). 
