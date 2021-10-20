@@ -733,6 +733,9 @@ function glinfnorm(sys::DescriptorStateSpace{T}; hinfnorm::Bool = false, rtolinf
     # detect zero case
     # iszero(sys, atol1 = atol1, atol2 = atol2, rtol = rtol) && (return ZERO, ZERO)
 
+    # quick exit for zero dimensions  
+    (sys.nu == 0 || sys.ny == 0) && (return ZERO, ZERO)
+
     # quick exit in constant case  
     sys.nx == 0 && (return opnorm(sys.D), ZERO)
 
