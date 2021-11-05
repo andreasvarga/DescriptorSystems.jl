@@ -207,7 +207,6 @@ function grsol(sysgf::DescriptorStateSpace{T}, mf::Int;
                rtol::Real = ((size(sysgf.A,1)+1)*eps(real(float(one(T)))))*iszero(max(atol1,atol2)), 
                fast::Bool = true, mindeg::Bool = false, solgen::Bool = false, minreal::Bool = true) where T 
 
-
    T1 = T <: BlasFloat ? T : promote_type(Float64,T) 
 
    p, mgf = size(sysgf);
@@ -275,12 +274,6 @@ function grsol(sysgf::DescriptorStateSpace{T}, mf::Int;
    tola = max(atol1,atol2)
    iszero(tola) && 
       (tola = n*eps(real(T1))*max(opnorm(Et,1), opnorm(At,1), opnorm(Bt,1), opnorm(Ct,Inf))) 
-      # println("p = $p n = $n m = $m mf = $mf")
-      # println("νl = $νl  nr = $nr  nreg = $nreg n = $n  p = $p")
-      # println("sum(νl) = $(sum(νl))")
-      # println("sum(νl) = $(sum(νl))")
-      # println("f = $f")
-      # println("f[nr+nreg+1:end,:] = $(f[nr+nreg+1:end,:])")
    sum(νl) > 0 && mf > 0 && maximum(abs.(f[nr+nreg+1:end,:])) >= tola &&
          error("System not compatible")
 

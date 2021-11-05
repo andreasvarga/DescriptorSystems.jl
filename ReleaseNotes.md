@@ -1,5 +1,9 @@
 # Release Notes
 
+## Versions 1.1.2 and 1.1.3
+
+Patch releases to fix a bug and to address issue [#8](https://github.com/andreasvarga/DescriptorSystems.jl/issues/8). 
+
 ## Version 1.1.1
 
 This patch release uses a new preprocessing routine for reduction of system matrices to Hessenberg forms in the computation of frequency responses.  

@@ -362,7 +362,7 @@ function dss(P::LaurentPolynomial; kwargs...)
     n = degree(P)
     m = length(P)-1-n
     T = eltype(P)
-    t = Polynomial{T,Polynomials.indeterminate(P)}([zeros(T,m);one(T)][:])
+    t = Polynomial{T,Polynomials.indeterminate(P)}([zeros(T,m);ones(T,1)][:])
     dss(poly2pm(Polynomial(P*t)),poly2pm(t); kwargs...)
 end
 """

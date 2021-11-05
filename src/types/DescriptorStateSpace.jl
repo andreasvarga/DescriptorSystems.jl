@@ -1,3 +1,4 @@
+#const AbstractNumOrArray = Union{AbstractVecOrMat{T},Number} where {T <: Number}
 const AbstractNumOrArray = Union{AbstractVecOrMat,Number}
 """ 
     DescriptorStateSpace{T}(A::Matrix{T}, E::Union{Matrix{T},UniformScaling}, 
@@ -91,6 +92,23 @@ index2range(ind::Colon) = ind
 function Base.lastindex(sys::DST, dim::Int) where DST <: DescriptorStateSpace
     lastindex(sys.D,dim)
 end
+# Base.getindex(sys::Vector{DST}, ind) where DST <: DescriptorStateSpace = getindex(sys,ind)
+# function Base.getindex(sys::Vector{DST}, inds1, inds2) where DST <: DescriptorStateSpace
+#     println("inds1 = $inds1 inds2 = $inds2")
+#     size(inds2, 1) != 1 &&
+#         error("Must specify 2 indices to index descriptor state-space model")
+#     # rows, cols = index2range(inds...) 
+#     # rows, cols = index2range(inds...) 
+#     rows = inds1; cols = inds2
+#     println("rows = $rows cols = $cols")
+#     N = length(sys)
+#     sysR = similar(sys,N)
+#     for i = 1:N
+#         #sysR[i] = DescriptorStateSpace{eltype(sys[i])}(copy(sys[i].A), copy(sys[i].E), sys[i].B[:, cols], sys[i].C[rows, :], sys[i].D[rows, cols], sys[i].Ts)
+#         sysR[i] = sys[i][rows, cols]
+#     end  
+#     return sysR
+# end
 
 # Basic Operations
 function ==(sys1::DST1, sys2::DST2) where {DST1<:DescriptorStateSpace, DST2<:DescriptorStateSpace}

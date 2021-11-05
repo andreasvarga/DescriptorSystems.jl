@@ -89,8 +89,10 @@ function hcat(SYS1 :: DescriptorStateSpace, SYS2 :: DescriptorStateSpace)
     D = [ T.(SYS1.D) T.(SYS2.D)]
     return DescriptorStateSpace{T}(A, E, B, C, D, Ts)
 end
-hcat(SYS :: DescriptorStateSpace, MAT :: AbstractNumOrArray) = hcat(SYS,dss(MAT,Ts=SYS.Ts))
-hcat(MAT :: AbstractNumOrArray, SYS :: DescriptorStateSpace) = hcat(dss(MAT,Ts=SYS.Ts),SYS)
+#hcat(SYS :: DescriptorStateSpace, MAT :: AbstractNumOrArray) = hcat(SYS,dss(MAT,Ts=SYS.Ts))
+hcat(SYS :: DescriptorStateSpace{T} where T, MAT :: Union{Number, AbstractVecOrMat{<:Number}}) = hcat(SYS,dss(MAT,Ts=SYS.Ts))
+#hcat(MAT :: AbstractNumOrArray, SYS :: DescriptorStateSpace) = hcat(dss(MAT,Ts=SYS.Ts),SYS)
+hcat(MAT :: Union{Number, AbstractVecOrMat{<:Number}}, SYS :: DescriptorStateSpace) = hcat(dss(MAT,Ts=SYS.Ts),SYS)
 hcat(SYS :: DescriptorStateSpace, MAT :: UniformScaling) = hcat(SYS,dss(Matrix{promote_type(eltype(SYS),eltype(MAT))}(MAT,SYS.ny,SYS.ny),Ts=SYS.Ts))
 hcat(MAT :: UniformScaling, SYS :: DescriptorStateSpace) = hcat(dss(Matrix{promote_type(eltype(SYS),eltype(MAT))}(MAT,SYS.ny,SYS.ny),Ts=SYS.Ts),SYS)
 
@@ -195,15 +197,17 @@ function vcat(SYS1 :: DescriptorStateSpace, SYS2 :: DescriptorStateSpace)
     return DescriptorStateSpace{T}(A, E, B, C, D, Ts)
 end
 
-vcat(SYS :: DescriptorStateSpace, MAT :: AbstractNumOrArray) = vcat(SYS,dss(MAT,Ts=SYS.Ts))
-vcat(MAT :: AbstractNumOrArray, SYS :: DescriptorStateSpace) = vcat(dss(MAT,Ts=SYS.Ts),SYS)
+#vcat(SYS :: DescriptorStateSpace, MAT :: AbstractNumOrArray) = vcat(SYS,dss(MAT,Ts=SYS.Ts))
+vcat(SYS :: DescriptorStateSpace, MAT :: Union{Number, AbstractVecOrMat{<:Number}}) = vcat(SYS,dss(MAT,Ts=SYS.Ts))
+#vcat(MAT :: AbstractNumOrArray, SYS :: DescriptorStateSpace) = vcat(dss(MAT,Ts=SYS.Ts),SYS)
+vcat(MAT :: Union{Number, AbstractVecOrMat{<:Number}}, SYS :: DescriptorStateSpace) = vcat(dss(MAT,Ts=SYS.Ts),SYS)
 vcat(SYS :: DescriptorStateSpace, MAT :: UniformScaling) = vcat(SYS,dss(Matrix{promote_type(eltype(SYS),eltype(MAT))}(MAT,SYS.nu,SYS.nu),Ts=SYS.Ts))
 vcat(MAT :: UniformScaling, SYS :: DescriptorStateSpace) = vcat(dss(Matrix{promote_type(eltype(SYS),eltype(MAT))}(MAT,SYS.nu,SYS.nu),Ts=SYS.Ts),SYS)
 
 for (f,dim,name) in ((:hcat,1,"rows"), (:vcat,2,"cols"))
     @eval begin
-        function $f(A::Union{DescriptorStateSpace,AbstractNumOrArray,UniformScaling}...)
-            n = -1
+        function $f(A::Union{DescriptorStateSpace, AbstractVecOrMat{<:Number}, Number, UniformScaling}...) 
+            n = -1   
             for a in A
                 if !isa(a, UniformScaling)
                     require_one_based_indexing(a)
@@ -216,7 +220,9 @@ for (f,dim,name) in ((:hcat,1,"rows"), (:vcat,2,"cols"))
             end
             n == -1 && throw(ArgumentError($("$f of only UniformScaling objects cannot determine the matrix size")))
             if isadss(A...) == 0
-                return $f(promote_to_systems(0, fill(n,length(A)), 1, promote_type(eltype.(A)...), A...)...).D
+                # alleviate type piracy problematic
+                n == 1 && (A = promote_to_arrays(A...))  # convert all scalars to vectors
+                return cat(LinearAlgebra.promote_to_arrays(fill(n, length(A)), 1, Matrix, A...)..., dims=Val(3-$dim))
             else       
                 Ts = promote_system_SamplingTime(A...)
                 return $f(promote_to_systems(Ts, fill(n,length(A)), 1, promote_type(eltype.(A)...), A...)...)
@@ -237,7 +243,7 @@ function Base.hvcat(rows :: Tuple{Vararg{Int}}, DST :: DescriptorStateSpace...)
 end
 
 
-function Base.hvcat(rows::Tuple{Vararg{Int}}, A::Union{DescriptorStateSpace,AbstractNumOrArray,UniformScaling}...)
+function Base.hvcat(rows::Tuple{Vararg{Int}}, A::Union{DescriptorStateSpace, AbstractVecOrMat{<:Number}, Number, UniformScaling}...)
     require_one_based_indexing(A...)
     nr = length(rows)
     sum(rows) == length(A) || throw(ArgumentError("mismatch between row sizes and number of arguments"))
@@ -290,7 +296,9 @@ function Base.hvcat(rows::Tuple{Vararg{Int}}, A::Union{DescriptorStateSpace,Abst
         end
     end
     if isadss(A...) == 0
-        return hvcat(rows, promote_to_systems(0, n, 1, promote_type(eltype.(A)...), A...)...).D
+        # alleviate type piracy problematic
+        Amat = LinearAlgebra.promote_to_arrays(n, 1, Matrix, promote_to_arrays(A...)...)
+        return Base.typed_hvcat(promote_type(eltype.(Amat)...), rows, Amat...)
     else
         Ts = promote_system_SamplingTime(A...)
         return hvcat(rows, promote_to_systems(Ts, n, 1, promote_type(eltype.(A)...), A...)...)
@@ -311,6 +319,15 @@ promote_to_systems(Ts::Real, n, k, ::Type{T}, A, B, Cs...) where {T} =
     (promote_to_system_(n[k], T, A, Ts), promote_to_system_(n[k+1], T, B, Ts), promote_to_systems(Ts, n, k+2, T, Cs...)...)
 promote_to_system_type(A::Tuple{Vararg{Union{DescriptorStateSpace,AbstractNumOrArray,UniformScaling}}}) = DescriptorStateSpace
 promote_to_systems(Ts::Union{Real,Nothing}, var::Symbol, n, k, ::Type) = ()
+function promote_to_arrays(A...)
+    N = length(A)
+    B = (Vector{T} where T)(undef, N)
+    for i = 1:N
+        isa(A[i],Number) ? (B[i] = [A[i]]) : B[i] = A[i]
+    end
+    return tuple(B...)
+end
+
 
 function promote_system_SamplingTime(A::Union{DescriptorStateSpace,AbstractNumOrArray,UniformScaling}...)
     # pick and check the common sampling time  

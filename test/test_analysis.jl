@@ -6,6 +6,7 @@ using Polynomials
 using Test
 
 println("Test_analysis")
+@testset "test_analysis" begin
 @testset "zeros, rank, poles" begin
 
 # test example for SLICOT subroutine AB08ND
@@ -903,5 +904,6 @@ nugap2, fpeak2 = gnugap(sysc2,sysc1,fast = fast, atol=1.e-7)
 end # fast
 end # Ty
 end # gnugap
+end # test_analysis
 
 end # module
