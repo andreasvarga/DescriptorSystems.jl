@@ -213,7 +213,7 @@ function grange(sys::DescriptorStateSpace{T}; zeros = "none", inner::Bool = fals
       # move unstable zeros to stable positions and compress the reduced system to one
       # with full row rank transfer function matrix
       if disc
-         X, _,F, = gared(A,E,B,D'*D,C'*C,C'*D); 
+         # X, _,F, = gared(A,E,B,D'*D,C'*C,C'*D); 
          X, _,F, = try 
             gared(A,E,B,D'*D,C'*C,C'*D) 
          catch err
