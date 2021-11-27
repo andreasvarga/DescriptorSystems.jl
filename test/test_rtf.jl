@@ -296,6 +296,7 @@ s = rtf('s'); z = rtf('z');     # define the complex variables s and z
 # @time Gc2 = [s^2 s/(s+1) 1]
 # @test all(Gc1 .== Gc2)
 # @test all([s^2; s/(s+1); I] .==[s^2; s/(s+1); 1])
+# @test all([s^2 s/(s+1); I] .==[s^2 s/(s+1); eye(2)])
 @test all([[s^2; s/(s+1)]; I] .==[s^2; s/(s+1); 1])
 
 @test all([z^2 z/(z-2)] .== Gd[1:1,:])

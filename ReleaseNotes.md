@@ -1,5 +1,17 @@
 # Release Notes
 
+## Version 1.2
+
+This minor release provides some new functions and enhancements as follows:
+
+* three new functions for manipulating subsystems of descriptor systems: `dssubset`, to set a subsystem equal to a given system, `dszeros` to set a subsystem equal to zero, and `dssubsel` to select a subsystem corresponding to a specified zero-nontero pattern;
+* a new function `dsdiag` has been implemented to build a `k`-times diagonal concatenation of a descriptor system;
+* the `*`, `+` and `-` operations of two descriptor systems covers now the left/right 
+multiplication/addition/substraction with scalar systems;
+* the functions `glinfldp` and `gnehari` have been enhanced to handle cases with poles on the boundary of the stability domain;
+* the function `gsvselect` has been renamed as `dsxvarsel`;
+* some bugs fixed.
+
 ## Versions 1.1.2 and 1.1.3
 
 Patch releases to fix a bug and to address issue [#8](https://github.com/andreasvarga/DescriptorSystems.jl/issues/8). 

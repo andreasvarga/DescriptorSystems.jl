@@ -289,10 +289,9 @@ function glasol(sysg::DescriptorStateSpace{T1}, sysf::DescriptorStateSpace{T2},
    #          error("sysf must be a stable system")      
    Ts = promote_Ts(sysg.Ts,sysf.Ts)
    disc = !iszero(Ts) 
-
+   
    #compute the extended quasi-co-outer-co-inner factorization
-   Gi, Go, info1 = goifac(sysg, atol1 = atol, atol2 = atol, atol3 = atol, rtol = rtol, 
-                          fast = fast, minphase = true, offset = offset)
+   Gi, Go, info1 = goifac(sysg; atol1, atol2, atol3 = atol1, rtol, fast, minphase = true, offset)
    ro = info1.nrank 
    
    #detect nonstandard problem 
@@ -348,7 +347,7 @@ end
 Determine for the descriptor systems `sys1 = (A1-λE1,B1,C1,D1)` and 
 `sys2 = (A2-λE2,B2,C2,D2)` with the transfer function matrices ``G_1(λ)`` and ``G_2(λ)``, 
 respectively, the descriptor system `sysx` with the transfer function matrix ``X(λ)`` 
-such that ``X(λ)`` is the a stable solution of the 2-block `L∞` _least distance problem_ (`LDP`)
+such that ``X(λ)`` is the solution of the 2-block `L∞` _least distance problem_ (`LDP`)
 
 ```math     
       \\text{mindist} := \\min \\|G_1(λ)-X(λ) \\mid   G_2(λ) \\|_\\infty 
@@ -357,6 +356,10 @@ such that ``X(λ)`` is the a stable solution of the 2-block `L∞` _least distan
 `mindist` is the achieved minimum distance corresponding to the optimal solution. 
 If `sys2 = []`, an 1-block `LDP` is solved. 
 `sys1` and `sys2` must not have poles on the boundary of the stability domain `Cs`.
+It is assumed that `sys2` has no poles on the boundary of the stability domain (see below).
+The resulting solution is stable, provided `sys1` has no poles on the boundary 
+of the stability domain as well. 
+
 
 If  ``{\\small γ > \\|G_2(λ)\\|_\\infty}`` is a desired sub-optimality degree, then the 
 `γ`-suboptimal `LDP` 
@@ -377,7 +380,7 @@ where `B2` has `m2` columns, to define
 the descriptor systems `sys1 = (A-λE,B1,C,D1)` and `sys2 = (A-λE,B2,C,D2)`
 (i.e., `A1-λE1 = A2-λE2 = A-λE` and `C1 = C2 = C`). 
 If `m2 = 0`, an 1-block `LDP` is solved. 
-`sys` must not have poles on the boundary of the stability domain `Cs`.
+`sys2` must not have poles on the boundary of the stability domain `Cs`.
 
 If `nehari = true`, the optimal or suboptimal Nehari approximation is used to solve the `LDP`.
 If `nehari = false` (default), the optimal solution is computed using the `γ`-iteration [1]. 
@@ -390,6 +393,7 @@ the optimal distance ``γ_o``, ``γ_l \\leq γ_o \\leq γ_u``, satisfies
      γ_u-γ_l \\leq \\text{reltol} * \\text{gap} ,
 ```
 where `gap` is the original gap (internally determined).
+
 To assess the presence of poles on the boundary of the stability domain `Cs`, a boundary offset  `β` 
 can be specified via the keyword parameter `offset = β`. 
 Accordingly, for a continuous-time setting, 
@@ -409,6 +413,8 @@ based on rank revealing QR-decompositions with column pivoting
 if `fast = true` or the more reliable SVD-decompositions if `fast = false`.
 
 _Method:_ The approach of [1] is used for the solution of the 2-block least distance problem.
+Necessary conditions for solvability of the LDP with a stable solution is that `sys1` and `sys2` have no poles 
+on the boundary of the stability domain `Cs`.
 
 _References:_
 [1] C.-C. Chu, J. C. Doyle, and E. B. Lee
@@ -435,55 +441,63 @@ function glinfldp(sys::DescriptorStateSpace{T}, m2::Int, γ::Union{Real,Missing}
    (m2 <= m && m2 >= 0) || throw(DimensionMismatch("m2 must be at most $m, got $m2"))
    m1 = m-m2
    tol = sqrt(eps(real(float(one(T1)))))
+   disc = (sys.Ts != 0)
+
+   # set stability margin to separate stable and unstable parts
+   smarg = disc ? 1+offset : offset
+
 
    if nehari
       # compute a suboptimal solution as a Nehari approximation of G1
-      sysx,  = gnehari(sys[:,1:m1], γ; offset = offset, atol1 = atol1, atol2 = atol2, rtol = rtol, fast = fast)
-      mindist = glinfnorm(sys-sysx*eye(m1,m), offset = offset, atol1 = atol1, atol2 = atol2, rtol = rtol)[1]
+      sysx, s1 = gnehari(sys[:,1:m1], γ; offset = -offset, atol1, atol2, rtol, fast)
+      mindist = glinfnorm(gir(sys-sysx*eye(m1,m); atol1, atol2, rtol, fast); offset, atol1, atol2, rtol)[1]
+      isinf(mindist) && error("sys2 has poles on the boundary of stability domain")
       return sysx, mindist
    end
 
    subopt = !ismissing(γ)
-     
+   gl1 = m2 > 0 ? (glinfnorm(sys[:,m1+1:end]; offset, atol1, atol2, rtol)[1]) : 0 # prevent failure of opnorm 
+   isinf(gl1) && error("sys2 has poles on the boundary of stability domain")
+    
    # address constant case
    if order(sys) == 0 || m1 == 0
       # solve a 2-block Parrott problem
-      return sys[:,1:m1], opnorm(sys.D[:,m1+1:end])
+      # handle opnorm bug for 1 x 0 matrices
+      return sys[:,1:m1], m1 == m ? 0 : opnorm(sys.D[:,m1+1:end])
    end
    
-   gl1 = m2 > 0 ? (glinfnorm(sys[:,m1+1:end], offset = offset, atol1 = atol1, atol2 = atol2, rtol = rtol)[1]) : 0 # prevent failure of opnorm 
    subopt && gl1 > γ && error("γ must be chosen greater than $gl1")
-   
-   hlu = ghanorm(gsdec(sys[:,1:m1], job = "unstable", atol1 = atol1, atol2 = atol2, rtol = rtol, fast = fast)[1]')[1];
-
+   if disc
+      hlu = ghanorm(gsdec(sys[:,1:m1]; job = "unstable", smarg, atol1, atol2, rtol, fast)[1]')[1]
+   else
+      hlu = ghanorm(gsdec(gsdec(sys[:,1:m1]; job = "finite", atol1, atol2, rtol, fast)[1]; job = "unstable", smarg, atol1, atol2, rtol, fast)[1]')[1]
+   end
    if m2 == 0 || hlu <= atol || gl1 <= tol*hlu
       # solve one block LDP
       if subopt 
          # solve sub-optimal Nehari problem
-         sysx,  = gnehari(sys[:,1:m1], γ; offset = offset, atol1 = atol1, atol2 = atol2, rtol = rtol, fast = fast)
-         mindist = glinfnorm(sys[:,1:m1]-sysx, offset = offset, atol1 = atol1, atol2 = atol2, rtol = rtol)[1]
+         sysx,  = gnehari(sys[:,1:m1], γ; offset, atol1, atol2, rtol, fast)
+         mindist = glinfnorm(sys[:,1:m1]-sysx; offset, atol1, atol2, rtol)[1]
       else
         # solve optimal Nehari problem
-        sysx, mindist = gnehari(sys[:,1:m1]; offset = offset, atol1 = atol1, atol2 = atol2, rtol = rtol, fast = fast)
+        sysx, mindist = gnehari(sys[:,1:m1]; offset = -offset, atol1, atol2, rtol, fast)
       end
    else
       # solve 2-block LDP
       if subopt 
          # solve sub-optimal LDP
          gam = max(γ,gl1*1.01);
-         V = glsfg(sys[:,m1+1:end], gam, stabilize = true, offset = offset, fast = fast, 
-                   atol1 = atol1, atol2 = atol2, rtol = rtol)
+         V = glsfg(sys[:,m1+1:end], gam; stabilize = true, offset, atol1, atol2, rtol, fast)
          syse = V\sys[:,1:m1]
-         hlu = ghanorm(gsdec(syse, job = "unstable", fast = fast, 
-                             atol1 = atol1, atol2 = atol2, rtol = rtol)[1]')[1];
+         hlu = ghanorm(gsdec(syse; job = "unstable", smarg, atol1, atol2, rtol, fast)[1]')[1];
          # solve the sub-optimal Nehari problem
          if hlu < 1
-            sysx =  gbalmr(V*gnehari(syse, hlu, offset = offset, atol1 = atol1, atol2 = atol2, rtol = rtol, fast = fast)[1],
-                           offset = offset, atol1 = atol1, atol2 = atol2, rtol = rtol, fast = fast)[1];
+            sysx =  gbalmr(V*gnehari(syse, hlu; offset = -offset, atol1, atol2, rtol, fast)[1];
+                           offset, atol1, atol2, rtol, fast)[1];
          else
             subopt = false;
          end
-         mindist = glinfnorm(sys-sysx*eye(m1,m), offset = offset, atol1 = atol1, atol2 = atol2, rtol = rtol)[1]
+         mindist = glinfnorm(sys-sysx*eye(m1,m); offset, atol1, atol2, rtol)[1]
       end
       if !subopt
          # solve optimal LDP using gamma-iteration
@@ -493,7 +507,6 @@ function glinfldp(sys::DescriptorStateSpace{T}, m2::Int, γ::Union{Real,Missing}
          gu = hypot(hlu,gl1); gl = max(gl1,hlu)
          gap = max(1,gu-gl);
          gam = (gl+gu)/2; 
-
          # stabilize G2 only once
          G2s = grcfid(sys[:,m1+1:end], mininf = true, fast = fast, offset = offset, 
                       atol1 = atol1, atol2 = atol2, atol3 = atol1, rtol = rtol)[1] 
@@ -503,12 +516,28 @@ function glinfldp(sys::DescriptorStateSpace{T}, m2::Int, γ::Union{Real,Missing}
             iter += 1 
             V = glsfg(G2s, gam, stabilize = false, fast = fast, offset = offset, 
                       atol1 = atol1, atol2 = atol1, rtol = rtol)
+            # fail = false
+            # V = try
+            #    V = glsfg(G2s, gam, stabilize = false, fast = fast, offset = offset, 
+            #           atol1 = atol1, atol2 = atol1, rtol = rtol)
+            #    g0 = gam
+            #    fail = false
+            #    V
+            # catch
+            #    if iter > 1
+            #       gam = g0
+            #       V = glsfg(G2s, gam, stabilize = false, fast = fast, offset = offset, 
+            #                 atol1 = atol1, atol2 = atol1, rtol = rtol)
+            #       fail = true
+            #       @warn "Desired accuracy of γ-iteration not achievable"
+            #    else
+            #       error("Failure of the minimum-phase spectral factorization")
+            #    end
+            # end
 
             # compute inv(V)*G1
-            syse = V\sys[:,1:m1]
-
-            hlu = ghanorm(gsdec(syse, job = "unstable", fast = fast, 
-                                atol1 = atol1, atol2 = atol2, rtol = rtol)[1]')[1];
+            syse = gminreal(V\sys[:,1:m1],atol=1.e-7)
+            hlu = ghanorm(gsdec(syse; job = "unstable", smarg, atol1, atol2, rtol, fast)[1]')[1];
             #fail && break
             if hlu < 1
                gu = gam;           # gamma > gamma_opt
@@ -518,7 +547,6 @@ function glinfldp(sys::DescriptorStateSpace{T}, m2::Int, γ::Union{Real,Missing}
             end   
             gam = (gl+gu)/2;
          end
-        
          if iter > 0
             if hlu >= 1
               # recompute spectral factorization if gamma < gamma_opt
@@ -542,11 +570,15 @@ function glinfldp(sys::DescriptorStateSpace{T}, m2::Int, γ::Union{Real,Missing}
             offset = eps(float(real(T1)))
          end
 
-         # solve the Nehari problem and compute solution
-         sysx =  gbalmr(V*gnehari(syse, offset = offset, atol1 = atol1, atol2 = atol2, rtol = rtol, fast = fast)[1],
-                        offset = offset, atol1 = atol1, atol2 = atol2, rtol = rtol, fast = fast)[1];
+         # solve the Nehari problem for the unstable part and compute solution
+         # t1, t2 = gsdec(syse, job = "unstable", fast = fast, atol1 = atol1, atol2 = atol2, rtol = rtol)
+         # tt1 = gnehari(t1; offset, atol1, atol2, rtol, fast)[1]
+         # sysx = gminreal(V*(tt1+t2); atol1, atol2, rtol, fast)
+         # sysx = gminreal(V*gnehari(gminreal(syse,atol=1.e-7), offset = offset, atol1 = atol1, atol2 = atol2, rtol = rtol, fast = fast)[1],
+         #                atol1 = atol1, atol2 = atol2, rtol = rtol, fast = fast);
+         sysx = gminreal(V*gnehari(syse; offset = -offset, atol1, atol2, rtol, fast)[1]; atol1, atol2, rtol, fast)
          mindist = glinfnorm(sys-sysx*eye(m1,m), offset = offset, atol1 = atol1, atol2 = atol2, rtol = rtol)[1]
-         #mindist = gam;
+
       end
    end
    return sysx, mindist
@@ -559,14 +591,14 @@ glinfldp(sys::DescriptorStateSpace{T}, γ::Union{Real,Missing} = missing;  kwarg
                     atol = 0, atol1 = atol, atol2 = atol, rtol = n*ϵ) -> (sysx, σ1)
 
 Compute for the descriptor system `sys = (A-λE,B,C,D)` with the transfer function matrix `G(λ)`
-the optimal or suboptimal stable Nehari approximation `sysx = (Ax-λEx,Bx,Cx,Dx)` 
+the optimal or suboptimal Nehari approximation `sysx = (Ax-λEx,Bx,Cx,Dx)` 
 with the transfer function matrix `X(λ)`. The optimal Nehari approximation  `X(λ)` satisfies
    
 ```math     
      \\| G(\\lambda) - X(\\lambda) \\|_\\infty = \\| G^{*}_u(\\lambda) \\|_H := \\sigma_1,
 ```
 
-where ``{\\small G_u(\\lambda)}`` is the antistable part of `G(λ)`.
+where ``{\\small G_u(\\lambda)}`` is the proper antistable part of `G(λ)`.
 The resulting ``σ_1`` is the Hankel-norm of ``{\\small G^{*}_u(\\lambda)}`` 
 (also the L∞-norm of the optimal approximation error). 
 For a given ``γ > σ_1``, the suboptimal approximation satisfies
@@ -574,16 +606,20 @@ For a given ``γ > σ_1``, the suboptimal approximation satisfies
 ```math     
      \\| G(\\lambda) - X(\\lambda) \\|_\\infty \\leq \\gamma .
 ```
+The Nehari approximation is stable if  `G(λ)` has no poles on the boundary of the stability domain 
+`Cs`. In the continuous-time, `Cs` is the set of complex numbers with negative real parts and its boundary 
+is the extended imaginary axis (containig also the poit at infinity),
+while, in the discrete-time case, `Cs` is the set complex number with moduli less than one and its boundary
+is the unit circle centered in the origin. 
 
-The system `sys` must not have poles on the boundary of the stability domain `Cs`. 
-
-To assess the presence of poles on the boundary of the stability domain `Cs`, a boundary offset  `β` 
+To assess the presence of poles in `Cs`, a boundary offset  `β` 
 can be specified via the keyword parameter `offset = β`. 
-Accordingly, for a continuous-time system, 
-the boundary of `Cs` contains the complex numbers with real parts within the interval `[-β,β]`, 
-while for a discrete-time system, the boundary of `Cs` contains
-the complex numbers with moduli within the interval `[1-β,1+β]`. 
+Accordingly, for a continuous-time system, the stable poles in  
+`Cs` have real parts less than or equal to `β`, 
+while for a discrete-time system, they have moduli less than or equal to 1+β`. 
 The default value used for `β` is `sqrt(ϵ)`, where `ϵ` is the working machine precision. 
+For a negative values of `β` (e.g., `β = -sqrt(ϵ)`), an extended stability domain corresponding to the closure of `Cs` 
+is used instead of `Cs`. 
 
 The keyword arguments `atol1`, `atol2`, and `rtol`, specify, respectively, the absolute tolerance for the 
 nonzero elements of `A`, the absolute tolerance for the nonzero elements of `E`,  and the relative tolerance 
@@ -595,9 +631,12 @@ The separation of the finite and infinite eigenvalues is performed using
 rank decisions based on rank revealing QR-decompositions with column pivoting 
 if `fast = true` or the more reliable SVD-decompositions if `fast = false`.
 
-_Method:_ The Hankel-norm approximation methods of [1] and [2], 
-with extensions for descriptor systems, are used for the approximation
-of the unstable part.   
+_Method:_ Let `G(λ) = Gs(λ) + Gu(λ)` be an additive decomposition of `G(λ)` 
+such that `Gs(λ)` has only poles in the closure of `Cs` (or its closure if `β < 0`) 
+and `Gu(λ)` is the antistable part having only 
+unstable poles.   The Hankel-norm approximation methods of [1] and [2], 
+with extensions for descriptor systems, are used to compute a stable Nehari approximation `Gn(λ)`
+of the unstable part `Gu(λ)` and the resulting solution is computed as `X(λ) = Gs(λ) + Gn(λ)`.
 
 _References:_
 
@@ -625,32 +664,45 @@ function gnehari(sys::DescriptorStateSpace{T}, γ::Union{Real,Missing} = missing
 
    # Stable/antistable separation; possible eigenvalues on the boundary of 
    # the stability domain are included in the unstable part 
-   sysx, sysu = gsdec(sys; job = "stable", smarg = smarg, fast = fast,  atol1 = atol1, atol2 = atol2, rtol = rtol) 
-
+   #sysx, sysu = gsdec(sys; job = "stable", smarg = smarg, fast = fast,  atol1 = atol1, atol2 = atol2, rtol = rtol) 
+   if disc
+      sysu, sysx = gsdec(sys; job = "unstable", smarg, fast, atol1, atol2, rtol) 
+   else
+      tfin, t1 = gsdec(sys; job = "finite", fast, atol1, atol2, rtol)
+      sysu, t2 = gsdec(tfin; job = "unstable", smarg, fast, atol1, atol2, rtol) 
+      sysx = t1+t2
+      sysx.D[:,:] = sysx.D + sysu.D
+      sysu.D[:,:] = zeros(T, sys.ny, sys.nu)
+   end
    s2eps = sqrt(eps(real(float(one(T)))))
    # only proper systems are handled in the continuous-time case
-   if !disc && sysu.E != I && (norm(sysu.E) < atol2 || rcond(sysu.E) < s2eps)
-      sysu = gss2ss(sysu, atol2 = s2eps)[1]
-      if sysu.E != I && rcond(sysu.E) < s2eps
-          error("gnehari: improper continuous-time system sys")
+   # if !disc && sysu.E != I && (norm(sysu.E) < atol2 || rcond(sysu.E) < s2eps)
+   #    sysu = gss2ss(sysu, atol2 = s2eps)[1]
+   #    if sysu.E != I && rcond(sysu.E) < s2eps
+   #        error("gnehari: improper continuous-time system sys")
+   #    else
+   #        sysx.D[:,:] = sysx.D + sysu.D
+   #        sysu.D[:,:] = zeros(T, sys.ny, sys.nu)
+   #    end
+   # end
+   
+   if offset > 0
+      #e == I ? (isqtriu(a) ? ev = ordeigvals(a) : ev = eigvals(a)) : ev = ordeigvals(a,e)[1] 
+      sysx.E == I ? (isqtriu(sysx.A) ? ev = ordeigvals(sysx.A) : ev = eigvals(sysx.A)) : ev = ordeigvals(sysx.A,sysx.E)[1] 
+      if disc
+         any(abs.(ev) .>= 1-offset) &&
+             error("gnehari: the system has possibly poles on the unit circle")
       else
-          sysx.D[:,:] = sysx.D + sysu.D
-          sysu.D[:,:] = zeros(T, sys.ny, sys.nu)
+         any(isinf.(ev)) && error("gnehari: the system is possibly improper")
+         any(real.(ev) .>= -offset) &&
+             error("gnehari: the system has possibly poles on the imaginary axis")
       end
    end
-   
+
    # exit if the system has only stable part
    order(sysu) == 0 && (return sysx, zero(float(real(T))))
    
    a, e, b, c, d = dssdata(sysu)
-   e == I ? (isqtriu(a) ? ev = ordeigvals(a) : ev = eigvals(a)) : ev = ordeigvals(a,e)[1] 
-   if disc
-      any(abs.(ev) .<= 1+offset) &&
-          error("gnehari: the system has possibly poles on the unit circle")
-   else
-      any(real.(ev) .<= offset) &&
-          error("gnehari: the system has possibly poles on the imaginary axis")
-   end
    
    if disc
       # use the bilinear transformation to compute an equivalent unstable, 

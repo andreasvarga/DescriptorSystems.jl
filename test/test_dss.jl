@@ -124,6 +124,28 @@ D_022 = dss(4.0*eye(2), Ts = 0.005)
 @test size(C_222[1,[]]) == (1,0)
 @test C_222[:,2:end]  ≈ dss([-5 -3; 2 -9],[1 1; 0 1],[0; 2],[1 0; 0 1],[0; 0])
 
+C_222m = dssubset(C_222,dss(3.),1,1)
+@test iszero(C_222m[1,1]-3, atol=1.e-7)
+C_222m = dssubset(C_222,2 *C_221,1,1:2)
+@test iszero(C_222m[1,1:2] - 2. *C_221, atol=1.e-7)
+sys1 = rss(3,1,2)
+syst = dssubset(dss(zeros(2,2)),sys1,1,1:2)
+@test iszero(syst-[sys1; zeros(1,2)],atol1=1.e-7)
+sys = rss(3,4,4)
+syst = dszeros(sys,1:2,:)
+@test iszero(syst[1:2,:],atol1=1.e-7) && iszero(syst[3:4,:]-sys[3:4,:],atol1=1.e-7) 
+res1 = dssubsel(sys,sys.D .> 0.5, minimal = true)
+res2 = dssubsel(sys,sys.D .< 0.5, minimal = true)
+@test iszero(sys-res1-res2,atol=1.e-7)
+
+res1 = dssubsel(sys,sys.D .> 0.5, minimal = false)
+res2 = dssubsel(sys,sys.D .< 0.5, minimal = false)
+@test iszero(sys-res1-res2,atol=1.e-7)
+@test iszero(sys-copy(sys),atol=1.e-7)
+@test iszero(dsdiag(sys,2)-append(sys,sys),atol=1.e-7)
+
+
+
 
 
 A = [-1.0 -2.0; 0.0 -1.0]
@@ -144,7 +166,7 @@ sysd = dss(A, E, B, C, D, Ts = -1)
 @test iszero(sys -gdual(gdual(sys,rev=true)))
 @test iszero(sys - adjoint(adjoint(sys)))
 @test iszero(sysd - adjoint(adjoint(sysd)))
-@test iszero(sysd - gsvselect(sysd,[2,1]))
+@test iszero(sysd - dsxvarsel(sysd,[2,1]))
 
 # Accessing Ts through .Ts
 @test D_111.Ts == 0.005
@@ -168,11 +190,14 @@ q = LaurentPolynomial([1,0,1],-1,:z)
 
 dss2rm(dss(p,Ts=1))
 
+# operations with scalar systems
+@test iszero((C_111 + C_222) - (C_222 + C_111))       # Addition of scalar system
+@test iszero((C_111 - C_222) + (C_222 - C_111))       # Substraction of scalar system
+@test iszero(C_111 * C_222 -  C_222 * C_111)          # Multiplication with scalar system
+
+
 
 # Errors
-@test_throws ErrorException C_111 + C_222             # Dimension mismatch
-@test_throws ErrorException C_111 - C_222             # Dimension mismatch
-@test_throws ErrorException C_111 * C_222             # Dimension mismatch
 @test_throws ErrorException D_111 + C_111             # Sampling time mismatch
 @test_throws ErrorException D_111 - C_111             # Sampling time mismatch
 @test_throws ErrorException D_111 * C_111             # Sampling time mismatch

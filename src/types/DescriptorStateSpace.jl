@@ -81,7 +81,7 @@ Base.eltype(sys::DescriptorStateSpace) = eltype(sys.A)
 
 function Base.getindex(sys::DST, inds...) where DST <: DescriptorStateSpace
     size(inds, 1) != 2 &&
-        error("Must specify 2 indices to index descriptor state-space model")
+        error("Must specify 2 indices to index descriptor state-space models")
     rows, cols = index2range(inds...) 
     return DescriptorStateSpace{eltype(sys)}(copy(sys.A), copy(sys.E), sys.B[:, cols], sys.C[rows, :], sys.D[rows, cols], sys.Ts)
 end
@@ -92,7 +92,6 @@ index2range(ind::Colon) = ind
 function Base.lastindex(sys::DST, dim::Int) where DST <: DescriptorStateSpace
     lastindex(sys.D,dim)
 end
-
 # Basic Operations
 function ==(sys1::DST1, sys2::DST2) where {DST1<:DescriptorStateSpace, DST2<:DescriptorStateSpace}
     # fieldnames(DST1) == fieldnames(DST2) || (return false)
@@ -106,8 +105,13 @@ function isapprox(sys1::DST1, sys2::DST2; atol = zero(real(eltype(sys1))),
     return all(isapprox(getfield(sys1, f), getfield(sys2, f); atol = atol, rtol = rtol) for f in fieldnames(DST1))
 end
 
+Base.copy(sys::DescriptorStateSpace{T}) where T = DescriptorStateSpace{T}(copy(sys.A), copy(sys.E), copy(sys.B), copy(sys.C), copy(sys.D), sys.Ts)
+
+
 # sum sys1+sys2
 function +(sys1::DescriptorStateSpace{T1}, sys2::DescriptorStateSpace{T2}) where {T1,T2}
+    sys1.nu == 1 && sys1.ny == 1 && (sys2.ny > 1 || sys2.nu > 1) && (return ones(T1,sys2.ny,1)*sys1*ones(T1,1,sys2.nu) + sys2)
+    sys2.nu == 1 && sys2.ny == 1 && (sys1.nu > 1 || sys1.ny > 1) && (return sys1 + ones(T1,sys1.ny,1)*sys2*ones(T1,1,sys1.nu))
     #Ensure systems have same dimensions and sampling times
     size(sys1) == size(sys2) || error("The systems have different shapes.")
     Ts = promote_Ts(sys1.Ts,sys2.Ts)
@@ -131,6 +135,8 @@ function +(sys1::DescriptorStateSpace{T1}, sys2::DescriptorStateSpace{T2}) where
 end
 # difference sys1-sys2
 function -(sys1::DescriptorStateSpace{T1}, sys2::DescriptorStateSpace{T2}) where {T1,T2}
+    sys1.nu == 1 && sys1.ny == 1 && (sys2.ny > 1 || sys2.nu > 1) && (return ones(T1,sys2.ny,1)*sys1*ones(T1,1,sys2.nu) - sys2)
+    sys2.nu == 1 && sys2.ny == 1 && (sys1.nu > 1 || sys1.ny > 1) && (return sys1 - ones(T1,sys1.ny,1)*sys2*ones(T1,1,sys1.nu))
     #Ensure systems have same dimensions and sampling times
     size(sys1) == size(sys2) || error("The systems have different shapes.")
     Ts = promote_Ts(sys1.Ts,sys2.Ts)
@@ -204,12 +210,15 @@ function +(sys::DescriptorStateSpace{T1}, n::Number) where T1
                                    copy_oftype(sys.B,T), copy_oftype(sys.C,T), 
                                    copy_oftype(sys.D,T) .+ n, sys.Ts)
 end
+
 +(n::Number, sys::DescriptorStateSpace{T1}) where T1 = +(sys, n)
 -(n::Number, sys::DescriptorStateSpace{T1}) where T1 = +(-sys, n)
 -(sys::DescriptorStateSpace{T1},n::Number) where T1 = +(sys, -n)
 
 # multiplication sys1*sys2
 function *(sys1::DescriptorStateSpace{T1}, sys2::DescriptorStateSpace{T2}) where {T1,T2}
+    sys1.nu == 1 && sys1.ny == 1 && sys2.ny > 1 && (return dsdiag(sys1,sys2.ny)*sys2)
+    sys2.nu == 1 && sys2.ny == 1 && sys1.nu > 1 && (return sys1*dsdiag(sys2,sys1.nu))
     sys1.nu == sys2.ny || error("sys1 must have same number of inputs as sys2 has outputs")
     Ts = promote_Ts(sys1.Ts, sys2.Ts)
     T = promote_type(T1, T2)
@@ -274,6 +283,24 @@ end
 \(n::Number, sys::DescriptorStateSpace) = (1/n)*sys
 \(n::UniformScaling, sys::DescriptorStateSpace) = (1/n.λ)*sys
 \(sys::DescriptorStateSpace, n::Union{UniformScaling,Number}) = inv(sys)*n
+
+# promotions
+Base.promote_rule(::Type{DST}, ::Type{P}) where {DST <: DescriptorStateSpace, P <: Number } = DST
+Base.promote_rule(::Type{DST}, ::Type{P}) where {DST <: DescriptorStateSpace, P <: UniformScaling } = DST
+Base.promote_rule(::Type{DST}, ::Type{P}) where {DST <: DescriptorStateSpace, P <: Matrix{<:Number} } = DST
+#Base.promote_rule(::Type{AbstractVecOrMat{<:Number}}, ::Type{DST}) where {DST <: DescriptorStateSpace} = DST
+#Base.promote_rule(::Type{DST}, ::Type{Union{AbstractVecOrMat{<:Number}, Number, UniformScaling}}) where {DST <: DescriptorStateSpace} = DST
+#Base.promote_rule(::Type{Union{AbstractVecOrMat{<:Number}, Number, UniformScaling}}, ::Type{DST}) where {DST <: DescriptorStateSpace} = DST
+# Base.promote_rule(::Type{DST}, ::Type{UniformScaling}) where {DST <: DescriptorStateSpace, P <: Number} = DST
+# Base.promote_rule(::Type{P}, ::Type{DST}) where {DST <: DescriptorStateSpace, P <: Number} = DST
+
+
+# conversions
+function Base.convert(::Type{DST}, p::Number) where {T, DST <: DescriptorStateSpace{T}}
+    T1 = promote_type(eltype(p),T)
+    dss(T1(p), Ts = sampling_time(DST))
+end
+sampling_time(::Type{DST}) where {DST <: DescriptorStateSpace} = 0.
 
 # display sys
 Base.print(io::IO, sys::DescriptorStateSpace) = show(io, sys)

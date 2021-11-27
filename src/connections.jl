@@ -286,8 +286,10 @@ function Base.hvcat(rows::Tuple{Vararg{Int}}, A::Union{DescriptorStateSpace, Abs
         j = 0
         for i = 1:nr
             if rows[i] > 0 && n[j+1] == -1 # this row consists entirely of UniformScalings
-                nci = nc ÷ rows[i]
-                nci * rows[i] != nc && throw(DimensionMismatch("indivisible UniformScaling sizes"))
+                # nci = nc ÷ rows[i]
+                # nci * rows[i] != nc && throw(DimensionMismatch("indivisible UniformScaling sizes"))
+                nci, r = divrem(nc, rows[i])
+                r != 0 && throw(DimensionMismatch("indivisible UniformScaling sizes"))
                 for k = 1:rows[i]
                     n[j+k] = nci
                 end
@@ -297,7 +299,9 @@ function Base.hvcat(rows::Tuple{Vararg{Int}}, A::Union{DescriptorStateSpace, Abs
     end
     if isadss(A...) == 0
         # alleviate type piracy problematic
-        Amat = LinearAlgebra.promote_to_arrays(n, 1, Matrix, promote_to_arrays(A...)...)
+        # convert all scalars to vectors: not needed in Julia 1.8         
+        any(n .== 1) && (A = promote_to_arrays(A...))        
+        Amat = LinearAlgebra.promote_to_arrays(n, 1, Matrix, A...)
         return Base.typed_hvcat(promote_type(eltype.(Amat)...), rows, Amat...)
     else
         Ts = promote_system_SamplingTime(A...)
@@ -319,6 +323,8 @@ promote_to_systems(Ts::Real, n, k, ::Type{T}, A, B, Cs...) where {T} =
     (promote_to_system_(n[k], T, A, Ts), promote_to_system_(n[k+1], T, B, Ts), promote_to_systems(Ts, n, k+2, T, Cs...)...)
 promote_to_system_type(A::Tuple{Vararg{Union{DescriptorStateSpace,AbstractNumOrArray,UniformScaling}}}) = DescriptorStateSpace
 promote_to_systems(Ts::Union{Real,Nothing}, var::Symbol, n, k, ::Type) = ()
+# promote_to_array_type(A::Tuple{Vararg{Union{AbstractVecOrMat,UniformScaling,Number}}}) = Matrix
+
 function promote_to_arrays(A...)
     N = length(A)
     B = (Vector{T} where T)(undef, N)

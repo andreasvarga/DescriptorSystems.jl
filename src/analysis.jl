@@ -495,15 +495,15 @@ function ghanorm(sys::DescriptorStateSpace{T}; fast::Bool = true,
         # check stability
         ((disc && maximum(abs.(SF.values)) >= 1-s2eps) || (!disc && maximum(real(SF.values)) >= -s2eps)) &&
               error("The system sys is unstable")
-        S = plyaps(SF.T, SF.Z'*sys.B; disc = disc)
-        R = plyaps(SF.T', (sys.C*SF.Z)'; disc = disc)
+        S = plyaps(SF.T, SF.Z'*sys.B; disc)
+        R = plyaps(SF.T', (sys.C*SF.Z)'; disc)
         hs = svdvals(R*S)
      else
         # eliminate non-dynamic modes if possible
         if rcond(sys.E) < n*eps(float(real(T1)))
            # sys = gss2ss(sys,s2eps,'triu');
-           sys = gminreal(sys, fast = fast, atol1 = atol1, atol2 = atol2, rtol = rtol);
-           rcond(sys.E) < n*eps(float(real(T1))) && error("The system SYS is not proper")
+           sys = gminreal(sys; fast, atol1, atol2, rtol)
+           rcond(sys.E) < sys.nx*eps(float(real(T1))) && error("The system SYS is not proper")
         end
         # for a non-dynamic system, we set the Hankel norm to zero,
         # but the Hankel singular values are empty

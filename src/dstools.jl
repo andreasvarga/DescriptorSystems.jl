@@ -396,7 +396,7 @@ function rdss(n::Int, p::Int, m::Int; disc::Bool = false, stable::Bool = false, 
                                    disc ? -one(real(T)) : zero(real(T))) 
 end
 """
-    sysr = gsvselect(sys,ind)
+    sysr = dsxvarsel(sys,ind)
 
 Construct for the descriptor system `sys = (A-λE,B,C,D)` of order `n` the descriptor system  
 `sysr = (A[ind,ind]-λE[ind,ind],B[ind,:],C[:,ind],D)` of order `nr = length(ind)`, 
@@ -404,7 +404,7 @@ by selecting the state variables of `sys` with indices specified by `ind`.
 If `ind` is a permutation vector of length `n`, then `sysr` has the same transfer function matrix as `sys` 
 and permuted state variables. 
 """
-function gsvselect(SYS::DescriptorStateSpace{T},ind::Union{UnitRange{Int64},Array{Int64,1}}) where T
+function dsxvarsel(SYS::DescriptorStateSpace{T},ind::Union{UnitRange{Int64},StepRange{Int64, Int64}, Array{Int64,1}}) where T
     isempty(ind) &&  (return DescriptorStateSpace{T}(zeros(T,0,0),I,zeros(T,0,SYS.nu),zeros(T,SYS.ny,0),SYS.D,SYS.Ts))
     (minimum(ind) < 1 || maximum(ind) > SYS.nx) && error("BoundsError: selected indices $ind out of range $(1:SYS.nx)")
     return DescriptorStateSpace{T}(SYS.A[ind,ind], SYS.E == I ? I : SYS.E[ind,ind], SYS.B[ind,:], SYS.C[:,ind], SYS.D, SYS.Ts)
@@ -501,3 +501,168 @@ function rtfbilin(type::String = "c2d"; Ts::Union{Real,Missing} = missing, Tsi::
     return g, ginv
     # end RTFBILIN
 end
+"""
+     res = dssubset(sys, subsys, rows, cols; minimal = true, fast = true, atol = 0, atol1 = atol, atol2 = atol, rtol = nϵ)
+
+Assign for a given descriptor system `sys = (A-λE,B,C,D)` its subsystem `sys[row,cols]` to `subsys` and 
+return the modified system in `res`. `rows` and `cols` are indices, vectors of indices, index ranges, `:` or 
+any combinations of them. 
+
+If `minimal = true` (default), an irreducible realization of the resulting system `res` is computed, otherwise a
+possibly non-minimal realization is returned if `minimal = false`. 
+
+The underlying pencil manipulation based minimal realization algorithms employ rank determinations based on either the use of 
+rank revealing QR-decomposition with column pivoting, if `fast = true`, or the SVD-decomposition.
+The rank decision based on the SVD-decomposition is generally more reliable, but the involved computational effort is higher.
+
+The keyword arguments `atol1`, `atol2`, and `rtol`, specify, respectively, the absolute tolerance for the 
+nonzero elements of matrices `A`, `B`, `C`, `D`, the absolute tolerance for the nonzero elements of `E`,  
+and the relative tolerance for the nonzero elements of `A`, `B`, `C`, `D` and `E`. 
+The default relative tolerance is `nϵ`, where `ϵ` is the working _machine epsilon_ 
+and `n` is the order of the system `sys`.  
+The keyword argument `atol` can be used to simultaneously set `atol1 = atol` and `atol2 = atol`. 
+
+"""
+function dssubset(sys::DescriptorStateSpace{T1}, subsys::DescriptorStateSpace{T2}, inds...; 
+                        atol::Real = zero(real(T1)), atol1::Real = atol, atol2::Real = atol, 
+                        rtol::Real =  sys.nx*eps(real(float(one(real(T1)))))*iszero(max(atol1,atol2)), 
+                        fast::Bool = true, minimal::Bool = true  ) where {T1, T2}
+    size(inds, 1) != 2 &&
+        error("Must specify 2 indices to index descriptor state-space models")
+    rows, cols = index2range(inds...) 
+    p, m = size(sys)
+    rows == Colon() && (rows = 1:p)
+    cols == Colon() && (cols = 1:m)
+    pred, mred = size(subsys)
+    length(rows) == pred  || error("number of row indices must be equal to the number of outputs of subsys")
+    length(cols) == mred  || error("number of column indices must be equal to the number of inputs of subsys")
+    irows = setdiff(Vector(1:p),Vector(rows))
+    jcols = setdiff(Vector(1:m),Vector(cols))
+    if minimal 
+        res = gir([sys[irows,[jcols;cols]]; sys[rows,jcols] subsys]; atol, atol1, atol2, rtol, fast )
+    else
+        res = [sys[irows,[jcols;cols]]; sys[rows,jcols] subsys]
+    end
+    ip = sortperm([irows;rows])
+    jp = sortperm([jcols;cols])
+    return DescriptorStateSpace{eltype(res)}(res.A, res.E, res.B[:, jp], res.C[ip, :], res.D[ip, jp], sys.Ts)
+end
+dssubset(sys::DST, subsys::AbstractNumOrArray, inds...; kwargs...) where {T, DST <: DescriptorStateSpace{T}} = dssubset(sys, dss(T.(subsys); Ts = sys.Ts), inds...; kwargs...)
+"""
+     res = dszeros(sys, rows, cols; minimal = true, fast = true, atol = 0, atol1 = atol, atol2 = atol, rtol = nϵ)
+
+Set for a given descriptor system `sys = (A-λE,B,C,D)` its subsystem `sys[row,cols]` to zero and 
+return the modified system in `res`. `rows` and `cols` are indices, vectors of indices, index ranges, `:` or 
+any combinations of them. 
+
+If `minimal = true` (default), an irreducible realization of the resulting system `res` is computed, otherwise a
+possibly non-minimal realization is returned if `minimal = false`. 
+
+The underlying pencil manipulation based minimal realization algorithms employ rank determinations based on either the use of 
+rank revealing QR-decomposition with column pivoting, if `fast = true`, or the SVD-decomposition.
+The rank decision based on the SVD-decomposition is generally more reliable, but the involved computational effort is higher.
+
+The keyword arguments `atol1`, `atol2`, and `rtol`, specify, respectively, the absolute tolerance for the 
+nonzero elements of matrices `A`, `B`, `C`, `D`, the absolute tolerance for the nonzero elements of `E`,  
+and the relative tolerance for the nonzero elements of `A`, `B`, `C`, `D` and `E`. 
+The default relative tolerance is `nϵ`, where `ϵ` is the working _machine epsilon_ 
+and `n` is the order of the system `sys`.  
+The keyword argument `atol` can be used to simultaneously set `atol1 = atol` and `atol2 = atol`. 
+
+"""
+function dszeros(sys::DescriptorStateSpace{T}, inds...; 
+                        atol::Real = zero(real(T)), atol1::Real = atol, atol2::Real = atol, 
+                        rtol::Real =  sys.nx*eps(real(float(one(real(T)))))*iszero(max(atol1,atol2)), 
+                        fast::Bool = true, minimal::Bool = true  ) where T
+    size(inds, 1) != 2 &&
+        error("Must specify 2 indices to index descriptor state-space models")
+    rows, cols = index2range(inds...) 
+    p, m = size(sys)
+    rows == Colon() && (rows = 1:p)
+    cols == Colon() && (cols = 1:m)
+    irows = setdiff(Vector(1:p),Vector(rows))
+    jcols = setdiff(Vector(1:m),Vector(cols))
+    subsys = dss(zeros(T,length(rows),length(cols)); Ts = sys.Ts)
+    if minimal 
+        res = gir([sys[irows,[jcols;cols]]; sys[rows,jcols] subsys]; atol, atol1, atol2, rtol, fast )
+    else
+        res = [sys[irows,[jcols;cols]]; sys[rows,jcols] subsys]
+    end
+    ip = sortperm([irows;rows])
+    jp = sortperm([jcols;cols])
+    return DescriptorStateSpace{eltype(res)}(res.A, res.E, res.B[:, jp], res.C[ip, :], res.D[ip, jp], sys.Ts)
+end
+"""
+     res = dssubsel(sys, S; minimal = true, fast = true, atol = 0, atol1 = atol, atol2 = atol, rtol = nϵ)
+
+Select for a given descriptor system `sys = (A-λE,B,C,D)` its subsystem `res` corresponding to the zero-one pattern specified by 
+the binary structure matrix `S`. If `G(λ)` is the transfer function matrix of `sys`, then the transfer function matrix of `res`
+is the element-wise product `S .* G(λ)`. 
+
+If `minimal = true` (default), an irreducible realization of the resulting system `res` is computed, otherwise a
+possibly non-minimal realization is returned if `minimal = false`. 
+
+The underlying pencil manipulation based minimal realization algorithms employ rank determinations based on either the use of 
+rank revealing QR-decomposition with column pivoting, if `fast = true`, or the SVD-decomposition.
+The rank decision based on the SVD-decomposition is generally more reliable, but the involved computational effort is higher.
+
+The keyword arguments `atol1`, `atol2`, and `rtol`, specify, respectively, the absolute tolerance for the 
+nonzero elements of matrices `A`, `B`, `C`, `D`, the absolute tolerance for the nonzero elements of `E`,  
+and the relative tolerance for the nonzero elements of `A`, `B`, `C`, `D` and `E`. 
+The default relative tolerance is `nϵ`, where `ϵ` is the working _machine epsilon_ 
+and `n` is the order of the system `sys`.  
+The keyword argument `atol` can be used to simultaneously set `atol1 = atol` and `atol2 = atol`. 
+"""
+function dssubsel(sys::DescriptorStateSpace{T}, S::Union{BitMatrix,Matrix{Bool}}; 
+                        atol::Real = zero(real(T)), atol1::Real = atol, atol2::Real = atol, 
+                        rtol::Real =  sys.nx*eps(real(float(one(real(T)))))*iszero(max(atol1,atol2)), 
+                        fast::Bool = true, minimal::Bool = true ) where T
+    p, m = size(sys)                    
+    (p, m ) == size(S) || error("missmatch between the sizes of sys and S")
+    syst = dss(zeros(T,p,m); Ts = sys.Ts)
+    cols = collect(1:m)
+    for i = 1:p
+        colsi = cols[S[i,:]]
+        syst = dssubset(syst,sys[i,colsi],i,colsi; atol1, atol2, rtol, fast, minimal = false)
+    end
+    return minimal ? gir(syst; atol, atol1, atol2, rtol, fast) : syst
+end
+"""
+     sysdiag = dsdiag(sys, k)
+
+Build for a given descriptor system `sys` and non-negative integer `k` a descriptor system `sysdiag`
+obtained as `sysdiag = diag( sys, ..., sys )` (i.e., `k`-times repeated application of `append`).   
+"""
+function dsdiag(sys::DescriptorStateSpace{T}, k::Int) where T
+    p, m = size(sys)   
+    k >=0 || error("k must be a non-negative integer")
+    n = sys.nx
+    N = k*n
+    M = k*m
+    P = k*p
+    a, e, b, c, d = dssdata(sys)
+    desc = !(e == I)   
+    A = zeros(T, N, N)
+    E = desc ? zeros(T, N, N) : I
+    B = zeros(T, N, M)
+    C = zeros(T, P, N)
+    D = zeros(T, P, M)
+    ia = 1
+    jb = 1
+    ic = 1
+    for i = 1:k  
+        ia1 = ia:ia+n-1
+        jb1 = jb:jb+m-1
+        ic1 = ic:ic+p-1
+        A[ia1,ia1] = a
+        desc && (E[ia1,ia1] = e)
+        B[ia1,jb1] = b
+        C[ic1,ia1] = c  
+        D[ic1,jb1] = d  
+        ia += n
+        jb += m
+        ic += p
+    end
+    return DescriptorStateSpace{T}(A, E, B, C, D, sys.Ts)
+end
+

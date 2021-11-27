@@ -422,18 +422,45 @@ G = [z^2+z+1 4*z^2+3*z+2 2*z^2-2;
     z 4*z-1 2*z-2;
     z^2 4*z^2-z 2*z^2-2*z]; 
 sys = gir(dss(G),atol=1.e-7); 
-@time sysx, s2 = glinfldp(sys; reltol=1.e-7); 
+@time sysx, s2 = glinfldp(sys; atol = 1.e-7); 
 @test glinfnorm(sysx-sys)[1] ≈ s2 && s2 ≈ 8.662176191833835
 
-# poles on the imaginary axis
+# poles of sys1 on the imaginary axis are tolerated
 s = rtf('s');
 sys = dss(1/s);
-@test_throws ErrorException sysn, s1 = glinfldp(sys)
+sysn, mindist = glinfldp(sys; atol = 1.e-7)
+@test iszero(sys-sysn,atol=1.e-7) && mindist == 0
+sysn, mindist = glinfldp(sys, atol = 1.e-7, nehari = true)
+@test iszero(sys-sysn,atol=1.e-7) && mindist == 0
 
-# Improper continuous-time system sys
+# poles of sys2 on the imaginary axis
+@test_throws ErrorException sysn, s1 = glinfldp(sys,sys)
+@test_throws ErrorException sysn, s1 = glinfldp(sys,sys; nehari = true)
+
+# poles of sys1 on the unit circle are tolerated
+z = rtf('z');
+sys = dss(1/(z-1));
+sysn, mindist = glinfldp(sys; atol = 1.e-7)
+@test iszero(sys-sysn,atol=1.e-7) && mindist == 0
+sysn, mindist = glinfldp(sys, atol = 1.e-7, nehari = true)
+@test iszero(sys-sysn,atol=1.e-7) && mindist == 0
+
+# poles of sys2 on the unit circle 
+@test_throws ErrorException sysn, s1 = glinfldp(sys,sys)
+@test_throws ErrorException sysn, s1 = glinfldp(sys,sys; nehari = true)
+
+
+# improper continuous-time systems sys1 are tolerated
 s = rtf('s');
 sys = dss(s);
-@test_throws ErrorException sysn, s1 = glinfldp(sys)
+sysn, mindist = glinfldp(sys)
+@test iszero(sys-sysn,atol=1.e-7) && mindist == 0
+sysn, mindist = glinfldp(sys, atol = 1.e-7, nehari = true)
+@test iszero(sys-sysn,atol=1.e-7) && mindist == 0
+
+# improper continuous-time systems sys2 
+@test_throws ErrorException sysn, s1 = glinfldp(sys,sys)
+@test_throws ErrorException sysn, s1 = glinfldp(sys,sys; nehari = true)
 
 
 end # glinfldp    
@@ -448,20 +475,27 @@ sys = rss(0,10,2)
 @time sysn, s1 = gnehari(sys)
 @test glinfnorm(sysn-sys)[1] == 0
 
-# poles on the imaginary axis
+# poles on the imaginary axis can be  tolerated by choosing negative offset
 s = rtf('s');
 sys = dss(1/s);
-@test_throws ErrorException sysn, s1 = gnehari(sys)
+sysn, s1 = gnehari(sys; offset = -1.e-10)
+@test iszero(sysn-sys, atol = 1.e-7) && s1 == 0
+@test_throws ErrorException sysn, s1 = gnehari(sys, offset = 1.e-10)
 
-# Improper continuous-time system sys
+# Improper continuous-time system sys can be tolerated by choosing negative offset
 s = rtf('s');
 sys = dss(s);
+sysn, s1 = gnehari(sys; offset = -sqrt(eps(1.)))
+@test iszero(sysn-sys, atol = 1.e-7) && s1 == 0
 @test_throws ErrorException sysn, s1 = gnehari(sys)
 
-# poles on the unit circle
+
+# poles on the unit circle can be  tolerated by choosing negative offset
 z = rtf('z');
 sys = dss(1/(z-1));
-@test_throws ErrorException sysn, s1 = gnehari(sys) 
+sysn, s1 = gnehari(sys, offset = -sqrt(eps(1.)))
+@test iszero(sys-sysn, atol=1.e-7) && s1 == 0
+@test_throws ErrorException sysn, s1 = gnehari(sys, offset = sqrt(eps(1.)))
 
 # stable continuous-time system
 s = rtf('s');

@@ -63,7 +63,7 @@ function gsdec(SYS::DescriptorStateSpace{T}; job::String = "finite", smarg::Unio
                  dss(SYS.A, SYS.B, SYS.C, zeros(T,SYS.ny,SYS.nu), Ts = SYS.Ts)
        elseif job == "stable" || job == "unstable"
           stable_unstable = (job == "stable")
-          A, B, C, _, _, blkdims, = ssblkdiag(SYS.A, SYS.B, SYS.C; smarg = smarg, disc = disc, stable_unstable = stable_unstable,  
+          A, B, C, _, _, blkdims, = ssblkdiag(SYS.A, SYS.B, SYS.C; smarg, disc, stable_unstable,  
                                               withQ = false, withZ = false)
           n1 = blkdims[1];
           i1 = 1:n1; i2 = n1+1:SYS.nx 

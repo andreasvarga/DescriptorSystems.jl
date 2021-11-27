@@ -731,7 +731,7 @@ function grcf(sys::DescriptorStateSpace{T};
 
    nrmB = opnorm(Bt,1)
    # return if B = 0
-   iszero(nrmB) && (return gsvselect(sys,Int[]), dss(DM,Ts = sys.Ts) ) 
+   iszero(nrmB) && (return dsxvarsel(sys,Int[]), dss(DM,Ts = sys.Ts) ) 
  
      
    complx = (T1 <: Complex)
@@ -1195,7 +1195,7 @@ function grcfid(sys::DescriptorStateSpace{T}; offset::Real = sqrt(eps(float(real
 
    nrmB = opnorm(Bt,1)
    # return if B = 0
-   iszero(nrmB) && (return gsvselect(sys,Int[]), dss(DM,Ts = sys.Ts) ) 
+   iszero(nrmB) && (return dsxvarsel(sys,Int[]), dss(DM,Ts = sys.Ts) ) 
  
    complx = (T1 <: Complex)
     
