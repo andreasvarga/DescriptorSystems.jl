@@ -45,6 +45,9 @@ D_022 = dss(4*eye(2), Ts = 0.005)
 @test series(C_111, C_212) == C_212*C_111
 @test parallel(C_111, C_211) == C_111 + C_211
 
+sys = rss(3,4,5); K = rand(2,3); ind = 3:4; out = 2:4;
+@test iszero(feedback(feedback(sys,K,ind,out),K,ind,out; negative = false)-sys,atol=1.e-7)
+
 # Errors
 @test_throws ErrorException [C_111 D_111]                 # Sampling time mismatch
 @test_throws ErrorException [C_111; D_111]                # Sampling time mismatch

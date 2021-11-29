@@ -20,7 +20,7 @@ export confmap, simplify, normalize, poles, gain, zpk, rtfbilin, numpoly, denpol
 export blockdiag, eye, rcond
 export gdual, ctranspose, inv, ldiv, rdiv, ginv
 export append, series, parallel, horzcat, vertcat
-export order, evalfr, dcgain, opnorm, freqresp, chess, dssubset, dszeros, dscopy, dssubsel, dsdiag
+export order, evalfr, dcgain, opnorm, freqresp, chess, dssubset, dszeros, dscopy, dssubsel, dsdiag, feedback
 export gpole, gzero, gpoleinfo, gzeroinfo, gnrank, isregular, isproper, isstable, 
        glinfnorm, ghinfnorm, gl2norm, gh2norm, ghanorm, gnugap
 export gsdec, grnull, glnull, grange, gcrange, grsol, glsol, grmcover1, grmcover2, glmcover1, glmcover2

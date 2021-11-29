@@ -6,6 +6,7 @@ This minor release provides some new functions and enhancements as follows:
 
 * three new functions for manipulating subsystems of descriptor systems: `dssubset`, to set a subsystem equal to a given system, `dszeros` to set a subsystem equal to zero, and `dssubsel` to select a subsystem corresponding to a specified zero-nontero pattern;
 * a new function `dsdiag` has been implemented to build a `k`-times diagonal concatenation of a descriptor system;
+* a new function `feedback` has been implemented to apply a static output feedback gain to a descriptor system;
 * the `*`, `+` and `-` operations of two descriptor systems covers now the left/right 
 multiplication/addition/substraction with scalar systems;
 * the functions `glinfldp` and `gnehari` have been enhanced to handle cases with poles on the boundary of the stability domain;

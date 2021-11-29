@@ -536,6 +536,8 @@ function dssubset(sys::DescriptorStateSpace{T1}, subsys::DescriptorStateSpace{T2
     pred, mred = size(subsys)
     length(rows) == pred  || error("number of row indices must be equal to the number of outputs of subsys")
     length(cols) == mred  || error("number of column indices must be equal to the number of inputs of subsys")
+    maximum(rows) > p && error("output indices must not exceed $p")
+    maximum(cols) > m && error("input indices must not exceed $m")
     irows = setdiff(Vector(1:p),Vector(rows))
     jcols = setdiff(Vector(1:m),Vector(cols))
     if minimal 
@@ -665,4 +667,49 @@ function dsdiag(sys::DescriptorStateSpace{T}, k::Int) where T
     end
     return DescriptorStateSpace{T}(A, E, B, C, D, sys.Ts)
 end
+"""
+     syscl = feedback(sys, K, inp1, out1; negative = true)
 
+Build for a given descriptor system `sys` with input vector `u` and output vector `y` and 
+a static output feedback gain `K` the closed-loop descriptor system `syscl` is constructed
+corresponding to the static output feedback `u[inp] = -K*y[out] + v`, where `inp` and `out` are 
+are indices, vectors of indices, index ranges, `:` or any combinations of them. Only distinct indices 
+can be specified. If `negative = false`, a positive feedback `u[inp] = K*y[out] + v` is used.
+"""
+function feedback(sys::DescriptorStateSpace{T1}, K::Matrix{T2}, inds...; negative::Bool = true) where {T1, T2}
+    size(inds, 1) != 2 &&
+        error("Must specify 2 indices to index descriptor state-space models")
+    u1, y1 = index2range(inds...) 
+    p, m = size(sys)
+    u1 == Colon() && (u1 = 1:m) 
+    y1 == Colon() && (y1 = 1:p)
+    maximum(u1) > m && error("input indices must not exceed $m")
+    maximum(y1) > m && error("output indices must not exceed $p")
+    allunique(u1) || error("all input indices must be distinct")
+    allunique(y1) || error("all output indices must be distinct")
+    m1, p1 = size(K)
+    length(u1) == m1  || error("number of row indices must be equal to the number of rows of K")
+    length(y1) == p1  || error("number of column indices must be equal to the number of columns of K")
+    y2 = setdiff(Vector(1:p),Vector(y1))
+    u2 = setdiff(Vector(1:m),Vector(u1))
+
+    A, E, B, C, D = dssdata(sys)
+    B1 = view(B,:,u1)
+    B2 = view(B,:,u2)
+    C1 = view(C,y1,:)
+    C2 = view(C,y2,:)
+    D11 = view(D,y1,u1)
+    D12 = view(D,y1,u2)
+    D21 = view(D,y2,u1)
+    D22 = view(D,y2,u2)
+    nullD11 = iszero(D11)
+    Li = nullD11 ? I : (negative ? inv(I+K*D11) : inv(I-K*D11))
+    KT = nullD11 ? (negative ? -K : K) : (negative ? -Li*K : Li*K)
+    ip = sortperm([y1;y2])
+    jp = sortperm([u1;u2])
+    
+    return dss(A+B1*KT*C1, E, [B1*Li (B2+B1*KT*D12)][:,jp], [C1 + D11*KT*C1 ; C2 + D21*KT*C1][ip,:], 
+                        [ D11*Li D12+D11*KT*D12; D21*Li D22+D21*KT*D12 ][ip,jp]; Ts = sys.Ts)
+
+end
+feedback(sys::DescriptorStateSpace{T1}, K::Matrix{T2}; negative::Bool = true) where {T1, T2} = feedback(sys,K,1:size(K,1),1:size(K,2); negative)
