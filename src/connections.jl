@@ -143,7 +143,7 @@ end
 """
     sys = vertcat(sys1,sys2)
     sys = [sys1; sys2]
-    sys = vert(systems...) 
+    sys = vertcat(systems...) 
 
 Concatenate vertically two descriptor systems `sys1` and `sys2` or several descriptor systems `systems...` 
 by concatenating the output vectors of individual systems. This corresponds to the vertical 
@@ -197,7 +197,6 @@ function vcat(SYS1 :: DescriptorStateSpace, SYS2 :: DescriptorStateSpace)
     return DescriptorStateSpace{T}(A, E, B, C, D, Ts)
 end
 
-#vcat(SYS :: DescriptorStateSpace, MAT :: AbstractNumOrArray) = vcat(SYS,dss(MAT,Ts=SYS.Ts))
 vcat(SYS :: DescriptorStateSpace, MAT :: Union{Number, AbstractVecOrMat{<:Number}}) = vcat(SYS,dss(MAT,Ts=SYS.Ts))
 #vcat(MAT :: AbstractNumOrArray, SYS :: DescriptorStateSpace) = vcat(dss(MAT,Ts=SYS.Ts),SYS)
 vcat(MAT :: Union{Number, AbstractVecOrMat{<:Number}}, SYS :: DescriptorStateSpace) = vcat(dss(MAT,Ts=SYS.Ts),SYS)

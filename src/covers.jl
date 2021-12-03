@@ -239,8 +239,8 @@ References:
     descriptor systems. Proc. MTNS Symposium, Leuven, Belgium, 2004. 
 """
 function grmcover1(sys::DescriptorStateSpace{T}, m1::Int; atol::Real = zero(real(T)), 
-                   atol1::Real = atol, atol2::Real = atol, atol3::Real = atol, 
-                   rtol::Real = ((size(sys.A,1)+1)*eps(real(float(one(T)))))*iszero(max(atol1,atol2,atol3)), 
+                   atol1::Real = atol, atol2::Real = atol,  
+                   rtol::Real = ((size(sys.A,1)+1)*eps(real(float(one(T)))))*iszero(max(atol1,atol2)), 
                    fast::Bool = true) where T 
 
    p, m = size(sys);
@@ -468,8 +468,8 @@ References:
 
 """
 function grmcover2(sys::DescriptorStateSpace{T},m1::Int; atol::Real = zero(real(T)), 
-   atol1::Real = atol, atol2::Real = atol, atol3::Real = atol, 
-   rtol::Real = ((size(sys.A,1)+1)*eps(real(float(one(T)))))*iszero(max(atol1,atol2,atol3)), 
+   atol1::Real = atol, atol2::Real = atol, 
+   rtol::Real = ((size(sys.A,1)+1)*eps(real(float(one(T)))))*iszero(max(atol1,atol2)), 
    fast::Bool = true) where T 
    
    p, m = size(sys);

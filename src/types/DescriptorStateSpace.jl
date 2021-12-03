@@ -250,7 +250,7 @@ function *(sys::DescriptorStateSpace{T1}, mat::VecOrMat{T2}) where {T1,T2}
                                    copy_oftype(sys.D,T)*to_matrix(T,mat), sys.Ts)
 end
 # mat*sys
-function *(mat::VecOrMat{T1}, sys::DescriptorStateSpace{T2}) where {T1,T2}
+function *(mat::VecOrMat{T1}, sys::DescriptorStateSpace{T2}) where {T1 <: Number,T2}
     p, m = typeof(mat) <: Vector ? (length(mat),1) : size(mat)
     sys.ny == m || error("The output dimension of system does not match the number of columns of the matrix.")
     T = promote_type(T1, T2)
