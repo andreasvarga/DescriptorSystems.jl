@@ -536,8 +536,8 @@ function dssubset(sys::DescriptorStateSpace{T1}, subsys::DescriptorStateSpace{T2
     pred, mred = size(subsys)
     length(rows) == pred  || error("number of row indices must be equal to the number of outputs of subsys")
     length(cols) == mred  || error("number of column indices must be equal to the number of inputs of subsys")
-    maximum(rows) > p && error("output indices must not exceed $p")
-    maximum(cols) > m && error("input indices must not exceed $m")
+    pred > 0 && maximum(rows) > p && error("output indices must not exceed $p")
+    mred > 0 && maximum(cols) > m && error("input indices must not exceed $m")
     irows = setdiff(Vector(1:p),Vector(rows))
     jcols = setdiff(Vector(1:m),Vector(cols))
     if minimal 
