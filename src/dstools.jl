@@ -24,15 +24,24 @@ function freqresp(sys::DescriptorStateSpace{T}, ω::Union{AbstractVector{<:Real}
     T1 = T <: BlasFloat ? T : promote_type(Float64,T) 
     ONE = one(T1)
     typeof(ω) <: Real && (ω = [ω])
+    N = length(ω)    
     a, e, b, c, d = dssdata(T1,sys)
+    if isempty(a)
+        # overcome bug in orghr! for null dimension #43680 
+        H = similar(d, eltype(d), sys.ny, sys.nu, N)
+        for i = 1:N
+           copyto!(view(H,:,:,i),d)
+       end
+       return complex(H)
+    end
+
     Ts = abs(sys.Ts)
     disc = !iszero(Ts)
-    # Create the complex frequency scaling
+    # create the complex frequency scaling
     sw = disc ? im*abs(sys.Ts) : im
     desc = !(e == I)
     # reduce to complex Hessenberg form
     ac, ec, bc, cc, dc = chess(a, e, b, c, d)
-    N = length(ω)
     H = similar(dc, eltype(dc), sys.ny, sys.nu, N)
     bct = similar(bc) 
     for i = 1:N
@@ -54,6 +63,7 @@ function chess(a::MT, e::Union{MT,UniformScaling}, b::MT, c::MT, d::MT) where {T
     # reduce the descriptor system (A-λE,B,C,D) to an equivalent complex descriptor system 
     # (Ac-λEc,Bc,Cc,Dc) such that Ac-λEc is in an upper Hessenberg form 
     # Note: This function is only used in the context of efficient frequency response computations. 
+    isempty(a) && (return complex(a), e == I ? e : complex(e), complex(b), complex(c), complex(d))
     desc = !(e == I)
     if desc
         # Reduce (A,E) to (generalized) upper-Hessenberg form for
@@ -332,7 +342,7 @@ with the diagonal blocks `A1`, `A2`, `A3` of orders `n`, `nuc`, and `nuo`, respe
 function rss(n::Int, p::Int, m::Int; disc::Bool = false, T::Type = Float64,
              nuc::Int = 0, nuo::Int = 0, randt = true, stable::Bool = false)    
     nf = n; Af = randn(T,nf,nf); Bf = randn(T,nf,m); Cf = randn(T,p,nf); 
-    stable && (disc ? rmul!(Af,1/(rand()+opnorm(Af,1))) : Af -= I*(rand()+maximum(real(eigvals(Af)))) ) 
+    n > 0 && stable && (disc ? rmul!(Af,1/(rand()+opnorm(Af,1))) : Af -= I*(rand()+maximum(real(eigvals(Af)))) ) 
     Afuc = randn(T,nuc,nuc); Bfuc = zeros(T,nuc,m); Cfuc = randn(T,p,nuc);
     stable && nuc > 0 && (disc ? rmul!(Afuc,1/(rand()+opnorm(Afuc,1))) : Afuc -= I*(rand()+maximum(real(eigvals(Afuc)))) ) 
     Afuo = randn(T,nuo,nuo); Bfuo = randn(T,nuo,m); Cfuo = zeros(T,p,nuo); 
@@ -380,7 +390,7 @@ function rdss(n::Int, p::Int, m::Int; disc::Bool = false, stable::Bool = false, 
                                       nfuc::Int = 0, nfuo::Int = 0, iduc::Vector{Int} = Int[], iduo::Vector{Int} = Int[], 
                                       randlt = true, randrt = true) 
     nf = n; Af = randn(T,nf,nf); Ef = randn(T,nf,nf); Bf = randn(T,nf,m); Cf = randn(T,p,nf); 
-    stable && (disc ? Af = Ef*rmul!(Af,1/(rand()+opnorm(Af,1))) : Af = Ef*(Af-I*(rand()+maximum(real(eigvals(Af))))) ) 
+    n > 0 && stable && (disc ? Af = Ef*rmul!(Af,1/(rand()+opnorm(Af,1))) : Af = Ef*(Af-I*(rand()+maximum(real(eigvals(Af))))) ) 
     ni = sum(id); Ai = Matrix{T}(I,ni,ni); Ei = jordanblockdiag(zero(T),id); Bi = randn(T,ni,m); Ci = randn(T,p,ni);
     Afuc = randn(T,nfuc,nfuc); Efuc = randn(T,nfuc,nfuc); Bfuc = zeros(T,nfuc,m); Cfuc = randn(T,p,nfuc);
     stable && nfuc > 0 && (disc ? Afuc = Efuc*rmul!(Afuc,1/(rand()+opnorm(Afuc,1))) : Afuc = Efuc*(Afuc-I*(rand()+maximum(real(eigvals(Afuc))))) ) 

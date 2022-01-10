@@ -90,6 +90,7 @@ The keyword argument `atol` can be used to simultaneously set `atol1 = atol` and
 function gpole(SYS::DescriptorStateSpace{T}; fast = false, atol::Real = 0, atol1::Real = atol, atol2::Real = atol, 
                rtol::Real = SYS.nx*eps(real(float(one(T))))*iszero(min(atol1,atol2)), check_reg = false ) where T
     T <: BlasFloat ? T1 = T : T1 = promote_type(Float64,T)
+    println("T1 = $T1")
     A = copy_oftype(SYS.A,T1)
     if SYS.E == I
        return isschur(A) ? ordeigvals(A) : MatrixPencils.eigvalsnosort(A)
@@ -97,15 +98,28 @@ function gpole(SYS::DescriptorStateSpace{T}; fast = false, atol::Real = 0, atol1
        E = copy_oftype(SYS.E,T1)
        if norm(E,Inf) > atol2 
           epsm = eps(float(one(real(T1))))
+          println("epsm = $epsm")
           isschur(A,E) && rcond(UpperTriangular(E)) >= SYS.nx*epsm && (return ordeigvals(A,E)[1])
+          println("epsm1 = $epsm")
           istriu(E) && rcond(UpperTriangular(E)) >= SYS.nx*epsm && (return MatrixPencils.eigvalsnosort(A,E))
-          rcond(E) >= SYS.nx*epsm && (return MatrixPencils.eigvalsnosort(A,E))
+          println("epsm2 = $epsm")
+          #rcond(E) >= SYS.nx*epsm && (return MatrixPencils.eigvalsnosort(A,E))
+          println("rcond(E) = $(rcond(E))")
+          rcond(E) >= SYS.nx*epsm && (return eigvalsnosort(A,E))
+          println("epsm3 = $epsm")
        end
        # singular E
        poles, nip, krinfo = pzeros(A, E; fast = fast, atol1 = atol1, atol2 = atol2, rtol = rtol )
+       println("poles = $poles")
        check_reg && (SYS.nx == krinfo.nrank || error("the system has a singular pole pencil"))
        return [poles;NaN*ones(SYS.nx-krinfo.nrank)]
     end
+end
+function eigvalsnosort(M, N; kwargs...)
+   println("tt")
+   ev = eigvals(M, N; sortby=nothing, kwargs...)
+   eltype(M) <: Complex || (ev[imag.(ev) .> 0] = conj(ev[imag.(ev) .< 0]))
+   return ev
 end
 """
     gzeroinfo(sys; smarg, fast = false, atol = 0, atol1 = atol, atol2 = atol, 
@@ -1007,7 +1021,7 @@ of pointwise ν-gap distances of the dimension of `ω`, whose components satisfi
 In this case, `fpeak` is the frequency for which the pointwise distance achieves its peak value. 
 All components of `nugapdist` are set to 1 if the winding number is different of zero in which case `fpeak = []`.
 
-The stability boundary offset,  `β`, to be used to assess the finite zeros which belong to the
+The stability boundary offset, `β`, to be used to assess the finite zeros which belong to the
 boundary of the stability domain can be specified via the keyword parameter `offset = β`.
 Accordingly, for a continuous-time system, these are the finite zeros having 
 real parts within the interval `[-β,β]`, while for a discrete-time system, 

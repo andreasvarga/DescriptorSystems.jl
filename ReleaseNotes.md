@@ -1,6 +1,10 @@
 # Release Notes
 
-## Version 1.2
+## Version 1.2.1 
+
+Patch releases to overcome a bug in `orghr!` for null dimension [#43680](https://github.com/JuliaLang/julia/issues/43680) and correct minor bugs in `rss` and `rdss` to handle null order systems.
+
+## Version 1.2.0
 
 This minor release provides some new functions and enhancements as follows:
 
