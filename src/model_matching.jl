@@ -442,12 +442,12 @@ function glinfldp(sys::DescriptorStateSpace{T}, m2::Int, γ::Union{Real,Missing}
    m1 = m-m2
    tol = sqrt(eps(real(float(one(T1)))))
    disc = (sys.Ts != 0)
-
+    
    # set stability margin to separate stable and unstable parts
    smarg = disc ? 1+offset : offset
 
 
-   if nehari
+   if nehari || iszero(sys[:,m1+1:end]; atol1, atol2, rtol)
       # compute a suboptimal solution as a Nehari approximation of G1
       sysx, s1 = gnehari(sys[:,1:m1], γ; offset = -offset, atol1, atol2, rtol, fast)
       mindist = glinfnorm(gir(sys-sysx*eye(m1,m); atol1, atol2, rtol, fast); offset, atol1, atol2, rtol)[1]
@@ -458,7 +458,7 @@ function glinfldp(sys::DescriptorStateSpace{T}, m2::Int, γ::Union{Real,Missing}
    subopt = !ismissing(γ)
    gl1 = m2 > 0 ? (glinfnorm(sys[:,m1+1:end]; offset, atol1, atol2, rtol)[1]) : 0 # prevent failure of opnorm 
    isinf(gl1) && error("sys2 has poles on the boundary of stability domain")
-    
+   
    # address constant case
    if order(sys) == 0 || m1 == 0
       # solve a 2-block Parrott problem
