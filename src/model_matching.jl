@@ -138,6 +138,7 @@ function grasol(sysg::DescriptorStateSpace{T1}, sysf::DescriptorStateSpace{T2},
                      atolinf = told) 
    else
       #solve the H_inf-LDP min ||[ F1-Xt; F2 ] ||_inf
+      nehari || (nehari = iszero(F[ro+1:end,:]; atol1, atol2, rtol))
       Yt, gopt = glinfldp(gdual(F), p-ro, γ; nehari = nehari, fast = fast, atol1 = atol1, atol2 = atol2, rtol = rtol, offset = offset, reltol = reltol);  
       Xt = gdual(Yt)
    end
@@ -312,6 +313,7 @@ function glasol(sysg::DescriptorStateSpace{T1}, sysf::DescriptorStateSpace{T2},
                      atolinf = told) 
    else
       #solve the H_inf-LDP min ||[ F1-Xt F2 ] ||_inf
+      nehari || (nehari = iszero(F[ro+1:end,:]; atol1, atol2, rtol))
       Xt, gopt = glinfldp(F, m-ro, γ; nehari = nehari, fast = fast, atol1 = atol1, atol2 = atol2, rtol = rtol, offset = offset, reltol = reltol);  
    end
    
@@ -447,7 +449,7 @@ function glinfldp(sys::DescriptorStateSpace{T}, m2::Int, γ::Union{Real,Missing}
    smarg = disc ? 1+offset : offset
 
 
-   if nehari || iszero(sys[:,m1+1:end]; atol1, atol2, rtol)
+   if nehari 
       # compute a suboptimal solution as a Nehari approximation of G1
       sysx, s1 = gnehari(sys[:,1:m1], γ; offset = -offset, atol1, atol2, rtol, fast)
       mindist = glinfnorm(gir(sys-sysx*eye(m1,m); atol1, atol2, rtol, fast); offset, atol1, atol2, rtol)[1]

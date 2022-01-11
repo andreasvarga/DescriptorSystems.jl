@@ -9,7 +9,7 @@ using Test
 
 println("Test_model_matching")
 
-Random.seed!(2133)
+Random.seed!(2135)
 
 @testset "Model_matching " begin
 
@@ -47,7 +47,7 @@ G = rss(n1,p,m,T = Complex{Float64}); F = rss(n2,p,mf,T = Complex{Float64});
 n1 = 3; n2 = 2; m = 2; p = 3; mf = 1; 
 G = rdss(n1,p,m,T = Complex{Float64},disc=true); F = rss(n2,p,mf,T = Complex{Float64},disc=true);  
 @time X, info = grasol(G, F; reltol=0.001, offset=1.e-13, atol = 1.e-13); info
-@test abs(glinfnorm(G*X-F,offset=1.e-13,atol=1.e-10)[1] - info.mindist) < 0.01 &&  (!info.nonstandard && isstable(X,offset=1.e-13)) 
+@test abs(glinfnorm(G*X-F,offset=1.e-14,atol=1.e-10)[1] - info.mindist) < 0.01 &&  (!info.nonstandard && isstable(X,offset=1.e-13)) 
 
 @time X, info = grasol(G, F; nehari = true, atol = 1.e-7); info
 @test abs(glinfnorm(G*X-F)[1] - info.mindist) < 0.01 &&  (!info.nonstandard && isstable(X)) 
@@ -67,13 +67,13 @@ n1 = 3; n2 = 2; m = 2; p = 3; mf = 1;
 #G = rss(n1,p,m,stable=true); X0 = rss(n2,pf,p,stable=true);  F = X0*G;
 G = rss(n1,p,m); X0 = rss(n2,m,mf,stable=true);  F = G*X0; 
 @time X, info = grasol(G, F, offset = 1.e-13, atol = 1.e-7); info  
-@test abs(glinfnorm(G*X-F)[1] - info.mindist) < 1.e-5  &&  (!info.nonstandard && isstable(X)) 
+@test abs(glinfnorm(G*X-F)[1] - info.mindist) < 1.e-5*max(1,info.mindist)  &&  (!info.nonstandard && isstable(X)) 
 
-# exact solution exists, free poles exist 
+# exact stable solution exists, free poles exist 
 n1 = 3; n2 = 2; m = 2; p = 3; mf = 1; 
 G = rss(n1,p,m,stable=true); X0 = rss(n2,m,mf,stable=true);  F = G*X0; 
 @time X, info = grasol(G, F, atol = 1.e-7, poles = [-2, -3], sdeg = -1, mindeg = true); info
-@test abs(glinfnorm(G*X-F)[1] - info.mindist) < 1.e-5 &&  (!info.nonstandard && isstable(X)) &&
+@test abs(glinfnorm(G*X-F)[1] - info.mindist) < 1.e-5*max(1,info.mindist) &&  (!info.nonstandard && isstable(X)) &&
       order(X) == order(X0)
 
 ## Glover & Packard (SCL,2017)
