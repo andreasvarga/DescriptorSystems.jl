@@ -290,11 +290,11 @@ function glasol(sysg::DescriptorStateSpace{T1}, sysf::DescriptorStateSpace{T2},
    #          error("sysf must be a stable system")      
    Ts = promote_Ts(sysg.Ts,sysf.Ts)
    disc = !iszero(Ts) 
-   
+
    #compute the extended quasi-co-outer-co-inner factorization
    Gi, Go, info1 = goifac(sysg; atol1, atol2, atol3 = atol1, rtol, fast, minphase = true, offset)
    ro = info1.nrank 
-   
+
    #detect nonstandard problem 
    #nonstandard = order(gcrange(Go,struct('tol',tol,'zeros','s-unstable'))) > 0;
    nonstandard = (info1.nfuz + info1.niuz > 0)
@@ -313,7 +313,7 @@ function glasol(sysg::DescriptorStateSpace{T1}, sysf::DescriptorStateSpace{T2},
                      atolinf = told) 
    else
       #solve the H_inf-LDP min ||[ F1-Xt F2 ] ||_inf
-      nehari || (nehari = iszero(F[ro+1:end,:]; atol1, atol2, rtol))
+      nehari || (nehari = iszero(F[:,ro+1:end]; atol1, atol2, rtol))
       Xt, gopt = glinfldp(F, m-ro, γ; nehari = nehari, fast = fast, atol1 = atol1, atol2 = atol2, rtol = rtol, offset = offset, reltol = reltol);  
    end
    

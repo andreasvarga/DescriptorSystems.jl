@@ -1,5 +1,9 @@
 # Release Notes
 
+## Version 1.2.2 
+
+Patch releases to correct a bug in `glasol`.
+
 ## Version 1.2.1 
 
 Patch releases to overcome a bug in `orghr!` for null dimension [#43680](https://github.com/JuliaLang/julia/issues/43680) and correct minor bugs in `rss` and `rdss` to handle null order systems. The functions `glasol` and `grasol` have been enhanced to reliably detect Nehari problems.
