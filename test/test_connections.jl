@@ -231,6 +231,19 @@ P = dss(-1.0, 0.0, 2.0, 3.0, 4.0)
 @test [D_222 fill(1.5, 2, 2); fill(2, 2, 2) fill(3, 2, 2)] ==
     [D_222 dss(fill(1.5, 2, 2),Ts = 0.005); dss(fill(2, 2, 2),Ts = 0.005) dss(fill(3, 2, 2),Ts = 0.005)]
 
+
+# type piracy tests
+hcat(rand(1,2), [1], I) #OK
+hcat(rand(1,2), 1, I)   #NOK
+hcat(1, 1, I)           #NOK
+vcat(I,[1, 's'])        #OK
+vcat([1],[1, 's'])      #OK
+vcat(1,[1, 's'])        #NOK
+[1 1; I]                #NOK
+[[1 1] [1 's']]         #OK
+[[1 1] [1 's'];I]       #OK
+[1 1 [1 's'];I]         #NOK
+
 end # descriptor state space
 
 end

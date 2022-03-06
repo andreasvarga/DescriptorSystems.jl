@@ -6,7 +6,7 @@ using MatrixPencils
 using Polynomials
 using Random
 
-import LinearAlgebra: BlasFloat, BlasReal, BlasComplex, copy_oftype, transpose, adjoint, opnorm, normalize, rdiv!
+import LinearAlgebra: BlasFloat, BlasReal, BlasComplex, copy_oftype, transpose, adjoint, opnorm, normalize, rdiv!, hcat
 import Base: +, -, *, /, \, (==), (!=), ^, isapprox, iszero, convert, promote_op, size, length, ndims, 
              hcat, vcat, hvcat, inv, show, lastindex, require_one_based_indexing, print, show, one, zero, eltype
 import MatrixPencils: isregular, rmeval
@@ -26,16 +26,20 @@ export gpole, gzero, gpoleinfo, gzeroinfo, gnrank, isregular, isproper, isstable
 export gsdec, grnull, glnull, grange, gcrange, grsol, glsol, grmcover1, grmcover2, glmcover1, glmcover2
 export grcf, glcf, grcfid, glcfid, gnrcf, gnlcf, giofac, goifac, grsfg, glsfg
 export gnehari, glinfldp, glasol, grasol
+# export PeriodicDiscreteDescriptorStateSpace, psreduc_fast
 # export PencilStateSpace, pss, pssdata
 
 
 abstract type AbstractDynamicalSystem end
 abstract type AbstractLTISystem <: AbstractDynamicalSystem end
+abstract type AbstractLTVSystem <: AbstractDynamicalSystem end
 abstract type AbstractDescriptorStateSpace <: AbstractLTISystem end
+abstract type AbstractPeriodicStateSpace <: AbstractLTVSystem end
 
 
 include("types/DescriptorStateSpace.jl")
 include("types/RationalTransferFunction.jl")
+#include("types/PeriodicStateSpace.jl")
 #include("types/PencilStateSpace.jl")
 include("ginv.jl")
 include("dss.jl")

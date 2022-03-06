@@ -203,14 +203,15 @@ vcat(MAT :: Union{Number, AbstractVecOrMat{<:Number}}, SYS :: DescriptorStateSpa
 vcat(SYS :: DescriptorStateSpace, MAT :: UniformScaling) = vcat(SYS,dss(Matrix{promote_type(eltype(SYS),eltype(MAT))}(MAT,SYS.nu,SYS.nu),Ts=SYS.Ts))
 vcat(MAT :: UniformScaling, SYS :: DescriptorStateSpace) = vcat(dss(Matrix{promote_type(eltype(SYS),eltype(MAT))}(MAT,SYS.nu,SYS.nu),Ts=SYS.Ts),SYS)
 
-for (f,dim,name) in ((:hcat,1,"rows"), (:vcat,2,"cols"))
+for (f, _f, dim, name) in ((:hcat, :_hcat, 1, "rows"), (:vcat, :_vcat, 2, "cols"))
     @eval begin
-        function $f(A::Union{DescriptorStateSpace, AbstractVecOrMat{<:Number}, Number, UniformScaling}...) 
-            n = -1   
+        @inline $f(A::Union{DescriptorStateSpace, AbstractVecOrMat,UniformScaling,Number}...) = $_f(A...)
+        function $_f(A::Union{DescriptorStateSpace, AbstractVecOrMat,UniformScaling,Number}...)
+            n = -1
             for a in A
-                if !isa(a, UniformScaling)
+                if !isa(a, UniformScaling) 
                     require_one_based_indexing(a)
-                    isa(a,Number) ? na = 1 : na = size(a,$dim)
+                    na = size(a,$dim)
                     n >= 0 && n != na &&
                         throw(DimensionMismatch(string("number of ", $name,
                             " of each array must match (got ", n, " and ", na, ")")))
@@ -218,7 +219,8 @@ for (f,dim,name) in ((:hcat,1,"rows"), (:vcat,2,"cols"))
                 end
             end
             n == -1 && throw(ArgumentError($("$f of only UniformScaling objects cannot determine the matrix size")))
-            if isadss(A...) == 0
+            if isnothing(findfirst(a -> isa(a, DescriptorStateSpace), A)) 
+                @warn "Type piracy in $(string($f)): to be fixed in Julia 1.8 (make an issue otherwise)"
                 # alleviate type piracy problematic
                 n == 1 && (A = promote_to_arrays(A...))  # convert all scalars to vectors
                 return cat(LinearAlgebra.promote_to_arrays(fill(n, length(A)), 1, Matrix, A...)..., dims=Val(3-$dim))
@@ -242,7 +244,9 @@ function Base.hvcat(rows :: Tuple{Vararg{Int}}, DST :: DescriptorStateSpace...)
 end
 
 
-function Base.hvcat(rows::Tuple{Vararg{Int}}, A::Union{DescriptorStateSpace, AbstractVecOrMat{<:Number}, Number, UniformScaling}...)
+#function Base.hvcat(rows::Tuple{Vararg{Int}}, A::Union{DescriptorStateSpace, AbstractVecOrMat{<:Number}, Number, UniformScaling}...)
+Base.hvcat(rows::Tuple{Vararg{Int}}, A::Union{DescriptorStateSpace, AbstractVecOrMat, UniformScaling, Number}...) = _hvcat(rows, A...)
+function _hvcat(rows::Tuple{Vararg{Int}}, A::Union{DescriptorStateSpace, AbstractVecOrMat, UniformScaling, Number}...)
     require_one_based_indexing(A...)
     nr = length(rows)
     sum(rows) == length(A) || throw(ArgumentError("mismatch between row sizes and number of arguments"))
@@ -296,9 +300,10 @@ function Base.hvcat(rows::Tuple{Vararg{Int}}, A::Union{DescriptorStateSpace, Abs
             j += rows[i]
         end
     end
-    if isadss(A...) == 0
+    if isnothing(findfirst(a -> isa(a, DescriptorStateSpace), A)) 
         # alleviate type piracy problematic
         # convert all scalars to vectors: not needed in Julia 1.8         
+        @warn "Type piracy in hvcat: to be fixed in Julia 1.8 (make an issue otherwise)"
         any(n .== 1) && (A = promote_to_arrays(A...))        
         Amat = LinearAlgebra.promote_to_arrays(n, 1, Matrix, A...)
         return Base.typed_hvcat(promote_type(eltype.(Amat)...), rows, Amat...)
