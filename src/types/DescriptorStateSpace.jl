@@ -61,11 +61,11 @@ function dss_validation(A::Matrix{T}, E::Union{Matrix{T},UniformScaling},
 end
 function Base.getproperty(sys::DescriptorStateSpace, d::Symbol)  
     if d === :nx
-        return size(sys.A,1)
+        return size(getfield(sys, :A), 1)
     elseif d === :ny
-        return size(sys.C,1)
+        return size(getfield(sys, :C), 1)
     elseif d === :nu
-        return size(sys.B,2)
+        return size(getfield(sys, :B), 2)
     else
         getfield(sys, d)
     end
