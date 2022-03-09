@@ -1,5 +1,9 @@
 # Release Notes
 
+## Version 1.3.1
+
+Patch release to eliminate warnings due to type piracy.
+
 ## Version 1.3 
 
 Minor release to alleviate/fix hcat/vcat/hvcat type piracy issues in Julia 1.6 and 1.7 and to use Polynomials 3.0. Internal type piracy with MatrixPencils has been completely eliminated. 
