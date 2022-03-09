@@ -220,7 +220,7 @@ for (f, _f, dim, name) in ((:hcat, :_hcat, 1, "rows"), (:vcat, :_vcat, 2, "cols"
             end
             n == -1 && throw(ArgumentError($("$f of only UniformScaling objects cannot determine the matrix size")))
             if isnothing(findfirst(a -> isa(a, DescriptorStateSpace), A)) 
-                @warn "Type piracy in $(string($f)): to be fixed in Julia 1.8 (make an issue otherwise)"
+                @warn "Type piracy in $(string($f)): to be fixed in Julia 1.8 (make an issue otherwise)" maxlog=1
                 # alleviate type piracy problematic
                 n == 1 && (A = promote_to_arrays(A...))  # convert all scalars to vectors
                 return cat(LinearAlgebra.promote_to_arrays(fill(n, length(A)), 1, Matrix, A...)..., dims=Val(3-$dim))
@@ -303,7 +303,7 @@ function _hvcat(rows::Tuple{Vararg{Int}}, A::Union{DescriptorStateSpace, Abstrac
     if isnothing(findfirst(a -> isa(a, DescriptorStateSpace), A)) 
         # alleviate type piracy problematic
         # convert all scalars to vectors: not needed in Julia 1.8         
-        @warn "Type piracy in hvcat: to be fixed in Julia 1.8 (make an issue otherwise)"
+        @warn "Type piracy in hvcat: to be fixed in Julia 1.8 (make an issue otherwise)" maxlog=1
         any(n .== 1) && (A = promote_to_arrays(A...))        
         Amat = LinearAlgebra.promote_to_arrays(n, 1, Matrix, A...)
         return Base.typed_hvcat(promote_type(eltype.(Amat)...), rows, Amat...)
