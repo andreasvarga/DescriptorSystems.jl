@@ -1,6 +1,11 @@
 #const AbstractNumOrArray = Union{AbstractVecOrMat{T},Number} where {T <: Number}
 const AbstractNumOrArray = Union{AbstractVecOrMat,Number}
 const ETYPE{T} = Union{Matrix{T},UniformScaling{Bool}}
+promote_Etype(::Type{UniformScaling{Bool}}, ::Type{UniformScaling{Bool}}) = UniformScaling{Bool}
+promote_Etype(T1::Type, ::Type{UniformScaling{Bool}}) = T1
+promote_Etype(::Type{UniformScaling{Bool}}, T2::Type) = T2
+promote_Etype(T1::Type, T2::Type) = promote_type(T1, T2)
+
 """ 
     DescriptorStateSpace{T}(A::Matrix{T}, E::Union{Matrix{T},UniformScaling}, 
                             B::Matrix{T}, C::Matrix{T}, D::Matrix{T},  

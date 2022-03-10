@@ -72,7 +72,7 @@ function hcat(SYS1::DescriptorStateSpace{T1, TE1}, SYS2::DescriptorStateSpace{T2
     ny = SYS1.ny
     ny == size(SYS2, 1) ||  error("The systems must have the same output dimension")
     T = promote_type(T1, T2)
-    TE = promote_type(TE1, TE2)
+    TE = promote_Etype(TE1, TE2)
     Ts = promote_Ts(SYS1.Ts, SYS2.Ts) 
 
     A = blockdiag(T.(SYS1.A), T.(SYS2.A))
@@ -180,7 +180,7 @@ function vcat(SYS1::DescriptorStateSpace{T1, TE1}, SYS2::DescriptorStateSpace{T2
     nu = SYS1.nu
     nu == size(SYS2, 2) ||  error("The systems must have the same input dimension")
     T = promote_type(T1, T2)
-    TE = promote_type(TE1, TE2)
+    TE = promote_Etype(TE1, TE2)
     Ts = promote_Ts(SYS1.Ts, SYS2.Ts) 
 
     A = blockdiag(T.(SYS1.A), T.(SYS2.A))
