@@ -35,7 +35,7 @@ of individual systems. This corresponds to the block diagonal concatenation of
 their transfer function matrices. 
 Appending systems with constant matrices, vectors or scalars or with UniformScalings is also supported. 
 """
-function append(systems::(DST where DST<:DescriptorStateSpace)...)
+function append(systems::DescriptorStateSpace...)
     T = promote_type(eltype.(systems)...)
     Ts = systems[1].Ts
     if !all(s.Ts == Ts for s in systems)
@@ -116,8 +116,8 @@ concatenation of their transfer function matrices.
 Concatenation of systems with constant matrices, vectors, or scalars having the same row dimensions 
 or with UniformScalings is also supported.  
 """
-horzcat(systems::Union{DST,AbstractNumOrArray,UniformScaling}...) where DST <: DescriptorStateSpace = hcat(systems...)
-function Base.hcat(systems::DST...) where DST <: DescriptorStateSpace
+horzcat(systems::Union{DescriptorStateSpace,AbstractNumOrArray,UniformScaling}...) = hcat(systems...)
+function Base.hcat(systems::DescriptorStateSpace...)
     # Perform checks
     T = promote_type(eltype.(systems)...)
     Ts = systems[1].Ts
@@ -151,9 +151,9 @@ concatenation of their transfer function matrices.
 Concatenation of systems with constant matrices, vectors, or scalars having the same column dimensions 
 or with UniformScalings is also supported.  
 """
-vertcat(systems::Union{DST,AbstractNumOrArray,UniformScaling}...) where DST <: DescriptorStateSpace = vcat(systems...)
+vertcat(systems::Union{DescriptorStateSpace,AbstractNumOrArray,UniformScaling}...) = vcat(systems...)
 
-function Base.vcat(systems::DST...) where DST <: DescriptorStateSpace
+function Base.vcat(systems::DescriptorStateSpace...)
     # Perform checks
     T = promote_type(eltype.(systems)...)
     Ts = systems[1].Ts

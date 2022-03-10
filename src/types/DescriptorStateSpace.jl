@@ -27,17 +27,17 @@ defined by the 4-tuple `SYS = (A-λE,B,C,D)`, then:
 
 The dimensions `nx`, `ny` and `nu` can be obtained as `SYS.nx`, `SYS.ny` and `SYS.nu`, respectively. 
 """
-struct DescriptorStateSpace{T} <: AbstractDescriptorStateSpace 
+struct DescriptorStateSpace{T, ET <: Union{Matrix{T},UniformScaling}} <: AbstractDescriptorStateSpace 
     A::Matrix{T}
-    E::Union{Matrix{T},UniformScaling}
+    E::ET
     B::Matrix{T}
     C::Matrix{T}
     D::Matrix{T}
     Ts::Float64
     function DescriptorStateSpace{T}(A::Matrix{T}, E::Union{Matrix{T},UniformScaling}, 
-                                     B::Matrix{T}, C::Matrix{T}, D::Matrix{T},  Ts::Real) where T 
+                                     B::Matrix{T}, C::Matrix{T}, D::Matrix{T},  Ts::Real) where {T} 
         dss_validation(A, E, B, C, D, Ts)
-        new{T}(A, E, B, C, D, Float64(Ts))
+        new{T, typeof(E)}(A, E, B, C, D, Float64(Ts))
     end
 end
 function dss_validation(A::Matrix{T}, E::Union{Matrix{T},UniformScaling}, 
