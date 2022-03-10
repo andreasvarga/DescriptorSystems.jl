@@ -77,7 +77,7 @@ function hcat(SYS1::DescriptorStateSpace{T1, TE1}, SYS2::DescriptorStateSpace{T2
 
     A = blockdiag(T.(SYS1.A), T.(SYS2.A))
     local E::TE
-    if SYS1.E == I && SYS2.E == I 
+    if SYS1.E === I && SYS2.E === I 
         E = I 
     elseif SYS1.E == I || SYS2.E == I 
         blockdims = [size(SYS1.A,1), size(SYS2.A,1)]
@@ -185,7 +185,7 @@ function vcat(SYS1::DescriptorStateSpace{T1, TE1}, SYS2::DescriptorStateSpace{T2
 
     A = blockdiag(T.(SYS1.A), T.(SYS2.A))
     local E::TE
-    if SYS1.E == I && SYS2.E == I 
+    if SYS1.E === I && SYS2.E === I 
         E = I 
     elseif SYS1.E == I || SYS2.E == I 
         blockdims = [size(SYS1.A,1), size(SYS2.A,1)]

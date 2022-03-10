@@ -1,6 +1,6 @@
 #const AbstractNumOrArray = Union{AbstractVecOrMat{T},Number} where {T <: Number}
 const AbstractNumOrArray = Union{AbstractVecOrMat,Number}
-const ETYPE{T} = Union{Matrix{T},UniformScaling}
+const ETYPE{T} = Union{Matrix{T},UniformScaling{Bool}}
 """ 
     DescriptorStateSpace{T}(A::Matrix{T}, E::Union{Matrix{T},UniformScaling}, 
                             B::Matrix{T}, C::Matrix{T}, D::Matrix{T},  
