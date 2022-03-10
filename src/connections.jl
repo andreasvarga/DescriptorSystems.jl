@@ -68,14 +68,15 @@ function append(A::Union{DescriptorStateSpace,AbstractNumOrArray,UniformScaling}
 end
 
 
-function hcat(SYS1 :: DescriptorStateSpace, SYS2 :: DescriptorStateSpace)
+function hcat(SYS1::DescriptorStateSpace{T1, TE1}, SYS2::DescriptorStateSpace{T2, TE2}) where {T1<:Number, TE1<:ETYPE, T2<:Number, TE2<:ETYPE}
     ny = SYS1.ny
     ny == size(SYS2, 1) ||  error("The systems must have the same output dimension")
-    T = promote_type(eltype(SYS1), eltype(SYS2))
+    T = promote_type(T1, T2)
+    TE = promote_type(TE1, TE2)
     Ts = promote_Ts(SYS1.Ts, SYS2.Ts) 
 
     A = blockdiag(T.(SYS1.A), T.(SYS2.A))
-  
+    local E::TE
     if SYS1.E == I && SYS2.E == I 
         E = I 
     elseif SYS1.E == I || SYS2.E == I 
@@ -175,14 +176,15 @@ function Base.vcat(systems::DescriptorStateSpace...)
     return DescriptorStateSpace{T}(A, E, B, C, D, Ts)
 end
 
-function vcat(SYS1 :: DescriptorStateSpace, SYS2 :: DescriptorStateSpace)
+function vcat(SYS1::DescriptorStateSpace{T1, TE1}, SYS2::DescriptorStateSpace{T2, TE2}) where {T1<:Number, TE1<:ETYPE, T2<:Number, TE2<:ETYPE}
     nu = SYS1.nu
     nu == size(SYS2, 2) ||  error("The systems must have the same input dimension")
-    T = promote_type(eltype(SYS1), eltype(SYS2))
+    T = promote_type(T1, T2)
+    TE = promote_type(TE1, TE2)
     Ts = promote_Ts(SYS1.Ts, SYS2.Ts) 
 
     A = blockdiag(T.(SYS1.A), T.(SYS2.A))
-  
+    local E::TE
     if SYS1.E == I && SYS2.E == I 
         E = I 
     elseif SYS1.E == I || SYS2.E == I 
