@@ -1,5 +1,9 @@
 # Release Notes
 
+## Version 1.3.2
+
+Patch release to enhance promotion for E matrices with I.
+
 ## Version 1.3.1
 
 Patch release to eliminate warnings due to type piracy.

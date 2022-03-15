@@ -1,5 +1,11 @@
 #const AbstractNumOrArray = Union{AbstractVecOrMat{T},Number} where {T <: Number}
 const AbstractNumOrArray = Union{AbstractVecOrMat,Number}
+#const ETYPE{T} = Union{Matrix{T},UniformScaling}
+const ETYPE{T} = Union{Matrix{T},UniformScaling{Bool}}
+promote_Etype(T0::Type, ::Type{UniformScaling{Bool}}, ::Type{UniformScaling{Bool}}) = UniformScaling{Bool}
+promote_Etype(T0::Type, T1::Type, ::Type{UniformScaling{Bool}}) = Matrix{promote_type(T0,eltype(T1))}
+promote_Etype(T0::Type, ::Type{UniformScaling{Bool}}, T1::Type) = Matrix{promote_type(T0,eltype(T1))}
+promote_Etype(T0::Type, T1::Type, T2::Type) = Matrix{promote_type(T0, eltype(T1), eltype(T2))}   
 """ 
     DescriptorStateSpace{T}(A::Matrix{T}, E::Union{Matrix{T},UniformScaling}, 
                             B::Matrix{T}, C::Matrix{T}, D::Matrix{T},  
@@ -27,20 +33,23 @@ defined by the 4-tuple `SYS = (A-λE,B,C,D)`, then:
 
 The dimensions `nx`, `ny` and `nu` can be obtained as `SYS.nx`, `SYS.ny` and `SYS.nu`, respectively. 
 """
-struct DescriptorStateSpace{T, ET <: Union{Matrix{T},UniformScaling}} <: AbstractDescriptorStateSpace 
+struct DescriptorStateSpace{T, ET <: ETYPE{T}} <: AbstractDescriptorStateSpace 
+#struct DescriptorStateSpace{T, ET <: Union{Matrix{T},UniformScaling}} <: AbstractDescriptorStateSpace 
     A::Matrix{T}
     E::ET
     B::Matrix{T}
     C::Matrix{T}
     D::Matrix{T}
     Ts::Float64
-    function DescriptorStateSpace{T}(A::Matrix{T}, E::Union{Matrix{T},UniformScaling}, 
+    #function DescriptorStateSpace{T}(A::Matrix{T}, E::Union{Matrix{T},UniformScaling}, 
+    function DescriptorStateSpace{T}(A::Matrix{T}, E::ETYPE{T}, 
                                      B::Matrix{T}, C::Matrix{T}, D::Matrix{T},  Ts::Real) where {T} 
         dss_validation(A, E, B, C, D, Ts)
         new{T, typeof(E)}(A, E, B, C, D, Float64(Ts))
     end
 end
-function dss_validation(A::Matrix{T}, E::Union{Matrix{T},UniformScaling}, 
+#function dss_validation(A::Matrix{T}, E::Union{Matrix{T},UniformScaling}, 
+function dss_validation(A::Matrix{T}, E::ETYPE{T}, 
                         B::Matrix{T}, C::Matrix{T}, D::Matrix{T},  Ts::Real) where T
     nx = LinearAlgebra.checksquare(A)
     (ny, nu) = size(D)

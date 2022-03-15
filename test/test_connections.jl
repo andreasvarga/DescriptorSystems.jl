@@ -12,11 +12,23 @@ println("Test_connections")
 @testset "Standard state space" begin
 # CONTINUOUS
 C_111 = dss([1], [2], [3], [4])
+C_111E = dss([1], [1], [2], [3], [4])
 C_211 = dss(eye(2), [1; 2], [1 0], [0])
 C_212 = dss(eye(2), [1; 2], eye(2), [0; 0])
 C_221 = dss(eye(2), [1 0; 0 2], [1 0], [0 0])
 C_222 = dss(eye(2), [1 0; 0 2], eye(2), zeros(Int,2,2))
 C_022 = dss(4*eye(2))
+
+@test [C_111 C_111] isa DescriptorStateSpace{Int, UniformScaling{Bool}}
+@test [C_111 C_111E] isa DescriptorStateSpace{Int, Matrix{Int}}
+@test [C_111E C_111E] isa DescriptorStateSpace{Int, Matrix{Int}}
+@test [C_111E C_111] isa DescriptorStateSpace{Int, Matrix{Int}}
+
+@inferred hcat(C_111, C_111)
+@inferred hcat(C_111, C_111E)
+@inferred hcat(C_111E, C_111E)
+@inferred hcat(C_111E, C_111)
+
 
 # DISCRETE
 D_111 = dss([1], [2], [3], [4], Ts = 0.005)
@@ -114,12 +126,29 @@ end # standard state space
 @testset "Descriptor state space" begin
 # CONTINUOUS
 C_111 = dss([1], [0], [2], [3], [4])
+C_111E = dss([1], [1], [2], [3], [4])
 C_211 = dss(eye(2), [1 0; 0 0], [1; 2], [1 0], [0])
 C_212 = dss(eye(2), I, [1; 2], eye(2), [0; 0])
 C_221 = dss(eye(2), zeros(2,2), [1 0; 0 2], [1 0], [0 0])
 C_222 = dss(eye(2), 2*eye(2), [1 0; 0 2], eye(2), zeros(Int,2,2))
 C_022 = dss(4*eye(2))
 CS_211 = dss(eye(2), [1; 2], [1 0], [0])
+
+@test [C_111 C_111] isa DescriptorStateSpace{Int, Matrix{Int}}
+@test [C_111 C_111E] isa DescriptorStateSpace{Int, Matrix{Int}}
+@test [C_111E C_111E] isa DescriptorStateSpace{Int, Matrix{Int}}
+@test [C_111E C_111] isa DescriptorStateSpace{Int, Matrix{Int}}
+
+@inferred hcat(C_111, C_111)
+@inferred hcat(C_111, C_111E)
+@inferred hcat(C_111E, C_111E)
+@inferred hcat(C_111E, C_111)
+
+@inferred vcat(C_111, C_111)
+@inferred vcat(C_111, C_111E)
+@inferred vcat(C_111E, C_111E)
+@inferred vcat(C_111E, C_111)
+
 
 # DISCRETE
 D_111 = dss([1], [0], [2], [3], [4], Ts = 0.005)
