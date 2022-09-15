@@ -436,10 +436,10 @@ sysc = dss(a,e,b,c,d);
 @time y, tout, x = timeresp(sysd, ones(11,2), Int[],xd0; state_history = true, atol=1.e-7)
 
 @time y1, tout1, x1 = timeresp(sysc, ones(11,2), tout, x0; state_history = true, interpolation = "zoh", atol=1.e-7)
-@test norm(y-y1,Inf) < 1.e-7 
+@test norm(y-y1,Inf) < 1.e-6 
 
 @time y2, tout2, x2 = timeresp(sysc, ones(11,2), tout, x0; state_history = true, interpolation = "foh", atol=1.e-7)
-@test norm(y-y2,Inf) < 1.e-7 
+@test norm(y-y2,Inf) < 1.e-6 
 
 sysd = rdss(3,2,2,disc=true,stable=true,id=ones(Int,2))
 sysdr = gss2ss(sysd)[1]
@@ -449,11 +449,11 @@ x0 = rand(5);
 @time y, tout, x = timeresp(sysd, u, Int[], x0; state_history = true, atol=1.e-7)
 sys, xt, Mx, Mu = dss2ss(sysd, x0; state_mapping = true)  
 @time y1, tout1, x1 = timeresp(sys, u, Int[], xt; state_history = true, atol=1.e-7)
-@test norm(y-y1,Inf) < 1.e-7 && [Mx Mu]*[x1';u'] ≈ x'
+@test norm(y-y1,Inf) < 1.e-6 && [Mx Mu]*[x1';u'] ≈ x'
 
 @time y2, tout2, x2 = timeresp(sys, u, Int[]; state_history = false, atol=1.e-7)
 @time y3, tout3, x3 = timeresp(sysdr, u, Int[]; state_history = false, atol=1.e-7)
-@test norm(y2-y3,Inf) < 1.e-7 
+@test norm(y2-y3,Inf) < 1.e-6 
 
 end # timeresp    
 
