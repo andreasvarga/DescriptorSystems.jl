@@ -326,9 +326,9 @@ function rtf(::Type{T}, var::Union{AbstractString,Char,Symbol}; Ts::Union{Real,M
     end
 end
 rtf(var::Union{AbstractString,Char,Symbol}; Ts::Union{Real,Missing} = missing) = rtf(Int, var; Ts = Ts)
-function Base.:/(p::AbstractPolynomial,q::AbstractPolynomial)
-    RationalFunction(p,q)
-end
+# function Base.:/(p::AbstractPolynomial,q::AbstractPolynomial)
+#     RationalFunction(p,q)
+# end
 
 """
     r = rtf(z, p, k; Ts = rts, var = rvar) 

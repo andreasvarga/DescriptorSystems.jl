@@ -89,7 +89,7 @@ The keyword argument `atol` can be used to simultaneously set `atol1 = atol` and
 """
 function gpole(SYS::DescriptorStateSpace{T}; fast = false, atol::Real = 0, atol1::Real = atol, atol2::Real = atol, 
                rtol::Real = SYS.nx*eps(real(float(one(T))))*iszero(min(atol1,atol2)), check_reg = false ) where T
-    T <: BlasFloat ? T1 = T : T1 = promote_type(Float64,T)
+    T1 = T <: BlasFloat ? T : promote_type(Float64,T)
     A = copy_oftype(SYS.A,T1)
     if SYS.E == I
        return isschur(A) ? ordeigvals(A) : MatrixPencils.eigvalsnosort(A)
@@ -301,10 +301,10 @@ function gpoleinfo(SYS::DescriptorStateSpace{T}; smarg::Real = SYS.Ts == 0 ? 0 :
                    offset::Real = sqrt(eps(float(real(T))))) where T
     disc = (SYS.Ts != 0)
     n = SYS.nx
-    T <: BlasFloat ? T1 = T : T1 = promote_type(Float64,T)
+    T1 = T <: BlasFloat ? T : promote_type(Float64,T)
     A = copy_oftype(SYS.A,T1)
     if SYS.E == I
-       isschur(A) ? val = ordeigvals(A) : val = MatrixPencils.eigvalsnosort(A)
+       val = isschur(A) ? ordeigvals(A) : MatrixPencils.eigvalsnosort(A)
        nfsev, nfsbev, nfuev = eigvals_info(val, smarg, disc, offset)
        return val, (nfev = n, niev = 0, nisev = 0, nip = 0, nfsev = nfsev, nfsbev = nfsbev, 
                      nfuev = nfuev, nhev = 0, nrank = n, miev = Int[], mip = Int[], 
@@ -446,7 +446,7 @@ function isstable(SYS::DescriptorStateSpace{T}, smarg::Real = SYS.Ts == 0 ? 0 : 
     disc = (SYS.Ts != 0)
     β = abs(offset); 
     if SYS.E == I
-       isschur(SYS.A) ? poles = ordeigvals(SYS.A) : poles = eigvals(SYS.A)
+      poles = isschur(SYS.A) ? ordeigvals(SYS.A) : eigvals(SYS.A)
     else
        poles = gpole(SYS; fast = fast, atol1 = atol1, atol2 = atol2, rtol = rtol)
        (any(isinf.(poles)) || any(isnan.(poles)))  && (return false)

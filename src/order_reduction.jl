@@ -454,8 +454,8 @@ function gminreal(SYS::DescriptorStateSpace{T}; atol::Real = zero(real(T)), atol
     end
 end
 """
-    gbalmr(sys, balance = false, matchdc = false, ord = missing, atolhsv = 0, rtolhsv = nϵ, 
-           atolmin = atolhsv, rtolmin = rtolhsv, 
+    gbalmr(sys, balance = false, matchdc = false, ord = missing, offset = √ϵ,
+           atolhsv = 0, rtolhsv = nϵ, atolmin = atolhsv, rtolmin = rtolhsv, 
            atol = 0, atol1 = atol, atol2 = atol, rtol, fast = true) -> (sysr, hs)
 
 Compute for a proper and stable descriptor system `sys = (A-λE,B,C,D)` with the transfer function
@@ -474,6 +474,12 @@ If `ord = nr`, the resulting order of `sysr` is `min(nr,nrmin)`, where `nrmin` i
 realization of `sys` determined as the number of Hankel singular values exceeding `max(atolmin,rtolmin*HN)`, with
 `HN`, the Hankel norm of `G(λ)`. If `ord = missing`, the resulting order is chosen as the number of Hankel 
 singular values exceeding `max(atolhsv,rtolhsv*HN)`. 
+
+To check the stability of the eigenvalues of the pencil `A-λE`, the real parts of eigenvalues must be less than `-β`
+for a continuous-time system or 
+the moduli of eigenvalues must be less than `1-β` for a discrete-time system, where `β` is the stability domain boundary offset.  
+The offset  `β` to be used can be specified via the keyword parameter `offset = β`. 
+The default value used for `β` is `sqrt(ϵ)`, where `ϵ` is the working machine precision. 
 
 The keyword arguments `atol1`, `atol2`, and `rtol`, specify, respectively, 
 the absolute tolerance for the nonzero elements of `A`, `B`, `C`, `D`,  
