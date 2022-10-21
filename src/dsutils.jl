@@ -61,15 +61,15 @@ function blockdiag(mats::AbstractMatrix{T}...) where T
     end
     return res
 end
-function sblockdiag(blockdims::Vector{Int},mats::Union{AbstractMatrix{T},UniformScaling}...) where T
+function sblockdiag(blockdims::Vector{Int},mats::Union{AbstractMatrix,UniformScaling}...) 
     nmat = sum(blockdims)
+    T = promote_type(eltype.(mats)...)
     res = zeros(T, nmat, nmat)
     i = 1
     for ind = 1:length(mats)
-        mat = mats[ind]
         ni = blockdims[ind]
         i1 = i:i+ni-1
-        res[i1,i1] = (mat == I) ? Matrix{T}(I,ni,ni) : mat
+        copyto!(view(res,i1,i1),mats[ind])
         i += ni
     end
     return res

@@ -1,5 +1,9 @@
 # Release Notes
 
+## Version 1.3.3
+
+Patch release to enforce type stability in concatenation operations.
+
 ## Version 1.3.2
 
 Patch release to enhance promotion for E matrices with I.
