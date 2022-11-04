@@ -112,7 +112,7 @@ function gss2ss(sys::DescriptorStateSpace{T}; Eshape = "ident", atol::Real = zer
 end
 """
 
-     dss2ss(sys, x0 = 0; state-mapping = false, simple_infeigs = true, fast = true, atol1, atol2, rtol) 
+     dss2ss(sys[, x0 = 0]; state-mapping = false, simple_infeigs = true, fast = true, atol1, atol2, rtol) 
                -> (sysr, xr0, Mx, Mu)
 
 Return for a proper descriptor system `sys = (A-λE,B,C,D)` and initial state `x0`, 

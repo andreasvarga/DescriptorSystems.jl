@@ -104,6 +104,7 @@ The available functions in the `DescriptorSystems.jl` package cover both standar
 * **[`ghinfnorm`](@ref)**  `H∞` norm of a descriptor system.
 * **[`freqresp`](@ref)**   Frequency response of a descriptor system.
 * **[`timeresp`](@ref)**   Time response of a descriptor system.
+* **[`stepresp`](@ref)**   Step response of a descriptor system.
 
 **Factorization of descriptor systems**
 

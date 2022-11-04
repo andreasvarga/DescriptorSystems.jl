@@ -115,7 +115,7 @@ function isapprox(sys1::DST1, sys2::DST2; atol = zero(real(eltype(sys1))),
 end
 
 Base.copy(sys::DescriptorStateSpace{T}) where T = DescriptorStateSpace{T}(copy(sys.A), copy(sys.E), copy(sys.B), copy(sys.C), copy(sys.D), sys.Ts)
-
+convert(::Type{DescriptorStateSpace{T,Matrix{T}}}, sys::DescriptorStateSpace{T,UniformScaling{Bool}}) where T = DescriptorStateSpace{T}(copy(sys.A), eye(T,sys.nx), copy(sys.B), copy(sys.C), copy(sys.D), sys.Ts)
 
 # sum sys1+sys2
 function +(sys1::DescriptorStateSpace{T1}, sys2::DescriptorStateSpace{T2}) where {T1,T2}

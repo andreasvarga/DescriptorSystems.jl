@@ -1,5 +1,9 @@
 # Release Notes
 
+## Version 1.3.4
+
+Patch release including a new function for step response computation. 
+
 ## Version 1.3.3
 
 Patch release to enforce type stability in concatenation operations.

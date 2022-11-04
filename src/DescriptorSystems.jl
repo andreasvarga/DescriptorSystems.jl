@@ -15,7 +15,7 @@ import Polynomials: AbstractRationalFunction, AbstractPolynomial, poles, isconst
 export DescriptorStateSpace, AbstractDescriptorStateSpace, dss, dssdata, rdss, rss, iszero, order
 export RationalTransferFunction, rtf
 export gminreal, gir, gir_lrtran, gbalmr, dsxvarsel, gss2ss, dss2ss
-export gbilin, c2d, dss2rm, dss2pm, timeresp
+export gbilin, c2d, dss2rm, dss2pm, timeresp, stepresp
 export confmap, simplify, normalize, poles, gain, zpk, rtfbilin, numpoly, denpoly, isconstant, sampling_time
 export blockdiag, eye, rcond
 export gdual, ctranspose, inv, ldiv, rdiv, ginv
@@ -48,6 +48,7 @@ include("operations.jl")
 include("conversions.jl")
 include("order_reduction.jl")
 include("analysis.jl")
+include("timeresp.jl")
 include("decompositions.jl")
 include("factorizations.jl")
 include("covers.jl")

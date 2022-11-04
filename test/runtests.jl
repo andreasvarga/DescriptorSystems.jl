@@ -10,6 +10,7 @@ include("test_polrat.jl")
 include("test_connections.jl")
 # test basic functions
 include("test_conversions.jl")
+include("test_timeresp.jl")
 include("test_ordred.jl")
 include("test_analysis.jl")
 # test factorizations
