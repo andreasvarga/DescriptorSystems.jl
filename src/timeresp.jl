@@ -142,7 +142,6 @@ function stepresp(sys::DescriptorStateSpace{T}, tfinal::Real = 0;
                   atol::Real = zero(float(real(T))), atol1::Real = atol, atol2::Real = atol, 
                   rtol::Real = sys.nx*eps(real(float(one(T))))*iszero(min(atol1,atol2))) where T
 
-    T1 = T <: BlasFloat ? T : promote_type(Float64,T) 
     n, p, m = sys.nx, sys.ny, sys.nu
  
     m1 = length(ustep)
@@ -162,10 +161,12 @@ function stepresp(sys::DescriptorStateSpace{T}, tfinal::Real = 0;
        dt = tf/timesteps
        ns = timesteps+1
     end
-    tout = Vector{real(T1)}(0:dt:(ns-1)*dt) 
+    tout = Vector{Float64}(0:dt:(ns-1)*dt) 
 
-    y = similar(Array{Float64,3},ns,p,m)
-    state_history ?  x = similar(Array{Float64,3},ns,n,m) : x = nothing 
+    #y = similar(Array{Float64,3},ns,p,m)
+    T1 = promote_type(T,Float64)
+    y = similar(Array{T1,3},ns,p,m)
+    state_history ?  x = similar(Array{T1,3},ns,n,m) : x = nothing 
     if disc
        if sys.E == I 
           idmap = true
