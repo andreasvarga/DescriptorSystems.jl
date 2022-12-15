@@ -2,6 +2,10 @@
 
 ## Version 1.3.5
 
+Patch release to correct simplify and show for ratios of constants. 
+
+## Version 1.3.5
+
 Patch release enhancing step response computation. 
 
 ## Version 1.3.4

@@ -48,7 +48,7 @@ println("gzero(sysc)   #  computes all zeros (finite and infinite)")
 display(gzero(sysc))
 pause()
 
-println("Descriptor systems (A-λE,B,C,D) with singular pole pencil A-λE are not supported in DSTOOLS!")
+println("Descriptor systems (A-λE,B,C,D) with singular pole pencil A-λE are not supported!")
 println("Non-regular A-λE can be detected in several ways.\n ")
 println("(1) non-regular A-λE can be detected when building a descriptor system ")
 println("A = zeros(1,1); E = zeros(1,1); B = ones(1,1); C = ones(1,1); D = zeros(1,1);")

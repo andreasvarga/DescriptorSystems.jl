@@ -190,8 +190,9 @@ Base.show(io::IO, sys::RationalTransferFunction) = show(io, MIME("text/plain"), 
 
 function Base.show(io::IO, mime::MIME{Symbol("text/plain")}, sys::RationalTransferFunction)
     summary(io, sys); println(io)
-    p, q = Polynomials.pqs(sys)
-    if order(sys) == 0
+    n = order(sys)
+    p, q = n == 0 ? Polynomials.pqs(normalize(sys)) : Polynomials.pqs(sys)
+    if n == 0
         printpoly(io, p)
         println(io, "\n\nStatic gain.")  
         return
@@ -600,13 +601,16 @@ numerator and denominator coefficients.
 function simplify(r::RationalTransferFunction; atol::Real = 0, rtol::Real=10*eps(float(real(_eltype(r))))) 
     m = degree(r.num)
     (m == 0 || degree(r.den) == 0) && (return r)
+    var = Polynomials.indeterminate(r.num)
     pnum = r.num.coeffs
     pden = r.den.coeffs
     d, u, w,  = MatrixPencils.polgcdvw(pnum, pden, atol = atol, rtol = rtol, maxnit = 3)
+
     length(u) > m && (return r) # no cancelation, keep original r
     knum = pnum[end]/d[end]/u[end]
     kden = pden[end]/d[end]/w[end]
-    return rtf(Polynomial(u*knum,Polynomials.indeterminate(r.num)), Polynomial(w*kden,Polynomials.indeterminate(r.den)), Ts = r.Ts)
+    rs = rtf(Polynomial(u*knum,var), Polynomial(w*kden,var), Ts = r.Ts)
+    return length(u) == length(w) == 1 ? normalize(rs) : rs  
 end
 """
     Rval = evalfr(R,val) 
