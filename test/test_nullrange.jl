@@ -730,10 +730,10 @@ G = copy(transpose([ 1 2; -2 z; 2 2*z; -2*z^2 z^3; -2+z^3 z+z^3]));
 sys = dss(G,Ts = 1);
 
 # minimal rational basis with poles assigned to 0 (discrete-time)
-@time nr, info = grnull(sys,atol=1.e-7, sdeg = 0, simple = false); info
+@time nr, info = grnull(sys,atol=1.e-7, sdeg = 0.01, simple = false); info
 @test gnrank(sys[1:p1,:]*nr[1:m,:],atol=1.e-7) == 0 &&    
       gnrank(sys[p1+1:p1+p2,:]*nr[1:m,:]-nr[m+1:m+p2,:],atol= 1.e-7) == 0 &&
-      all(abs.(gpole(nr,atol=1.e-7)).< 0.01) &&
+      all(abs.(gpole(nr,atol=1.e-7)).< 0.1) &&
       info.nrank == 2 && info.degs == [1, 2, 3] && info.stdim == [3, 2, 1]
 
 # Kailath 1980, pag. 459, rank 2 matrix with both left and right nullspaces

@@ -290,8 +290,9 @@ sysgf = gir(dss(gf));
 # check solution
 γ0 = 0.25*(1+sqrt(1+8/(1+epsi))) 
 α = 1 + 2(1 + epsi)*γ0
-@test glinfnorm(sysx*sysgf[1,:]-sysgf[2,:])[1] ≈ info.mindist && info.mindist ≈ γ0 && 
-       gpole(sysx) ≈ [-α]
+@test glinfnorm(sysx*sysgf[1,:]-sysgf[2,:])[1] ≈ info.mindist 
+@test info.mindist ≈ γ0 
+@test gpole(sysx) ≈ [-α]
 
 # improper L∞ solution for a nonstandard problem
 s = rtf('s');
