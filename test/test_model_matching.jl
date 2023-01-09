@@ -267,7 +267,7 @@ s = rtf('s');
 epsi = -1; 
 g = (s-1)*(s-epsi)/(s+1)/(s+2); f = 1/(s+1); 
 sysg = gir(dss(g)); sysf = dss(f);
-@time sysx, info = glasol(sysg, sysf, mindeg = true); info
+@time sysx, info = glasol(sysg, sysf, mindeg = true, atol = 1.e-7); info
 @test glinfnorm(sysx*sysg-sysf)[1] ≈ info.mindist && info.nrank == 1 && info.nonstandard == false &&
       gpole(sysx) ≈ [-1]
 
@@ -275,7 +275,7 @@ s = rtf('s');
 epsi = 1; 
 g = (s-1)*(s-epsi)/(s+1)/(s+2); f = 1/(s+1); 
 sysg = gir(dss(g)); sysf = dss(f);
-@time sysx, info = glasol(sysg, sysf, mindeg = true); info
+@time sysx, info = glasol(sysg, sysf, mindeg = true, atol = 1.e-7); info
 # check solution
 γ0 = 0.25*(1+sqrt(1+8/(1+epsi))) 
 α = 1 + 2(1 + epsi)*γ0
@@ -286,14 +286,12 @@ s = rtf('s');
 epsi = 1; 
 gf = [(s-1)*(s-epsi)/(s+1)/(s+2); 1/(s+1)]; 
 sysgf = gir(dss(gf)); 
-@time sysx, info = glasol(sysgf, 1, mindeg = true); info
+@time sysx, info = glasol(sysgf, 1, mindeg = true, atol = 1.e-7); info
 # check solution
 γ0 = 0.25*(1+sqrt(1+8/(1+epsi))) 
 α = 1 + 2(1 + epsi)*γ0
-@test glinfnorm(sysx*sysgf[1,:]-sysgf[2,:])[1] ≈ info.mindist 
-@test info.mindist ≈ γ0 
-println("poles = $(gpole(sysx)), pre = $([-α])")
-@test gpole(sysx) ≈ [-α]
+@test glinfnorm(sysx*sysgf[1,:]-sysgf[2,:])[1] ≈ info.mindist && info.mindist ≈ γ0 && 
+       gpole(sysx) ≈ [-α]
 
 # improper L∞ solution for a nonstandard problem
 s = rtf('s');
