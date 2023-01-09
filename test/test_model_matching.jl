@@ -292,6 +292,7 @@ sysgf = gir(dss(gf));
 α = 1 + 2(1 + epsi)*γ0
 @test glinfnorm(sysx*sysgf[1,:]-sysgf[2,:])[1] ≈ info.mindist 
 @test info.mindist ≈ γ0 
+println("poles = $(gpole(sysx)), pre = $([-α])")
 @test gpole(sysx) ≈ [-α]
 
 # improper L∞ solution for a nonstandard problem
