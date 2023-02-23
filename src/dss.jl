@@ -217,8 +217,11 @@ function dss(NUM::Array{T1,3},DEN::Array{T2,3};
     sysdata = rm2ls(NUM, DEN, contr = contr, obs = obs, noseig = noseig, minimal = minimal, atol = atol, rtol = rtol)
     return DescriptorStateSpace{eltype(sysdata[1])}(sysdata[1:5]...,Ts)
 end
-dss(NUM::Union{VecOrMat{Polynomial{T1,X}},Polynomial{T1,X},Number,VecOrMat},
-    DEN::Union{VecOrMat{Polynomial{T2,X}},Polynomial{T2,X},Number,VecOrMat}; kwargs...) where {T1,T2,X} =
+# dss(NUM::Union{VecOrMat{Polynomial{T1,X}},Polynomial{T1,X},Number,VecOrMat},
+#     DEN::Union{VecOrMat{Polynomial{T2,X}},Polynomial{T2,X},Number,VecOrMat}; kwargs...) where {T1,T2,X} =
+#     dss(poly2pm(NUM),poly2pm(DEN); kwargs...)
+dss(NUM::Union{AbstractVecOrMat{<:Polynomial},Polynomial,AbstractVecOrMat{<:Number}, Number},
+    DEN::Union{AbstractVecOrMat{<:Polynomial},Polynomial,AbstractVecOrMat{<:Number}, Number}; kwargs...) =
     dss(poly2pm(NUM),poly2pm(DEN); kwargs...)
 """
     sys = dss(R; Ts=missing, contr = false, obs = false, noseig = false, minimal = false, fast = true, atol = 0, rtol) 

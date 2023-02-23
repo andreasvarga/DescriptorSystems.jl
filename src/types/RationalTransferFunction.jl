@@ -109,11 +109,11 @@ end
 function RationalTransferFunction(p′::P, q′::S, Ts::Union{Real,Nothing}) where {S, T, X, P<:AbstractPolynomial{T,X}}
     p, q = promote(p′, q′)
     RationalTransferFunction{eltype(p),X,typeof(p)}(p,q,Ts)
- end
- function RationalTransferFunction(p′::S, q′::P, Ts::Union{Real,Nothing}) where {S, T, X, P<:AbstractPolynomial{T,X}}
+end
+function RationalTransferFunction(p′::S, q′::P, Ts::Union{Real,Nothing}) where {S, T, X, P<:AbstractPolynomial{T,X}}
     p, q = promote(p′, q′)
     RationalTransferFunction{eltype(q),X,typeof(q)}(p,q,Ts)
- end
+end
   
 
 function Polynomials.rational_function(::Type{PQ}, p::P, q::Q) where {PQ <:RationalTransferFunction,

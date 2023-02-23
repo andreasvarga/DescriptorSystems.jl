@@ -338,7 +338,7 @@ promote_to_systems(Ts::Real, n, k, ::Type{T}, A, B, C) where {T} =
 promote_to_systems(Ts::Real, n, k, ::Type{T}, A, B, Cs...) where {T} =
     (promote_to_system_(n[k], T, A, Ts), promote_to_system_(n[k+1], T, B, Ts), promote_to_systems(Ts, n, k+2, T, Cs...)...)
 promote_to_system_type(A::Tuple{Vararg{Union{DescriptorStateSpace,AbstractNumOrArray,UniformScaling}}}) = DescriptorStateSpace
-promote_to_systems(Ts::Union{Real,Nothing}, var::Symbol, n, k, ::Type) = ()
+#promote_to_systems(Ts::Union{Real,Nothing}, var::Symbol, n, k, ::Type) = ()
 # promote_to_array_type(A::Tuple{Vararg{Union{AbstractVecOrMat,UniformScaling,Number}}}) = Matrix
 
 function promote_to_arrays(A...)

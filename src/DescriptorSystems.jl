@@ -11,6 +11,7 @@ import Base: +, -, *, /, \, (==), (!=), ^, isapprox, iszero, convert, promote_op
              hcat, vcat, hvcat, inv, show, lastindex, require_one_based_indexing, print, show, one, zero, eltype
 import MatrixPencils: isregular, rmeval
 import Polynomials: AbstractRationalFunction, AbstractPolynomial, poles, isconstant, variable, degree, pqs
+isdefined(Polynomials,:order) && (import Polynomials: order)
 
 export DescriptorStateSpace, AbstractDescriptorStateSpace, dss, dssdata, rdss, rss, iszero, order
 export RationalTransferFunction, rtf
@@ -20,7 +21,7 @@ export confmap, simplify, normalize, poles, gain, zpk, rtfbilin, numpoly, denpol
 export blockdiag, eye, rcond
 export gdual, ctranspose, inv, ldiv, rdiv, ginv
 export append, series, parallel, horzcat, vertcat
-export order, evalfr, dcgain, opnorm, freqresp, chess, dssubset, dszeros, dscopy, dssubsel, dsdiag, feedback
+export order, evalfr, dcgain, opnorm, freqresp, chess, dssubset, dszeros, dssubsel, dsdiag, feedback
 export gpole, gzero, gpoleinfo, gzeroinfo, gnrank, isregular, isproper, isstable, 
        glinfnorm, ghinfnorm, gl2norm, gh2norm, ghanorm, gnugap
 export gsdec, grnull, glnull, grange, gcrange, grsol, glsol, grmcover1, grmcover2, glmcover1, glmcover2

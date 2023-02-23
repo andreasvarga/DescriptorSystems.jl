@@ -43,24 +43,33 @@ function jordanblock( n::Integer, lambda::T) where T
    J = lambda*Matrix{T}(I, n, n) + diagm(1 => ones(T, n-1, 1)[:,1])
    return J
 end
-blockdiag(mats::AbstractMatrix...) = blockdiag(promote(mats...)...)
+# blockdiag(mats::AbstractMatrix...) = blockdiag(promote(mats...)...)
 
-function blockdiag(mats::AbstractMatrix{T}...) where T
-    rows = Int[size(m, 1) for m in mats]
-    cols = Int[size(m, 2) for m in mats]
-    res = zeros(T, sum(rows), sum(cols))
-    m = 1
-    n = 1
-    for ind=1:length(mats)
-        mat = mats[ind]
-        i = rows[ind]
-        j = cols[ind]
-        res[m:m + i - 1, n:n + j - 1] = mat
-        m += i
-        n += j
-    end
-    return res
+# function blockdiag(mats::AbstractMatrix{T}...) where T
+#     rows = Int[size(m, 1) for m in mats]
+#     cols = Int[size(m, 2) for m in mats]
+#     res = zeros(T, sum(rows), sum(cols))
+#     m = 1
+#     n = 1
+#     for ind=1:length(mats)
+#         mat = mats[ind]
+#         i = rows[ind]
+#         j = cols[ind]
+#         res[m:m + i - 1, n:n + j - 1] = mat
+#         m += i
+#         n += j
+#     end
+#     return res
+# end
+# taken from ControlSystems.jl
+@static if VERSION >= v"1.8.0-beta1"
+    blockdiag(mats...) = cat(mats..., dims=Val((1,2)))
+    blockdiag(mats::Union{<:Tuple, <:Base.Generator}) = cat(mats..., dims=Val((1,2)))
+else
+    blockdiag(mats...) = cat(mats..., dims=(1,2))
+    blockdiag(mats::Union{<:Tuple, <:Base.Generator}) = cat(mats..., dims=(1,2))
 end
+ 
 function sblockdiag(blockdims::Vector{Int},mats::Union{AbstractMatrix,UniformScaling}...) 
     nmat = sum(blockdims)
     T = promote_type(eltype.(mats)...)

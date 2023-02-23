@@ -1,6 +1,10 @@
 # Release Notes
 
-## Version 1.3.5
+## Version 1.3.7
+
+Patch release to correct name conflict for the function order with Polynomials. 
+
+## Version 1.3.6
 
 Patch release to correct simplify and show for ratios of constants. 
 
