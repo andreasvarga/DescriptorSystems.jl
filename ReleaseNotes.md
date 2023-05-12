@@ -1,5 +1,9 @@
 # Release Notes
 
+## Version 1.3.8
+
+Patch release with updated rss and rdss functions. 
+
 ## Version 1.3.7
 
 Patch release to correct name conflict for the function order with Polynomials. 

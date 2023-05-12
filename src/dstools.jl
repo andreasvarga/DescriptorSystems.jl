@@ -262,11 +262,13 @@ function opnorm(SYS::DescriptorStateSpace{T}, p::Real=Inf; fast::Bool = true, of
     end
 end
 """
-    sys = rss(n, p, m; disc = false, T = Float64, stable = false, nuc = 0, nuo = 0, randt = true) 
+    sys = rss(n, p, m; disc = false, Ts, T = Float64, stable = false, nuc = 0, nuo = 0, randt = true) 
 
 Generate a randomized `n+nuc+nuo`-th order standard state-space system `sys = (A,B,C,D)` with `p` outputs and `m` inputs, with all matrices 
 randomly generated of type `T`.
 The resulting `sys` is a continuous-time system if `disc = false` and a discrete-time system if `disc = true`.
+For a discrete-time system a sample time `Δ` can be specified using the keyword argument `Ts = Δ` (default: `Δ = -1`, i.e., not specified).
+
 If `stable = true`, the resulting system is stable, with `A` having all eigenvalues with negative real parts for a continuous-time system, 
 or with moduli less than one for a discrete-time system. 
 If `nuc+nuo > 0`, the system `sys` is non-minimal, with `A` having `nuc` uncontrollable and `nuo` unobservable eigenvalues. 
@@ -278,8 +280,9 @@ uncontrollable and unobservable eigenvalues of `A`:
 
 with the diagonal blocks `A1`, `A2`, `A3` of orders `n`, `nuc`, and `nuo`, respectively. 
 """
-function rss(n::Int, p::Int, m::Int; disc::Bool = false, T::Type = Float64,
-             nuc::Int = 0, nuo::Int = 0, randt = true, stable::Bool = false)    
+function rss(n::Int, p::Int, m::Int; disc::Bool = false, Ts::Real = -1.0, T::Type = Float64,
+             nuc::Int = 0, nuo::Int = 0, randt = true, stable::Bool = false) 
+    !disc || Ts > 0 || Ts == -1 || throw(ArgumentError("sampling time must be either positive or equal to -1 "))             
     nf = n; Af = randn(T,nf,nf); Bf = randn(T,nf,m); Cf = randn(T,p,nf); 
     n > 0 && stable && (disc ? rmul!(Af,1/(rand()+opnorm(Af,1))) : Af -= I*(rand()+maximum(real(eigvals(Af)))) ) 
     Afuc = randn(T,nuc,nuc); Bfuc = zeros(T,nuc,m); Cfuc = randn(T,p,nuc);
@@ -290,15 +293,16 @@ function rss(n::Int, p::Int, m::Int; disc::Bool = false, T::Type = Float64,
     Q = randt ? qr!(rand(nx,nx)).Q : I
     return DescriptorStateSpace{T}(Q'*blockdiag(Af,Afuc,Afuo)*Q, I, 
                                    Q'*[Bf;Bfuc;Bfuo], [ Cf Cfuc Cfuo ]*Q, rand(T,p,m), 
-                                   disc ? -one(real(T)) : zero(real(T))) 
+                                   disc ? Ts : zero(real(T))) 
 end
 """
-    sys = rdss(n, p, m; id = [ ], disc = false, T = Float64, stable = false, nfuc = 0, iduc = [ ], 
+    sys = rdss(n, p, m; id = [ ], disc = false, Ts, T = Float64, stable = false, nfuc = 0, iduc = [ ], 
                nfuo = 0, iduo = [ ], randlt = true, randrt = true) 
 
 Generate a randomized descriptor state-space system `sys = (A-λE,B,C,D)` with `p` outputs and `m` inputs, with all matrices 
 randomly generated of type `T`. 
-The resulting `sys` is a continuous-time system if `disc = false` and a discrete-time system if `disc = true`.
+The resulting `sys` is a continuous-time system if `disc = false` and a discrete-time system if `disc = true`. 
+For a discrete-time system a sample time `Δ` can be specified using the keyword argument `Ts = Δ` (default: `Δ = -1`, i.e., not specified).
 
 If the vector `id` is nonempty, then `id[i]` specifies the order of the `i`-th infinite elementary divisor of the
 resulting pencil `A-λE`, which thus has `n` finite eigenvalues and `ni = sum(id)` infinite eigenvalues which are
@@ -325,9 +329,10 @@ uncontrollable and unobservable finite and infinite eigenvalues of `A-λE`:
 
 with the diagonal blocks `A1`, `A2`, `A3`, `A4`, `A5`, `A6` of orders `n`, `ni`, `nfuc`, `niuc`, `nfuo` and `niuo`, respectively. 
 """
-function rdss(n::Int, p::Int, m::Int; disc::Bool = false, stable::Bool = false, T::Type = Float64, id::Vector{Int} = Int[], 
+function rdss(n::Int, p::Int, m::Int; disc::Bool = false, stable::Bool = false, Ts::Real = -1.0, T::Type = Float64, id::Vector{Int} = Int[], 
                                       nfuc::Int = 0, nfuo::Int = 0, iduc::Vector{Int} = Int[], iduo::Vector{Int} = Int[], 
                                       randlt = true, randrt = true) 
+    !disc || Ts > 0 || Ts == -1 || throw(ArgumentError("sample time must be either positive or equal to -1 "))             
     nf = n; Af = randn(T,nf,nf); Ef = randn(T,nf,nf); Bf = randn(T,nf,m); Cf = randn(T,p,nf); 
     n > 0 && stable && (disc ? Af = Ef*rmul!(Af,1/(rand()+opnorm(Af,1))) : Af = Ef*(Af-I*(rand()+maximum(real(eigvals(Af))))) ) 
     ni = sum(id); Ai = Matrix{T}(I,ni,ni); Ei = jordanblockdiag(zero(T),id); Bi = randn(T,ni,m); Ci = randn(T,p,ni);
@@ -342,7 +347,7 @@ function rdss(n::Int, p::Int, m::Int; disc::Bool = false, stable::Bool = false, 
     Z = randrt ? qr!(rand(nx,nx)).Q : I
     return DescriptorStateSpace{T}(Q*blockdiag(Af,Ai,Afuc,Aiuc,Afuo,Aiuo)*Z, Q*blockdiag(Ef,Ei,Efuc,Eiuc,Efuo,Eiuo)*Z, 
                                    Q*[Bf;Bi;Bfuc;Biuc;Bfuo;Biuo], [ Cf Ci Cfuc Ciuc Cfuo Ciuo]*Z, rand(T,p,m), 
-                                   disc ? -one(real(T)) : zero(real(T))) 
+                                   disc ? Ts : zero(real(T))) 
 end
 """
     sysr = dsxvarsel(sys,ind)

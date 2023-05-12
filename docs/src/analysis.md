@@ -14,6 +14,9 @@
 * **[`glinfnorm`](@ref)**  `L∞` norm of a descriptor system.
 * **[`ghinfnorm`](@ref)**  `H∞` norm of a descriptor system.
 * **[`gnugap`](@ref)**  `ν-gap` distance between two descriptor systems.
+* **[`freqresp`](@ref)**   Frequency response of a descriptor system.
+* **[`timeresp`](@ref)**   Time response of a descriptor system.
+* **[`stepresp`](@ref)**   Step response of a descriptor system.
 
 ```@docs
 isregular
@@ -30,4 +33,7 @@ gh2norm
 glinfnorm
 ghinfnorm
 gnugap
+freqresp
+timeresp
+stepresp
 ```
