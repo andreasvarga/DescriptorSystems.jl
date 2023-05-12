@@ -55,6 +55,7 @@ function gsdec(SYS::DescriptorStateSpace{T}; job::String = "finite", smarg::Unio
                fast::Bool = true,  atol::Real = zero(real(T)),  atol1::Real = atol, atol2::Real = atol, 
                rtol::Real = (SYS.nx*eps(real(float(one(T)))))*iszero(min(atol1,atol2))) where T
     disc = !iszero(SYS.Ts)
+    ismissing(smarg) && (smarg = disc ? 1-sqrt(eps(real(T))) : -sqrt(eps(real(T))))
     if SYS.E == I
        if job == "finite" 
           return SYS, dss(zeros(T,SYS.ny,SYS.nu), Ts = SYS.Ts)
@@ -74,22 +75,22 @@ function gsdec(SYS::DescriptorStateSpace{T}; job::String = "finite", smarg::Unio
        end 
     else 
         if job == "finite"
-           A, E, B, C, _, _, _, blkdims = fiblkdiag(SYS.A, SYS.E, SYS.B, SYS.C; fast = fast, finite_infinite = true, trinv = false, 
-                                                    atol1 = atol1, atol2 = atol2, rtol = rtol, withQ = false, withZ = false) 
+           A, E, B, C, _, _, _, blkdims = fiblkdiag(SYS.A, SYS.E, SYS.B, SYS.C; fast, finite_infinite = true, trinv = false, 
+                                                    atol1, atol2, rtol, withQ = false, withZ = false) 
            n1 = blkdims[1];
         elseif job == "infinite"
-           A, E, B, C, _, _, _, blkdims = fiblkdiag(SYS.A, SYS.E, SYS.B, SYS.C; fast = fast, finite_infinite = false, trinv = false, 
-                                                    atol1 = atol1, atol2 = atol2, rtol= rtol, withQ = false, withZ = false) 
+           A, E, B, C, _, _, _, blkdims = fiblkdiag(SYS.A, SYS.E, SYS.B, SYS.C; fast, finite_infinite = false, trinv = false, 
+                                                    atol1, atol2, rtol, withQ = false, withZ = false) 
            n1 = blkdims[1];
         elseif job == "stable"
-           A, E, B, C, _, _, _, blkdims, = gsblkdiag(SYS.A, SYS.E, SYS.B, SYS.C; smarg = smarg, disc = disc, fast = fast, 
+           A, E, B, C, _, _, _, blkdims, = gsblkdiag(SYS.A, SYS.E, SYS.B, SYS.C; smarg, disc, fast, 
                                                       finite_infinite = true, stable_unstable = true, 
-                                                      atol1 = atol1, atol2 = atol2, rtol = rtol, withQ = false, withZ = false)
+                                                      atol1, atol2, rtol, withQ = false, withZ = false)
            n1 = blkdims[1];
         elseif job == "unstable"
-           A, E, B, C, _, _, _, blkdims, = gsblkdiag(SYS.A, SYS.E, SYS.B, SYS.C; smarg = smarg, disc = disc, fast = fast, 
+           A, E, B, C, _, _, _, blkdims, = gsblkdiag(SYS.A, SYS.E, SYS.B, SYS.C; smarg, disc, fast, 
                                                       finite_infinite = false, stable_unstable = false, 
-                                                      atol1 = atol1, atol2 = atol2, rtol = rtol, withQ = false, withZ = false)
+                                                      atol1, atol2, rtol, withQ = false, withZ = false)
            n1 = blkdims[1]+blkdims[2];
         else
             error("No such job option")
