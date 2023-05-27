@@ -1,5 +1,6 @@
 """
-    gsdec(sys; job = "finite", smarg, fast = true,  atol = 0,  atol1 = atol, atol2 = atol, rtol = nϵ) -> (sys1, sys2)
+    gsdec(sys; job = "finite", prescale, smarg, fast = true,  
+          atol = 0,  atol1 = atol, atol2 = atol, rtol = nϵ) -> (sys1, sys2)
 
 Compute for the descriptor system `sys = (A-λE,B,C,D)` with the transfer function matrix
 `G(λ)`, the additive spectral decomposition `G(λ) = G1(λ) + G2(λ)` such that `G1(λ)`, 
@@ -7,6 +8,10 @@ the transfer function matrix of the descriptor system `sys1 = (A1-λE1,B1,C1,D1)
 has only poles in a certain domain of interest `Cg` of the complex plane and `G2(λ)`, 
 the transfer function matrix of the descriptor system `sys2 = (A2-λE2,B2,C2,0)`, has
 only poles outside of `Cg`. 
+
+If `prescale = true`, a preliminary balancing of the descriptor system pair `(A,E)` is performed.
+The default setting is `prescale = balqual(sys.A,sys.E) > 10000`, where `pbalqual(sys.A,sys,E)` is the 
+scaling quality of the linear pencil `A-λE` (see [`pbalqual`](@ref)). 
 
 The keyword argument `smarg`, if provided, specifies the stability margin for the
 stable eigenvalues of `A-λE`, such that, in the continuous-time case, 
@@ -51,9 +56,11 @@ The separation of the finite and infinite eigenvalues is performed using
 rank decisions based on rank revealing QR-decompositions with column pivoting 
 if `fast = true` or the more reliable SVD-decompositions if `fast = false`.
 """
-function gsdec(SYS::DescriptorStateSpace{T}; job::String = "finite", smarg::Union{Real,Missing} = missing, 
+function gsdec(sys::DescriptorStateSpace{T}; job::String = "finite", prescale::Bool = pbalqual(sys.A,sys.E) > 10000,
+               smarg::Union{Real,Missing} = missing, 
                fast::Bool = true,  atol::Real = zero(real(T)),  atol1::Real = atol, atol2::Real = atol, 
-               rtol::Real = (SYS.nx*eps(real(float(one(T)))))*iszero(min(atol1,atol2))) where T
+               rtol::Real = (sys.nx*eps(real(float(one(T)))))*iszero(min(atol1,atol2))) where T
+    SYS = prescale ? gprescale(sys; withB = false, withC = false)[1] : sys         
     disc = !iszero(SYS.Ts)
     ismissing(smarg) && (smarg = disc ? 1-sqrt(eps(real(T))) : -sqrt(eps(real(T))))
     if SYS.E == I

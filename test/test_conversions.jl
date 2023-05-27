@@ -326,6 +326,84 @@ R = rtf.([s^2+3*s+3 1; -1 2*s^2+7*s+4] ./ [(s+1)^2 s+2; (s+1)^3 (s+1)*(s+2)]);
 
 end # dss2pm & dss2rm
 
+@testset "gprescale" begin
+
+# example in https://github.com/andreasvarga/MatrixPencils.jl/issues/12
+
+A = [-6.537773175952662 0.0 0.0 0.0 -9.892378564622923e-9 0.0; 
+     0.0 -6.537773175952662 0.0 0.0 0.0 -9.892378564622923e-9; 
+     2.0163803998106024e8 2.0163803998106024e8 -0.006223894167415392 -1.551620418759878e8 0.002358202548321148 0.002358202548321148;
+     0.0 0.0 5.063545034365582e-9 -0.4479539754649166 0.0 0.0; 
+     -2.824060629317756e8 2.0198389074625736e8 -0.006234569427701143 -1.5542817673286995e8 -0.7305736722226711 0.0023622473513548576; 
+     2.0198389074625736e8 -2.824060629317756e8 -0.006234569427701143 -1.5542817673286995e8 0.0023622473513548576 -0.7305736722226711];
+
+B = [0.004019511633336128; 0.004019511633336128; 0.0; 0.0; 297809.51426114445; 297809.51426114445]
+
+C = [0.0 0.0 0.0 1.0 0.0 0.0]
+
+sys = dss(A,B,C,0)
+@time sys_scaled, D1, D2 = gprescale(sys);
+@test iszero(sys_scaled-sys) && gpole(sys) ≈ gpole(sys_scaled) 
+@test sys_scaled.A == D1*sys.A*D2 && sys_scaled.B == D1*sys.B && sys_scaled.C == sys.C*D2
+@test gbalqual(sys) > 100000*gbalqual(sys_scaled)
+
+@time sys_scaled, D1, D2 = gprescale(sys,withB = false, withC = false);
+@test iszero(sys_scaled-sys) && gpole(sys) ≈ gpole(sys_scaled) 
+@test sys_scaled.A == D1*sys.A*D2 && sys_scaled.B == D1*sys.B && sys_scaled.C == sys.C*D2
+@test gbalqual(sys) > 100000*gbalqual(sys_scaled)
+
+
+sys1, sys2 = gsdec(sys_scaled,job="stable"); 
+@test iszero(sys-sys1-sys2) && iszero(sys2)
+
+sys1, sys2 = gsdec(sys,prescale = true, job="stable"); 
+@test iszero(sys-sys1-sys2) && iszero(sys2)
+
+sys1, sys2 = gsdec(sys,job="stable"); 
+@test iszero(sys-sys1-sys2) && iszero(sys2)
+
+
+
+sysr = gminreal(sys_scaled)
+@test iszero(sys-sysr) && iszero(sys1-sysr)
+
+sysr = gminreal(sys; prescale = true)
+@test iszero(sys-sysr) && iszero(sys1-sysr)
+
+sysr = gminreal(sys)
+@test iszero(sys-sysr) && iszero(sys1-sysr)
+
+
+n = 10; m = 3; p = 2; k = 10
+T = rand(n,n);
+T[1, 2 : n] = 10^(k)*T[1, 2 : n]
+T[4:n, 3] = 10^(k)*T[4:n, 3]
+D = round.(Int,1. ./ rand(n))
+A = T*Diagonal(D); E = T;
+ev = eigvals(A,E)
+@test !(sort(ev) ≈ sort(D))
+
+B = rand(n,m); B[1,:] = 10^(k)*B[1,:]; 
+C = rand(p,n); C[:, 3] = 10^(k)*C[:, 3];
+
+sys = dss(A,E,B,C,0)
+
+@time sys_scaled, D1, D2 = gprescale(sys);
+@test iszero(sys_scaled-sys) && sort(D) ≈ sort(gpole(sys_scaled)) 
+@test sys_scaled.A == D1*sys.A*D2 && sys_scaled.E == D1*sys.E*D2 && 
+      sys_scaled.B == D1*sys.B && sys_scaled.C == sys.C*D2
+@test gbalqual(sys) > 100000*gbalqual(sys_scaled)
+
+@time sys_scaled, D1, D2 = gprescale(sys,withB = false, withC = false);
+@test iszero(sys_scaled-sys) && sort(D) ≈ sort(gpole(sys_scaled),by=real) 
+@test sys_scaled.A == D1*sys.A*D2 && sys_scaled.B == D1*sys.B && sys_scaled.C == sys.C*D2
+@test gbalqual(sys) > 100000*gbalqual(sys_scaled)
+
+
+
+end
+
+
 
 end #module
 

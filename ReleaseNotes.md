@@ -1,5 +1,9 @@
 # Release Notes
 
+## Version 1.3.9
+
+Patch release with new functions `gprescale`, `gbalqual` and `pbalqual` related to balancing of descriptor system models and several enhanced functions, such as: `gminreal`, `gdec`, `gzero`, `gzeroinfo`, to automatically perform balancing in the case of poorly scaled system models.  
+
 ## Version 1.3.8
 
 Patch release with updated rss and rdss functions. 

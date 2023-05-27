@@ -66,6 +66,7 @@ The available functions in the `DescriptorSystems.jl` package cover both standar
 * **[`adjoint`](@ref)**  Building the adjoint of a system.
 
 **Basic conversions on descriptor system models**
+* **[`gprescale`](@ref)**  Balancing of a descriptor system.
 * **[`c2d`](@ref)**  Discretization of continuous-time descriptor systems.
 * **[`dss2rm`](@ref)**  Rational transfer function matrix of a descriptor system.
 * **[`dss2pm`](@ref)**  Polynomial transfer function matrix of a descriptor system.
@@ -106,6 +107,8 @@ The available functions in the `DescriptorSystems.jl` package cover both standar
 * **[`freqresp`](@ref)**   Frequency response of a descriptor system.
 * **[`timeresp`](@ref)**   Time response of a descriptor system.
 * **[`stepresp`](@ref)**   Step response of a descriptor system.
+* **[`gbalqual`](@ref)** Evaluation of the scaling quality of the matrices of a descriptor system.
+* **[`pbalqual`](@ref)** Evaluation of the scaling quality of the matrices of a linear pencil.
 
 **Factorization of descriptor systems**
 

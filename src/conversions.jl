@@ -457,3 +457,100 @@ function confmap(R::VecOrMat{<:RationalTransferFunction},f::RationalTransferFunc
     end
     return Rt 
 end
+function gprescale!(sys::DescriptorStateSpace; withB = true, withC = true) 
+   D1, D2 = lsbalance!(sys.A,sys.E,sys.B,sys.C; withB, withC)
+   return sys, D1, D2
+end
+"""
+      gprescale(sys; withB = true, withC = true) -> (sysbal, D1, D2)
+
+Balance a descriptor system `sys = (A-λE,B,C,D)` by reducing the 1-norm of the matrix 
+
+             S =  ( abs(A)+abs(E)  abs(B) )
+                  (    abs(C)        0    )
+
+by row and column balancing using diagonal matrices `D1` and `D2` to make the rows and columns of 
+                             
+                  diag(D1,I)  * S * diag(D2,I)
+     
+as close in norm as possible.
+     
+The balancing can be performed optionally on the following 
+particular matrices:   
+
+        S = abs(A)+abs(E),             if withB = false and withC = false ,
+        S = ( abs(A)+abs(E)  abs(B) ), if withC = false,    
+        S = ( abs(A)+abs(E) ),         if withB = false .
+            (   abs(C)     )       
+
+The diagonal elements of the resulting `D1` and `D2` are the nearest integer powers of 2 resulting from the
+optimal diagonal scaling determined from a modified version of the algorithm of [1]. 
+For a standard system with `E = I`, `D1 = inv(D2)` and `D2` is computed using an extension of the scaling approach
+implemented in the LAPACK family `*GEBAL.f`. 
+
+This function is merely an interface to the functions `lsbalance!` of the 
+[MatrixPencils](https://github.com/andreasvarga/MatrixPencils.jl) package. 
+
+
+[1] F.M.Dopico, M.C.Quintana and P. van Dooren, 
+    "Diagonal scalings for the eigenstructure of arbitrary pencils", SIMAX, 43:1213-1237, 2022. 
+"""
+function gprescale(sys::DescriptorStateSpace; withB = true, withC = true)
+   return gprescale!(copy(sys); withB, withC)
+end
+"""
+    qs = gbalqual(sys; SysMat = false) 
+
+Compute the 1-norm based scaling quality of the matrices of the descriptor system `sys = (A-λE,B,C)`.
+
+If `SysMat = false`, the resulting `qs` is computed as 
+
+        qs = max(qS(A),qS(E),qS(B),qS(C)) ,
+
+where `qS(⋅)` is the scaling quality measure defined in Definition 5.5 of [1] for 
+nonnegative matrices, extended to also cover matrices with zero rows or columns.  
+
+If `SysMat = true`, the resulting `qs` is computed as 
+
+        qs = qS(S) ,
+
+where `S` is the system matrix defined as        
+
+             S =  ( abs(A)+abs(E)  abs(B) )
+                  (    abs(C)        0    )
+
+A large value of `qs` indicates a possibly poorly scaled state-space model. 
+For a standard system with `E = I`, the above formulas are used assuming `E = 0`.  
+
+[1] F.M.Dopico, M.C.Quintana and P. van Dooren, 
+    "Diagonal scalings for the eigenstructure of arbitrary pencils", SIMAX, 43:1213-1237, 2022. 
+"""
+function gbalqual(sys::DescriptorStateSpace; SysMat = false) 
+   return lsbalqual(sys.A, sys.E, sys.B, sys.C; SysMat)
+end 
+"""
+    qs = pbalqual(A, E) 
+
+Compute the 1-norm based scaling quality of a matrix pencil `A-λE`.
+
+The resulting `qs` is computed as 
+
+        qs = qS(abs(A)+abs(E)) ,
+
+where `qS(⋅)` is the scaling quality measure defined in Definition 5.5 of [1] for 
+nonnegative matrices. This definition has been extended to also cover matrices with
+zero rows or columns. If `E = I`, `qs = qS(A)` is computed. 
+
+A large value of `qs` indicates a possibly poorly scaled matrix pencil.   
+
+[1] F.M.Dopico, M.C.Quintana and P. van Dooren, 
+    "Diagonal scalings for the eigenstructure of arbitrary pencils", SIMAX, 43:1213-1237, 2022. 
+"""
+function pbalqual(A::AbstractMatrix{T}, E::Union{AbstractMatrix{T},UniformScaling{Bool}}) where {T}
+   if (!(typeof(E) <: AbstractMatrix) || isequal(E,I)) 
+      return MatrixPencils.qS1(A)
+   else
+      return MatrixPencils.qS1(abs.(A).+abs.(E))
+   end
+end 
+

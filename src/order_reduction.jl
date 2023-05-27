@@ -383,7 +383,7 @@ function gir_lrtran(SYS::DescriptorStateSpace{T}; ltran::Bool = false, rtran::Bo
     return dss(A, E, B, C, D, Ts = SYS.Ts), Q, Z
 end
 """
-    sysr = gminreal(sys; contr = true, obs = true, noseig = true, fast = true, 
+    sysr = gminreal(sys; contr = true, obs = true, noseig = true, prescale, fast = true, 
                     atol = 0, atol1 = atol, atol2 = atol, rtol = nϵ) 
 
 Compute for a descriptor system `sys = (A-λE,B,C,D)` of order `n` a reduced order descriptor system  
@@ -391,6 +391,10 @@ Compute for a descriptor system `sys = (A-λE,B,C,D)` of order `n` a reduced ord
 
              -1                    -1
      C*(λE-A)  *B + D = Cr*(λEr-Ar)  *Br + Dr .
+
+If `prescale = true`, a preliminary balancing of the descriptor system matrices is performed. 
+The default setting is `prescale = gbalqual(sys) > 10000`, where `gbalqual(sys)` is the 
+scaling quality of the descriptor system model `sys` (see [`gbalqual`](@ref)). 
      
 The least possible order `nr` is achieved if `contr = true`, `obs = true` and `nseig = true`. 
 Such a realization is called `minimal` and satisfies:
@@ -439,9 +443,10 @@ IEEE Transactions on Automatic Control, vol. AC-26, pp. 111-129, 1981.
 
 [2] A. Varga, Solving Fault Diagnosis Problems - Linear Synthesis Techniques, Springer Verlag, 2017. 
 """
-function gminreal(SYS::DescriptorStateSpace{T}; atol::Real = zero(real(T)), atol1::Real = atol, atol2::Real = atol, 
-    rtol::Real =  SYS.nx*eps(real(float(one(real(T)))))*iszero(max(atol1,atol2)), 
+function gminreal(sys::DescriptorStateSpace{T}; prescale = gbalqual(sys) > 10000, atol::Real = zero(real(T)), atol1::Real = atol, atol2::Real = atol, 
+    rtol::Real =  sys.nx*eps(real(float(one(real(T)))))*iszero(max(atol1,atol2)), 
     fast::Bool = true, contr::Bool = true, obs::Bool = true, noseig::Bool = true) where T
+    SYS = prescale ? gprescale(sys)[1] : sys         
     if SYS.E == I
         A, B, C = lsminreal(SYS.A, SYS.B, SYS.C; fast = fast, atol = atol1, rtol = rtol, contr = contr, obs = obs) 
         T1 = eltype(A)

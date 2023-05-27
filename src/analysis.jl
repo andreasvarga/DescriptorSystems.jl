@@ -31,7 +31,7 @@ function gnrank(sys::DescriptorStateSpace; fastrank = true, atol::Real = 0, atol
     return max(0,sprank(dssdata(sys)..., atol1 = atol1, atol2 = atol2, rtol = rtol, fastrank = fastrank) - sys.nx)
 end
 """
-    val = gzero(sys; fast = false, atol = 0, atol1 = atol, atol2 = atol, rtol = n*ϵ) 
+    val = gzero(sys; fast = false, prescale, atol = 0, atol1 = atol, atol2 = atol, rtol = n*ϵ) 
 
 Return for the descriptor system `sys = (A-λE,B,C,D)` the complex vector `val` containing the 
 finite and infinite Smith zeros of the system matrix pencil  
@@ -42,7 +42,11 @@ finite and infinite Smith zeros of the system matrix pencil
 
 The values in `val` are called the _invariant zeros_ of the pencil `S(λ)` and are the _transmission zeros_ of the 
 transfer function matrix of `sys` if `A-λE` is _regular_ and the descriptor system realization 
-`sys = (A-λE,B,C,D)` is _irreducible_.  
+`sys = (A-λE,B,C,D)` is _irreducible_.
+
+If `prescale = true`, a preliminary balancing of the descriptor system matrices is performed. 
+The default setting is `prescale = gbalqual(sys) > 10000`, where `gbalqual(sys)` is the 
+scaling quality of the descriptor system model `sys` (see [`gbalqual`](@ref)). 
 
 The computation of the zeros is performed by reducing the pencil `S(λ)` to an appropriate Kronecker-like form  
 using orthonal similarity transformations and involves rank decisions based on rank revealing QR-decompositions with column pivoting, 
@@ -55,10 +59,11 @@ The default relative tolerance is `n*ϵ`, where `n` is the size of `A`, and `ϵ`
 working machine epsilon. 
 The keyword argument `atol` can be used to simultaneously set `atol1 = atol` and `atol2 = atol`. 
 """
-function gzero(SYS::DescriptorStateSpace;fast = false, atol::Real = 0, atol1::Real = atol, atol2::Real = atol, 
-    rtol::Real = SYS.nx*eps(real(float(one(real(eltype(SYS.A)))))*iszero(min(atol1,atol2))) ) 
+function gzero(sys::DescriptorStateSpace;fast = false, prescale = gbalqual(sys) > 10000, atol::Real = 0, atol1::Real = atol, atol2::Real = atol, 
+    rtol::Real = sys.nx*eps(real(float(one(real(eltype(sys.A)))))*iszero(min(atol1,atol2))) ) 
     # pzeros([SYS.A SYS.B; SYS.C SYS.D], [SYS.E zeros(SYS.nx,SYS.nu); zeros(SYS.ny,SYS.nx+SYS.nu)]; fast = fast, atol1 = atol1,
     # atol2 = atol2, rtol = rtol )[1]
+    SYS = prescale ? gprescale(sys)[1] : sys         
     return spzeros(dssdata(SYS)...; fast = fast, atol1 = atol1, atol2 = atol2, rtol = rtol)[1]
 end
 """
@@ -108,7 +113,7 @@ function gpole(SYS::DescriptorStateSpace{T}; fast = false, atol::Real = 0, atol1
     end
 end
 """
-    gzeroinfo(sys; smarg, fast = false, atol = 0, atol1 = atol, atol2 = atol, 
+    gzeroinfo(sys; smarg, fast = false, prescale, atol = 0, atol1 = atol, atol2 = atol, 
               rtol = n*ϵ, offset = sqrt(ϵ)) -> (val, info) 
 
 Return for the descriptor system `sys = (A-λE,B,C,D)` the complex vector `val` containing 
@@ -122,6 +127,10 @@ and the named tuple `info` containing information on the Kronecker structure of 
 The values in `val` are called the _invariant zeros_ of the pencil `S(λ)` and are the _transmission zeros_ of the 
 transfer function matrix of `sys` if `A-λE` is _regular_ and the descriptor system realization 
 `sys = (A-λE,B,C,D)` is _irreducible_. 
+
+If `prescale = true`, a preliminary balancing of the descriptor system matrices is performed. 
+The default setting is `prescale = gbalqual(sys) > 10000`, where `gbalqual(sys)` is the 
+scaling quality of the descriptor system model `sys` (see [`gbalqual`](@ref)). 
 
 For stability analysis purposes, a stability margin `smarg` can be specified for the finite zeros,
 in conjunction with a stability domain boundary offset `β` to numerically assess the  finite zeros 
@@ -192,10 +201,11 @@ The default relative tolerance is `n*ϵ`, where `n` is the size of `A` and `ϵ` 
 working machine epsilon. 
 The keyword argument `atol` can be used to simultaneously set `atol1 = atol` and `atol2 = atol`. 
 """
-function gzeroinfo(SYS::DescriptorStateSpace{T}; smarg::Real = SYS.Ts == 0 ? 0 : 1, fast = false, 
+function gzeroinfo(sys::DescriptorStateSpace{T}; prescale = gbalqual(sys) > 10000, smarg::Real = sys.Ts == 0 ? 0 : 1, fast = false, 
                    atol::Real = zero(float(real(T))), atol1::Real = atol, atol2::Real = atol, 
-                   rtol::Real = SYS.nx*eps(real(float(one(T))))*iszero(min(atol1,atol2)), 
+                   rtol::Real = sys.nx*eps(real(float(one(T))))*iszero(min(atol1,atol2)), 
                    offset::Real = sqrt(eps(float(real(T)))) ) where T
+    SYS = prescale ? gprescale(sys)[1] : sys                        
     val, miz, krinfo = spzeros(dssdata(SYS)...; fast = fast, atol1 = atol1, atol2 = atol2, rtol = rtol)
     nfsz, nfsbz, nfuz = eigvals_info(val[isfinite.(val)], smarg, SYS.Ts != 0, offset)
     niev = sum(krinfo.id)

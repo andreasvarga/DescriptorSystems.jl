@@ -15,7 +15,7 @@ isdefined(Polynomials,:order) && (import Polynomials: order)
 
 export DescriptorStateSpace, AbstractDescriptorStateSpace, dss, dssdata, rdss, rss, iszero, order
 export RationalTransferFunction, rtf
-export gminreal, gir, gir_lrtran, gbalmr, dsxvarsel, gss2ss, dss2ss
+export gminreal, gir, gir_lrtran, gbalmr, dsxvarsel, gss2ss, dss2ss, gprescale!, gprescale, gbalqual, pbalqual
 export gbilin, c2d, dss2rm, dss2pm, timeresp, stepresp
 export confmap, simplify, normalize, poles, gain, zpk, rtfbilin, numpoly, denpoly, isconstant, sampling_time
 export blockdiag, eye, rcond
