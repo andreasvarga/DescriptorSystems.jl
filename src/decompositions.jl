@@ -10,8 +10,9 @@ the transfer function matrix of the descriptor system `sys2 = (A2-λE2,B2,C2,0)`
 only poles outside of `Cg`. 
 
 If `prescale = true`, a preliminary balancing of the descriptor system pair `(A,E)` is performed.
-The default setting is `prescale = balqual(sys.A,sys.E) > 10000`, where `pbalqual(sys.A,sys,E)` is the 
-scaling quality of the linear pencil `A-λE` (see [`pbalqual`](@ref)). 
+The default setting is `prescale = MatrixPencils.balqual(sys.A,sys.E) > 10000`, 
+where the function `pbalqual` from the [MatrixPencils](https://github.com/andreasvarga/MatrixPencils.jl) 
+package evaluates the scaling quality of the linear pencil `A-λE`. 
 
 The keyword argument `smarg`, if provided, specifies the stability margin for the
 stable eigenvalues of `A-λE`, such that, in the continuous-time case, 
@@ -56,7 +57,8 @@ The separation of the finite and infinite eigenvalues is performed using
 rank decisions based on rank revealing QR-decompositions with column pivoting 
 if `fast = true` or the more reliable SVD-decompositions if `fast = false`.
 """
-function gsdec(sys::DescriptorStateSpace{T}; job::String = "finite", prescale::Bool = pbalqual(sys.A,sys.E) > 10000,
+function gsdec(sys::DescriptorStateSpace{T}; job::String = "finite", 
+               prescale::Bool = MatrixPencils.pbalqual(sys.A,sys.E) > 10000,
                smarg::Union{Real,Missing} = missing, 
                fast::Bool = true,  atol::Real = zero(real(T)),  atol1::Real = atol, atol2::Real = atol, 
                rtol::Real = (sys.nx*eps(real(float(one(T)))))*iszero(min(atol1,atol2))) where T

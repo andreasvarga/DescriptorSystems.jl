@@ -528,29 +528,3 @@ For a standard system with `E = I`, the above formulas are used assuming `E = 0`
 function gbalqual(sys::DescriptorStateSpace; SysMat = false) 
    return lsbalqual(sys.A, sys.E, sys.B, sys.C; SysMat)
 end 
-"""
-    qs = pbalqual(A, E) 
-
-Compute the 1-norm based scaling quality of a matrix pencil `A-λE`.
-
-The resulting `qs` is computed as 
-
-        qs = qS(abs(A)+abs(E)) ,
-
-where `qS(⋅)` is the scaling quality measure defined in Definition 5.5 of [1] for 
-nonnegative matrices. This definition has been extended to also cover matrices with
-zero rows or columns. If `E = I`, `qs = qS(A)` is computed. 
-
-A large value of `qs` indicates a possibly poorly scaled matrix pencil.   
-
-[1] F.M.Dopico, M.C.Quintana and P. van Dooren, 
-    "Diagonal scalings for the eigenstructure of arbitrary pencils", SIMAX, 43:1213-1237, 2022. 
-"""
-function pbalqual(A::AbstractMatrix{T}, E::Union{AbstractMatrix{T},UniformScaling{Bool}}) where {T}
-   if (!(typeof(E) <: AbstractMatrix) || isequal(E,I)) 
-      return MatrixPencils.qS1(A)
-   else
-      return MatrixPencils.qS1(abs.(A).+abs.(E))
-   end
-end 
-
