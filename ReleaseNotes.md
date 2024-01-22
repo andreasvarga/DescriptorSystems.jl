@@ -1,5 +1,9 @@
 # Release Notes
 
+## Version 1.4
+
+Version bump to comply with Julia 1.8 and higher. 
+
 ## Version 1.3.9
 
 Patch release with new functions `gprescale`, `gbalqual` and `pbalqual` related to balancing of descriptor system models and several enhanced functions, such as: `gminreal`, `gdec`, `gzero`, `gzeroinfo`, to automatically perform balancing in the case of poorly scaled system models.  

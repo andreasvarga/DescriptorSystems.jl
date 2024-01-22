@@ -88,7 +88,7 @@ end
 Base.propertynames(F::RationalTransferFunction) =
     (:Ts, :var, :zeros, :poles, :gain, fieldnames(typeof(F))...)
 poles(F::RationalTransferFunction) = F.poles
-poles(F::Polynomial{T}) where T = zeros(T,0)
+gpole(F::Polynomial{T}) where T = zeros(T,0)
 gain(F::RationalTransferFunction) = F.gain
 gain(F::Polynomial) = last(F.coeffs)
 gpole(F::RationalTransferFunction) = [F.poles; Inf*ones(Int,max(0,degree(F.num)-degree(F.den)))]
@@ -101,20 +101,18 @@ function Base.convert(::Type{PQ}, pq::RationalTransferFunction) where {PQ <:Rati
 end
 
 # alternate constructors
-function RationalTransferFunction(p′::P, q′::Q, Ts::Union{Real,Nothing}) where {T, X, P<:AbstractPolynomial{T,X},
-                                                                                S,  Q<:AbstractPolynomial{S,X}}
+function RationalTransferFunction(p′::P, q′::Q, Ts::Union{Real,Nothing}) where {T, X, P<:AbstractPolynomial{T,X},                                                                               S,  Q<:AbstractPolynomial{S,X}}
     p, q = promote(p′, q′)
     RationalTransferFunction{eltype(p),X,typeof(p)}(p,q,Ts)
 end
-function RationalTransferFunction(p′::P, q′::S, Ts::Union{Real,Nothing}) where {S, T, X, P<:AbstractPolynomial{T,X}}
+function RationalTransferFunction(p′::P, q′::Number, Ts::Union{Real,Nothing}) where {T, X, P<:AbstractPolynomial{T,X}}
     p, q = promote(p′, q′)
     RationalTransferFunction{eltype(p),X,typeof(p)}(p,q,Ts)
 end
-function RationalTransferFunction(p′::S, q′::P, Ts::Union{Real,Nothing}) where {S, T, X, P<:AbstractPolynomial{T,X}}
+function RationalTransferFunction(p′::Number, q′::P, Ts::Union{Real,Nothing}) where {T, X, P<:AbstractPolynomial{T,X}}
     p, q = promote(p′, q′)
     RationalTransferFunction{eltype(q),X,typeof(q)}(p,q,Ts)
-end
-  
+end  
 
 function Polynomials.rational_function(::Type{PQ}, p::P, q::Q) where {PQ <:RationalTransferFunction,
                                                           T, X, P<:AbstractPolynomial{T,X},
@@ -327,9 +325,9 @@ function rtf(::Type{T}, var::Union{AbstractString,Char,Symbol}; Ts::Union{Real,M
     end
 end
 rtf(var::Union{AbstractString,Char,Symbol}; Ts::Union{Real,Missing} = missing) = rtf(Int, var; Ts = Ts)
-function Base.:/(p::AbstractPolynomial,q::AbstractPolynomial)
-    RationalFunction(p,q)
-end
+# function Base.:/(p::AbstractPolynomial,q::AbstractPolynomial)
+#     RationalFunction(p,q)
+# end
 
 """
     r = rtf(z, p, k; Ts = rts, var = rvar) 

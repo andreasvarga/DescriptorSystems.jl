@@ -23,7 +23,7 @@ s = Polynomial([0,1],:s)
 @test propertynames(sys) == (:Ts, :var, :zeros, :poles, :gain, :num, :den)
 @test poles(sys) ≈ [-d/c] && gpole(sys) ≈ [-d/c] 
 @test gzero(sys) ≈ [-b/a] && gain(sys) ≈ a/c #&& length(sys) == 1
-@test poles(sys.num) ≈ Int[] && gain(sys.den) ≈ c
+@test gpole(sys.num) ≈ Int[] && gain(sys.den) ≈ c
 @test !isconstant(sys) && !isconstant(sys.num) && isconstant(a)
 @test variable(sys) == variable(sys.num)
 @test convert(RationalFunction,sys) == RationalFunction(sys.num,sys.den)
@@ -119,7 +119,7 @@ sys2 = rtf(Polynomial([b]), Ts = 0, var = :s)
 a = 1; b = 2; c = 3; d = 4;
 sys = rtf(Polynomial([b, a],:s), Polynomial([d, c],:s), Ts = 0)
 z = Polynomial([0,1],:z)
-sys1 = rtf((a*z+b)/(c*z+d),Ts=1)
+sys1 = rtf((a*z+b)//(c*z+d),Ts=1)
 
 @test rtf(sys,Ts=1,var=:z) == sys1 
 
