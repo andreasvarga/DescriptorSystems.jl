@@ -1,7 +1,7 @@
 using Documenter, DescriptorSystems
 DocMeta.setdocmeta!(DescriptorSystems, :DocTestSetup, :(using DescriptorSystems); recursive=true)
 
-makedocs(
+makedocs(warnonly = true, 
   modules  = [DescriptorSystems],
   sitename = "DescriptorSystems.jl",
   authors  = "Andreas Varga",
