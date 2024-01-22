@@ -177,9 +177,9 @@ sysd = dss(A, E, B, C, D, Ts = -1)
 
 # Building descriptor systems from rational functions and rational matrices
 s = Polynomial([0, 1],'s'); 
-g = (s+0.01)/(1+0.01*s);
+g = (s+0.01)//(1+0.01*s);
 sys1 = dss(g);
-G  = [s^2 s/(s+1); 0 one(s)/s]     # define the 2-by-2 rational matrix G(s)
+G  = [s^2 s//(s+1); 0 one(s)//s]     # define the 2-by-2 rational matrix G(s)
 sys2 = dss(G);
 
 # from Laurent polynomial

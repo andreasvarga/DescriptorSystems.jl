@@ -28,7 +28,7 @@ function dss2rm(sys::DescriptorStateSpace{T}; fast::Bool = true,
                 gaintol::Real = atol, val::Union{Number,Missing} = missing,
                 rtol::Real = (max(sys.nx,sys.nu,sys.ny)*eps(real(float(one(T)))))*iszero(min(atol1,atol2))) where T
    NUM, DEN =  ls2rm(dssdata(sys)...; fast, atol1, atol2, rtol, gaintol, val)  
-   return rtf.(pm2poly(NUM)./pm2poly(DEN),Ts = sys.Ts, var = sys.Ts == 0 ? (:s) : (:z))
+   return rtf.(pm2poly(NUM).//pm2poly(DEN),Ts = sys.Ts, var = sys.Ts == 0 ? (:s) : (:z))
 end
 """
     P = dss2pm(sys; fast = true, atol = 0, atol1 = atol, atol2 = atol, gaintol = 0, rtol = min(atol1,atol2) > 0 ? 0 : n*ϵ, val) 

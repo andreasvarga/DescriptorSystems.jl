@@ -321,7 +321,7 @@ z = rtf('z')
 @test_throws ErrorException dss2pm(dss(z+1/z))
 
 s = Polynomial([0, 1],:s);
-R = rtf.([s^2+3*s+3 1; -1 2*s^2+7*s+4] ./ [(s+1)^2 s+2; (s+1)^3 (s+1)*(s+2)]);
+R = rtf.([s^2+3*s+3 1; -1 2*s^2+7*s+4] .// [(s+1)^2 s+2; (s+1)^3 (s+1)*(s+2)]);
 @test all(R .≈ dss2rm(dss(R))) 
 
 end # dss2pm & dss2rm
