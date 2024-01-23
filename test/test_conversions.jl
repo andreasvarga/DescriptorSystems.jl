@@ -381,7 +381,7 @@ T[4:n, 3] = 10^(k)*T[4:n, 3]
 D = round.(Int,1. ./ rand(n))
 A = T*Diagonal(D); E = T;
 ev = eigvals(A,E)
-@test !(sort(ev) ≈ sort(D))
+@test !(sort(ev,by=real) ≈ sort(D))
 
 B = rand(n,m); B[1,:] = 10^(k)*B[1,:]; 
 C = rand(p,n); C[:, 3] = 10^(k)*C[:, 3];
@@ -389,7 +389,7 @@ C = rand(p,n); C[:, 3] = 10^(k)*C[:, 3];
 sys = dss(A,E,B,C,0)
 
 @time sys_scaled, D1, D2 = gprescale(sys);
-@test iszero(sys_scaled-sys) && sort(D) ≈ sort(gpole(sys_scaled)) 
+@test iszero(sys_scaled-sys) && sort(D) ≈ sort(gpole(sys_scaled),by=real) 
 @test sys_scaled.A == D1*sys.A*D2 && sys_scaled.E == D1*sys.E*D2 && 
       sys_scaled.B == D1*sys.B && sys_scaled.C == sys.C*D2
 @test gbalqual(sys) > 100000*gbalqual(sys_scaled)
