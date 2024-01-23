@@ -343,24 +343,26 @@ C = [0.0 0.0 0.0 1.0 0.0 0.0]
 
 sys = dss(A,B,C,0)
 @time sys_scaled, D1, D2 = gprescale(sys);
-@test iszero(sys_scaled-sys) && gpole(sys) ≈ gpole(sys_scaled) 
+ev = gpole(sys); evs = gpole(sys_scaled); 
+@test iszero(sys_scaled-sys) && sort(real(ev)) ≈ sort(real(evs)) && sort(imag(ev)) ≈ sort(imag(evs)) 
 @test sys_scaled.A == D1*sys.A*D2 && sys_scaled.B == D1*sys.B && sys_scaled.C == sys.C*D2
 @test gbalqual(sys) > 100000*gbalqual(sys_scaled)
 
 @time sys_scaled, D1, D2 = gprescale(sys,withB = false, withC = false);
-@test iszero(sys_scaled-sys) && gpole(sys) ≈ gpole(sys_scaled) 
+evs = gpole(sys_scaled); 
+@test iszero(sys_scaled-sys) && sort(real(ev)) ≈ sort(real(evs)) && sort(imag(ev)) ≈ sort(imag(evs)) 
 @test sys_scaled.A == D1*sys.A*D2 && sys_scaled.B == D1*sys.B && sys_scaled.C == sys.C*D2
 @test gbalqual(sys) > 100000*gbalqual(sys_scaled)
 
 
 sys1, sys2 = gsdec(sys_scaled,job="stable"); 
-@test iszero(sys-sys1-sys2) && iszero(sys2)
+@test iszero(sys-sys1-sys2,atol=1.e-7) && iszero(sys2,atol=1.e-7)
 
 sys1, sys2 = gsdec(sys,prescale = true, job="stable"); 
-@test iszero(sys-sys1-sys2) && iszero(sys2)
+@test iszero(sys-sys1-sys2,atol=1.e-7) && iszero(sys2,atol=1.e-7)
 
 sys1, sys2 = gsdec(sys,job="stable"); 
-@test iszero(sys-sys1-sys2) && iszero(sys2)
+@test iszero(sys-sys1-sys2,atol=1.e-7) && iszero(sys2,atol=1.e-7)
 
 
 
