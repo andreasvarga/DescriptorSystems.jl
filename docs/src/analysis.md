@@ -18,7 +18,6 @@
 * **[`timeresp`](@ref)**   Time response of a descriptor system.
 * **[`stepresp`](@ref)**   Step response of a descriptor system.
 * **[`gbalqual`](@ref)** Evaluation of the scaling quality of the matrices of a descriptor system.
-* **[`pbalqual`](@ref)** Evaluation of the scaling quality of the matrices of a linear pencil.
 
 
 ```@docs
@@ -40,5 +39,4 @@ freqresp
 timeresp
 stepresp
 gbalqual
-pbalqual
 ```

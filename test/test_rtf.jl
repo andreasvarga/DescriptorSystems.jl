@@ -313,8 +313,14 @@ s = rtf('s'); z = rtf('z');     # define the complex variables s and z
 @test_throws ArgumentError [Rc Rd]
 @test_throws ArgumentError [Rc; Rd]
 
-@test_throws ArgumentError [Rc Gc]
-@test_throws ArgumentError [Rc; Gc]
+if VERSION < v"1.10.0"
+   @test_throws ArgumentError [Rc Gc]
+   @test_throws ArgumentError [Rc; Gc]
+else
+   @test_throws DimensionMismatch [Rc Gc]
+   @test_throws DimensionMismatch [Rc; Gc]
+end 
+
 
 @time Rc=[Gc[:,2:2] I]
 @time Rd=[Gd[2:2,:]; I]
