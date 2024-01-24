@@ -3,8 +3,8 @@ module Runtests
 using Test, DescriptorSystems, Aqua
 
 @testset "code quality" begin
-    #Aqua.test_all(LinearMaps,piracy = (broken=true,))
-    Aqua.test_stale_deps(DescriptorSystems)
+    Aqua.test_all(DescriptorSystems,piracies = (broken=true,))
+    #Aqua.test_stale_deps(DescriptorSystems)
 end
 
 
