@@ -2,8 +2,6 @@ module Runtests
 
 using Test, DescriptorSystems, Aqua
 
-using Test, Documenter, LinearMaps, Aqua
-
 @testset "code quality" begin
     #Aqua.test_all(LinearMaps,piracy = (broken=true,))
     Aqua.test_stale_deps(DescriptorSystems)
