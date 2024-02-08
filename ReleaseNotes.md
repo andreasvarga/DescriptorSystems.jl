@@ -1,5 +1,9 @@
 # Release Notes
 
+## Version 1.4.1
+
+Patch release with enhanced functions for he computation of system norms. 
+
 ## Version 1.4
 
 Version bump to comply with Julia 1.8 and higher. 

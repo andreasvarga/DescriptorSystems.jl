@@ -467,15 +467,16 @@ end
     ghanorm(sys, fast = true, atol = 0, atol1 = atol, atol2 = atol, rtol = n*ϵ) -> (hanorm, hs)
 
 Compute for a proper and stable descriptor system `sys = (A-λE,B,C,D)` with the transfer function
-matrix `G(λ)`, the Hankel norm `hanorm =` ``\\small ||G(\\lambda)||_H`` and the vector of Hankel singular values `hs` of the system.
+matrix `G(λ)`, the Hankel norm `hanorm =` ``\\small ||G(\\lambda)||_H`` and 
+the vector of Hankel singular values `hs` of the minimal realizatioj of the system.
 
-For a proper system with `E` singular, the uncontrollable infinite eigenvalues of the pair `(A,E)` and
+For a non-minimal system, the uncontrollable and unobservable finite and infinite eigenvalues of the pair `(A,E)` and
 the non-dynamic modes are elliminated using minimal realization techniques.
 The rank determinations in the performed reductions
 are based on rank revealing QR-decompositions with column pivoting 
 if `fast = true` or the more reliable SVD-decompositions if `fast = false`. 
 
-   The keyword arguments `atol1`, `atol2`, and `rtol`, specify, respectively, 
+The keyword arguments `atol1`, `atol2`, and `rtol`, specify, respectively, 
 the absolute tolerance for the nonzero elements of `A`, `B`, `C`, `D`,  
 the absolute tolerance for the nonzero elements of `E`,  
 and the relative tolerance for the nonzero elements of `A`, `B`, `C`, `D` and `E`.  
@@ -495,8 +496,8 @@ function ghanorm(sys::DescriptorStateSpace{T}; fast::Bool = true,
     s2eps = sqrt(eps(real(T1)))       
     disc = !iszero(sys.Ts)
     
-    
     if  sys.E == I
+        sys = gir(sys, finite = true, fast = fast, atol1 = atol1, atol2 = atol2, rtol = rtol)
         # for a non-dynamic system, we set the Hankel norm to zero,
         # but the Hankel singular values are empty
         size(sys.A,1) == 0 && (return zero(real(T1)), zeros(real(T1),0))
@@ -514,6 +515,9 @@ function ghanorm(sys::DescriptorStateSpace{T}; fast::Bool = true,
            # sys = gss2ss(sys,s2eps,'triu');
            sys = gminreal(sys; fast, atol1, atol2, rtol)
            rcond(sys.E) < sys.nx*eps(float(real(T1))) && error("The system SYS is not proper")
+        else
+           # eliminate uncontrollable and unobservable finite eigenvalues 
+           sys = gir(sys, finite = true, fast = fast, atol1 = atol1, atol2 = atol2, rtol = rtol)
         end
         # for a non-dynamic system, we set the Hankel norm to zero,
         # but the Hankel singular values are empty
@@ -534,7 +538,10 @@ end
     gh2norm(sys, fast = true, offset = sqrt(ϵ), atol = 0, atol1 = atol, atol2 = atol, atolinf = atol, rtol = n*ϵ) 
 
 Compute for a descriptor system `sys = (A-λE,B,C,D)` the `H2` norm of its transfer function  matrix `G(λ)`.
-The `H2` norm is infinite, if `sys` has unstable poles, or, for a continuous-time, the system has nonzero gain at infinity.
+The `H2` norm is infinite, if `G(λ)` has unstable poles, or, for a continuous-time, the system has nonzero gain at infinity.
+If the pencil `A-λE` has uncontrollable and/or unobservable unstable eigenvalues on the boundary of the stability domain,
+then a reduced order realization is determined first (see below) to eliminate these eigenvalues. 
+
 To check the stability, the eigenvalues of the _pole pencil_ `A-λE` must have real parts less 
 than `-β` for a continuous-time system or 
 have moduli less than `1-β` for a discrete-time system, where `β` is the stability domain boundary offset.
@@ -542,7 +549,9 @@ The offset  `β` to be used can be specified via the keyword parameter `offset =
 The default value used for `β` is `sqrt(ϵ)`, where `ϵ` is the working machine precision. 
 
 For a continuous-time system `sys` with `E` singular, a reduced order realization is determined first, without 
-uncontrollable and unobservable nonzero finite and infinite eigenvalues of the corresponding pole pencil. 
+uncontrollable and unobservable finite and infinite eigenvalues of the pencil `A-λE`. 
+For a discrete-time system or for a system with invertible `E`, a reduced order realization is determined first, without 
+uncontrollable and unobservable finite eigenvalues of the pencil `A-λE`.
 The rank determinations in the performed reductions
 are based on rank revealing QR-decompositions with column pivoting 
 if `fast = true` or the more reliable SVD-decompositions if `fast = false`.   
@@ -567,10 +576,12 @@ end
     gl2norm(sys, h2norm = false, fast = true, offset = sqrt(ϵ), atol = 0, atol1 = atol, atol2 = atol, atol3 = atol, atolinf = atol, rtol = n*ϵ) 
 
 Compute for a descriptor system `sys = (A-λE,B,C,D)` the `L2` norm of its transfer function  matrix `G(λ)`.
-The `L2` norm is infinite if the _pole pencil_ `A-λE` has
-zeros (i.e., poles) on the stability domain boundary, i.e., on the extended imaginary axis, in the continuous-time case, 
+The `L2` norm is infinite if `G(λ)` has poles on the stability domain boundary, i.e., 
+on the extended imaginary axis, in the continuous-time case, 
 or on the unit circle, in the discrete-time case. 
 The `L2` norm is also infinite for a continuous-time system having a gain at infinity greater than `atolinf`. 
+If the pencil `A-λE` has uncontrollable and/or unobservable eigenvalues on the boundary of the stability domain,
+then a reduced order realization is determined first (see below) to eliminate these eigenvalues. 
 
 To check the lack of poles on the stability domain boundary, the eigenvalues of the pencil `A-λE` 
 must not have real parts in the interval `[-β,β]` for a continuous-time system or 
@@ -585,7 +596,9 @@ To check the stability, the eigenvalues of the pencil `A-λE` must have real par
 have moduli less than `1-β` for a discrete-time system. 
 
 For a continuous-time system `sys` with `E` singular, a reduced order realization is determined first, without 
-uncontrollable and unobservable nonzero finite and infinite eigenvalues of the corresponding pole pencil. 
+uncontrollable and unobservable finite and infinite eigenvalues of the pencil `A-λE`. 
+For a discrete-time system or for a system with invertible `E`, a reduced order realization is determined first, without 
+uncontrollable and unobservable finite eigenvalues of the pencil `A-λE`.
 The rank determinations in the performed reductions
 are based on rank revealing QR-decompositions with column pivoting 
 if `fast = true` or the more reliable SVD-decompositions if `fast = false`.   
@@ -610,6 +623,7 @@ function gl2norm(sys::DescriptorStateSpace{T}; h2norm::Bool = false, fast::Bool 
     disc = !iszero(sys.Ts)
        
     if  sys.E == I
+        sys = gir(sys, finite = true, fast = fast, atol1 = atol1, atol2 = atol2, rtol = rtol)
         # quick return for a non-dynamic system or continuous-time system with nonzero D
         size(sys.A,1) == 0 && (return disc ? norm(sys.D) : (norm(sys.D,Inf) <= atolinf ? zero(real(T1)) : Inf))
         disc || norm(sys.D,Inf) <= atolinf || (return Inf)
@@ -633,11 +647,14 @@ function gl2norm(sys::DescriptorStateSpace{T}; h2norm::Bool = false, fast::Bool 
         end
      else
         n = sys.nx
-        # eliminate uncontrollable and unobservable infinite eigenvalues and non-dynamic modes if possible
         if rcond(sys.E) < n*eps(float(real(T1)))
-           sys = gir(sys, finite = false, noseig = true, fast = fast, atol1 = atol1, atol2 = atol2, rtol = rtol)
+           # eliminate uncontrollable and unobservable finite and infinite eigenvalues and non-dynamic modes if possible
+           sys = gir(sys, noseig = true, fast = fast, atol1 = atol1, atol2 = atol2, rtol = rtol)
            # check properness for a continuous-time system
            disc || rcond(sys.E) >= n*eps(float(real(T1))) || (return Inf)
+        else
+           # eliminate uncontrollable and unobservable finite eigenvalues 
+           sys = gir(sys, finite = true, fast = fast, atol1 = atol1, atol2 = atol2, rtol = rtol)
         end
         size(sys.A,1) == 0 && (return disc ? norm(sys.D) : (norm(sys.D,Inf) <= atolinf ? zero(real(T1)) : Inf))
         disc || norm(sys.D) <= atolinf || (return Inf)
@@ -669,7 +686,10 @@ end
 Compute for a descriptor system `sys = (A-λE,B,C,D)` with the transfer function  matrix `G(λ)` 
 the `H∞` norm `hinfnorm` (i.e.,  the peak gain of `G(λ)`) and 
 the corresponding peak frequency `fpeak`, where the peak gain is achieved. 
-The `H∞` norm is infinite if the _pole pencil_ `A-λE` has unstable zeros (i.e., `sys` has unstable poles). 
+The `H∞` norm is infinite if `G(λ)` has unstable poles. 
+If the pencil `A-λE` has uncontrollable and/or unobservable unstable eigenvalues,
+then a reduced order realization is determined first (see below) to eliminate these eigenvalues. 
+
 To check the stability, the eigenvalues of the pencil `A-λE` must have real parts less than `-β` for a continuous-time system or 
 have moduli less than `1-β` for a discrete-time system, where `β` is the stability domain boundary offset.
 The offset  `β` to be used can be specified via the keyword parameter `offset = β`. 
@@ -679,7 +699,9 @@ The keyword argument `rtolinf` specifies the relative accuracy for the computed 
 The  default value used for `rtolinf` is `0.001`.
 
 For a continuous-time system `sys` with `E` singular, a reduced order realization is determined first, without 
-uncontrollable and unobservable nonzero finite and infinite eigenvalues of the corresponding pole pencil. 
+uncontrollable and unobservable finite and infinite eigenvalues of the pencil `A-λE`. 
+For a discrete-time system or for a system with invertible `E`, a reduced order realization is determined first, without 
+uncontrollable and unobservable finite eigenvalues of the pencil `A-λE`.
 The rank determinations in the performed reductions
 are based on rank revealing QR-decompositions with column pivoting 
 if `fast = true` or the more reliable SVD-decompositions if `fast = false`.   
@@ -703,9 +725,12 @@ end
 Compute for a descriptor system `sys = (A-λE,B,C,D)` with the transfer function  matrix `G(λ)` 
 the `L∞` norm `linfnorm` (i.e.,  the peak gain of `G(λ)`) and 
 the corresponding peak frequency `fpeak`, where the peak gain is achieved. 
-The `L∞` norm is infinite if the _pole pencil_ `A-λE` has
-zeros (i.e., poles) on the stability domain boundary, i.e., on the extended imaginary axis, in the continuous-time case, 
-or on the unit circle, in the discrete-time case.  
+The `L∞` norm is infinite if `G(λ)` has poles on the stability domain boundary, 
+i.e., on the extended imaginary axis, in the continuous-time case, 
+or on the unit circle, in the discrete-time case. 
+If the pencil `A-λE` has uncontrollable and/or unobservable eigenvalues on the boundary of the stability domain,
+then a reduced order realization is determined first (see below) to eliminate these eigenvalues. 
+
 To check the lack of poles on the stability domain boundary, the eigenvalues of the pencil `A-λE` 
 must not have real parts in the interval `[-β,β]` for a continuous-time system or 
 must not have moduli within the interval `[1-β,1+β]` for a discrete-time system, where `β` is the stability domain boundary offset.  
@@ -715,13 +740,16 @@ The default value used for `β` is `sqrt(ϵ)`, where `ϵ` is the working machine
 The keyword argument `rtolinf` specifies the relative accuracy for the computed infinity norm. 
 The  default value used for `rtolinf` is `0.001`.
 
-If `hinfnorm = true`, the `H∞` norm is computed. In this case, the stability of the zeros of `A-λE` is additionally checked and 
+If `hinfnorm = true`, the `H∞` norm is computed. 
+In this case, the stability of the zeros of `A-λE` is additionally checked and 
 the `H∞` norm is infinite for an unstable system.
 To check the stability, the eigenvalues of the pencil `A-λE` must have real parts less than `-β` for a continuous-time system or 
 have moduli less than `1-β` for a discrete-time system.
 
 For a continuous-time system `sys` with `E` singular, a reduced order realization is determined first, without 
-uncontrollable and unobservable nonzero finite and infinite eigenvalues of the corresponding pole pencil. 
+uncontrollable and unobservable finite and infinite eigenvalues of the pencil `A-λE`. 
+For a discrete-time system or for a system with invertible `E`, a reduced order realization is determined first, without 
+uncontrollable and unobservable finite eigenvalues of the pencil `A-λE`.
 The rank determinations in the performed reductions
 are based on rank revealing QR-decompositions with column pivoting 
 if `fast = true` or the more reliable SVD-decompositions if `fast = false`.   
@@ -754,11 +782,12 @@ function glinfnorm(sys::DescriptorStateSpace{T}; hinfnorm::Bool = false, rtolinf
     disc = !iszero(Ts)
     complx = T1 <: Complex
 
-    # eliminate simple infinite eigenvalues in the continuous-time case with singular E
     if disc || sys.E == I || rcond(sys.E) >= sys.nx*eps(float(real(T1)))
-       A, E, B, C, D = dssdata(T1,sys)
+       # eliminate uncontrollable or unobservable finite eigenvalues
+       A, E, B, C, D = dssdata(gir(sys, fast = fast, finite = true, atol1 = atol1, atol2 = atol2, rtol = rtol))
     else
-       A, E, B, C, D = dssdata(gir(sys, fast = fast, finite = false, noseig = true, atol1 = atol1, atol2 = atol2, rtol = rtol))
+       # eliminate uncontrollable or unobservable eigenvalues 
+       A, E, B, C, D = dssdata(gir(sys, fast = fast, noseig = true, atol1 = atol1, atol2 = atol2, rtol = rtol))
     end
 
     n = size(A,1)
