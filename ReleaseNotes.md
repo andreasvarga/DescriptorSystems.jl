@@ -2,7 +2,7 @@
 
 ## Version 1.4.1
 
-Patch release with enhanced functions for he computation of system norms. 
+Patch release with enhanced functions for the computation of system norms. 
 
 ## Version 1.4
 
