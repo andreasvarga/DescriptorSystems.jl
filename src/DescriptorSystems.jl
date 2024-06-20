@@ -1,16 +1,19 @@
 module DescriptorSystems
 
+import Base: *, +, -, /, \, ^, (==), convert, eltype, hcat, hvcat, inv, isapprox, iszero,
+    lastindex, length, ndims, nothing, one, print, promote_op, require_one_based_indexing,
+    show, size, vcat, zero
+import LinearAlgebra: BlasComplex, BlasFloat, BlasReal, adjoint, copy_oftype, hcat,
+    normalize, opnorm, rdiv!, transpose
+import MatrixPencils: isregular, rmeval
+import Polynomials:
+    AbstractPolynomial, AbstractRationalFunction, degree, isconstant, poles, pqs, variable
+
 using LinearAlgebra
 using MatrixEquations
 using MatrixPencils
 using Polynomials
 using Random
-
-import LinearAlgebra: BlasFloat, BlasReal, BlasComplex, copy_oftype, transpose, adjoint, opnorm, normalize, rdiv!, hcat
-import Base: +, -, *, /, \, (==), (!=), ^, isapprox, iszero, convert, promote_op, size, length, ndims, 
-             hcat, vcat, hvcat, inv, show, lastindex, require_one_based_indexing, print, show, one, zero, eltype
-import MatrixPencils: isregular, rmeval
-import Polynomials: AbstractRationalFunction, AbstractPolynomial, poles, isconstant, variable, degree, pqs
 isdefined(Polynomials,:order) && (import Polynomials: order)
 
 export DescriptorStateSpace, AbstractDescriptorStateSpace, dss, dssdata, rdss, rss, iszero, order

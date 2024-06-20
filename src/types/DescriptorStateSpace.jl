@@ -1,7 +1,8 @@
 #const AbstractNumOrArray = Union{AbstractVecOrMat{T},Number} where {T <: Number}
 const AbstractNumOrArray = Union{AbstractVecOrMat,Number}
 #const ETYPE{T} = Union{Matrix{T},UniformScaling}
-const ETYPE{T} = Union{Matrix{T},UniformScaling{Bool}}
+#const ETYPE{T} = Union{Matrix{T},UniformScaling{Bool}}
+const ETYPE{T} = Union{AbstractMatrix{T},UniformScaling{Bool}}
 promote_Etype(T0::Type, ::Type{UniformScaling{Bool}}, ::Type{UniformScaling{Bool}}) = UniformScaling{Bool}
 promote_Etype(T0::Type, T1::Type, ::Type{UniformScaling{Bool}}) = Matrix{promote_type(T0,eltype(T1))}
 promote_Etype(T0::Type, ::Type{UniformScaling{Bool}}, T1::Type) = Matrix{promote_type(T0,eltype(T1))}
@@ -33,24 +34,73 @@ defined by the 4-tuple `SYS = (A-λE,B,C,D)`, then:
 
 The dimensions `nx`, `ny` and `nu` can be obtained as `SYS.nx`, `SYS.ny` and `SYS.nu`, respectively. 
 """
-struct DescriptorStateSpace{T, ET <: ETYPE{T}} <: AbstractDescriptorStateSpace 
-#struct DescriptorStateSpace{T, ET <: Union{Matrix{T},UniformScaling}} <: AbstractDescriptorStateSpace 
-    A::Matrix{T}
+# struct DescriptorStateSpace{T, ET <: ETYPE{T}} <: AbstractDescriptorStateSpace 
+# #struct DescriptorStateSpace{T, ET <: Union{Matrix{T},UniformScaling}} <: AbstractDescriptorStateSpace 
+#     A::Matrix{T}
+#     E::ET
+#     B::Matrix{T}
+#     C::Matrix{T}
+#     D::Matrix{T}
+#     Ts::Float64
+#     #function DescriptorStateSpace{T}(A::Matrix{T}, E::Union{Matrix{T},UniformScaling}, 
+#     function DescriptorStateSpace{T}(A::Matrix{T}, E::ETYPE{T}, 
+#                                      B::Matrix{T}, C::Matrix{T}, D::Matrix{T},  Ts::Real) where {T} 
+#         dss_validation(A, E, B, C, D, Ts)
+#         new{T, typeof(E)}(A, E, B, C, D, Float64(Ts))
+#     end
+# end
+# struct DescriptorStateSpace{T, ET <: ETYPE{T}} <: AbstractDescriptorStateSpace 
+# #struct DescriptorStateSpace{T, ET <: Union{Matrix{T},UniformScaling}} <: AbstractDescriptorStateSpace 
+#     A::AbstractMatrix{T}
+#     E::ET
+#     B::AbstractMatrix{T}
+#     C::AbstractMatrix{T}
+#     D::AbstractMatrix{T}
+#     Ts::Float64
+#     #function DescriptorStateSpace{T}(A::Matrix{T}, E::Union{Matrix{T},UniformScaling}, 
+#     function DescriptorStateSpace{T}(A::AbstractMatrix{T}, E::ETYPE{T}, 
+#                                      B::AbstractMatrix{T}, C::AbstractMatrix{T}, 
+#                                      D::AbstractMatrix{T},  Ts::Real) where {T} 
+#         dss_validation(A, E, B, C, D, Ts)
+#         new{T, typeof(E)}(A, E, B, C, D, Float64(Ts))
+#     end
+# end
+struct DescriptorStateSpace{T, ET <: ETYPE{T}, MT<:AbstractMatrix{T}} <: AbstractDescriptorStateSpace
+    A::MT
     E::ET
-    B::Matrix{T}
-    C::Matrix{T}
-    D::Matrix{T}
+    B::MT
+    C::MT
+    D::MT
     Ts::Float64
-    #function DescriptorStateSpace{T}(A::Matrix{T}, E::Union{Matrix{T},UniformScaling}, 
-    function DescriptorStateSpace{T}(A::Matrix{T}, E::ETYPE{T}, 
-                                     B::Matrix{T}, C::Matrix{T}, D::Matrix{T},  Ts::Real) where {T} 
+    function DescriptorStateSpace{T}(A::MT, E::ETYPE{T},
+                                     B::MT, C::MT, D::MT,  Ts::Real) where {T, MT<:AbstractMatrix{T}}
         dss_validation(A, E, B, C, D, Ts)
-        new{T, typeof(E)}(A, E, B, C, D, Float64(Ts))
+        new{T, typeof(E), MT}(A, E, B, C, D, Float64(Ts))
     end
 end
+
 #function dss_validation(A::Matrix{T}, E::Union{Matrix{T},UniformScaling}, 
-function dss_validation(A::Matrix{T}, E::ETYPE{T}, 
-                        B::Matrix{T}, C::Matrix{T}, D::Matrix{T},  Ts::Real) where T
+# function dss_validation(A::Matrix{T}, E::ETYPE{T}, 
+#                         B::Matrix{T}, C::Matrix{T}, D::Matrix{T},  Ts::Real) where T
+#     nx = LinearAlgebra.checksquare(A)
+#     (ny, nu) = size(D)
+    
+#     # Validate dimensions
+#     if typeof(E) <: Matrix
+#        nx == LinearAlgebra.checksquare(E) || error("A and E must have the same size")
+#     end
+#     size(B, 1) == nx ||  error("B must have the same row size as A")
+#     size(C, 2) == nx ||  error("C must have the same column size as A")
+#     nu == size(B, 2) ||  error("D must have the same column size as B")
+#     ny == size(C, 1) ||  error("D must have the same row size as C")
+ 
+#     # Validate sampling time
+#     Ts >= 0 || Ts == -1 || error("Ts must be either a positive number, 0
+#                                 (continuous system), or -1 (unspecified)")
+#     return nx, nu, ny
+# end
+function dss_validation(A::AbstractMatrix{T}, E::ETYPE{T}, 
+                        B::AbstractMatrix{T}, C::AbstractMatrix{T}, D::AbstractMatrix{T},  Ts::Real) where T
     nx = LinearAlgebra.checksquare(A)
     (ny, nu) = size(D)
     
@@ -68,6 +118,7 @@ function dss_validation(A::Matrix{T}, E::ETYPE{T},
                                 (continuous system), or -1 (unspecified)")
     return nx, nu, ny
 end
+
 function Base.getproperty(sys::DescriptorStateSpace, d::Symbol)  
     if d === :nx
         return size(getfield(sys, :A), 1)

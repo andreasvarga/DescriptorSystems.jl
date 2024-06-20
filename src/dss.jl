@@ -69,6 +69,10 @@ function dss(A::AbstractNumOrArray, B::AbstractNumOrArray, C::AbstractNumOrArray
     return DescriptorStateSpace{T}(to_matrix(T,A), I, to_matrix(T,B), to_matrix(T,C,p <=1), 
                                    typeof(D) <: Number && iszero(D) ? zeros(T,p,m) : p <=1 ? to_matrix(T,D,m > p) : to_matrix(T,D), Ts)
 end
+# function dss(A::SparseMatrixCSC, B::SparseMatrixCSC, C::SparseMatrixCSC, D::SparseMatrixCSC; Ts::Real = 0) 
+#     T = promote_type(eltype(A),eltype(B),eltype(C),eltype(D))
+#     return DescriptorStateSpace{T}(A, I, B, C, D, Ts)
+# end
 function dss(D::AbstractNumOrArray; Ts::Real = 0) 
     D == [] && (T = Int64; return DescriptorStateSpace{T}(zeros(T,0,0),I,zeros(T,0,0),zeros(T,0,0),zeros(T,0,0),Ts))
     p, m = size(D,1),size(D,2)
@@ -127,8 +131,8 @@ for the nonzero elements of `F`, `G` and `H`. The default relative tolerance is 
 of `A`, and `ϵ` is the machine epsilon of the element type of `A`.
 The keyword argument `atol` can be used to simultaneously set `atol1 = atol`, `atol2 = atol` and `atol3 = atol`. 
 """
-function dss(A::Matrix, E::Union{Matrix,UniformScaling}, B::Matrix, F::Union{Matrix,Missing},
-             C::Matrix, G::Union{Matrix,Missing}, D::Matrix, H::Union{Matrix,Missing}; 
+function dss(A::AbstractMatrix, E::Union{AbstractMatrix,UniformScaling}, B::AbstractMatrix, F::Union{AbstractMatrix,Missing},
+             C::AbstractMatrix, G::Union{AbstractMatrix,Missing}, D::AbstractMatrix, H::Union{AbstractMatrix,Missing}; 
              Ts::Real = 0, compacted::Bool = false, 
              atol::Real = zero(real(eltype(A))), atol1::Real = atol, atol2::Real = atol, atol3::Real = atol, 
              rtol::Real = (min(size(A)...)*eps(real(float(one(eltype(A))))))*iszero(min(atol1,atol2,atol3))) 

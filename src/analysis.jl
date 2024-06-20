@@ -64,7 +64,7 @@ function gzero(sys::DescriptorStateSpace;fast = false, prescale = gbalqual(sys) 
     # pzeros([SYS.A SYS.B; SYS.C SYS.D], [SYS.E zeros(SYS.nx,SYS.nu); zeros(SYS.ny,SYS.nx+SYS.nu)]; fast = fast, atol1 = atol1,
     # atol2 = atol2, rtol = rtol )[1]
     SYS = prescale ? gprescale(sys)[1] : sys         
-    return spzeros(dssdata(SYS)...; fast = fast, atol1 = atol1, atol2 = atol2, rtol = rtol)[1]
+    return MatrixPencils.spzeros(dssdata(SYS)...; fast = fast, atol1 = atol1, atol2 = atol2, rtol = rtol)[1]
 end
 """
     val = gpole(sys; fast = false, atol = 0, atol1 = atol, atol2 = atol, rtol = n*ϵ) 
@@ -206,7 +206,7 @@ function gzeroinfo(sys::DescriptorStateSpace{T}; prescale = gbalqual(sys) > 1000
                    rtol::Real = sys.nx*eps(real(float(one(T))))*iszero(min(atol1,atol2)), 
                    offset::Real = sqrt(eps(float(real(T)))) ) where T
     SYS = prescale ? gprescale(sys)[1] : sys                        
-    val, miz, krinfo = spzeros(dssdata(SYS)...; fast = fast, atol1 = atol1, atol2 = atol2, rtol = rtol)
+    val, miz, krinfo = MatrixPencils.spzeros(dssdata(SYS)...; fast = fast, atol1 = atol1, atol2 = atol2, rtol = rtol)
     nfsz, nfsbz, nfuz = eigvals_info(val[isfinite.(val)], smarg, SYS.Ts != 0, offset)
     niev = sum(krinfo.id)
     nisev = niev == 0 ? 0 : krinfo.id[1]
@@ -966,11 +966,11 @@ function norminfd(a, e, b, c, d, ft0, Ts, tol)
    
    # Compute lower estimate GMIN as max. gain over the selected frequencies
    for i = 1:length(testz)
-      z = testz[i]
-      bct = copy(bc)
-      desc ? ldiv!(UpperHessenberg(ac-z*ec),bct) : ldiv!(ac,bct,shift = -z)
-      gw = opnorm(dc-cc*bct)
-      gw > gmin && (gmin = gw;  compl ? fpeak = angle(z) : fpeak = abs(angle(z)))
+       z = testz[i]
+       bct = copy(bc)
+       desc ? ldiv!(UpperHessenberg(ac-z*ec),bct) : ldiv!(ac,bct,shift = -z)
+       gw = opnorm(dc-cc*bct)
+       gw > gmin && (gmin = gw;  compl ? fpeak = angle(z) : fpeak = abs(angle(z)))
    end
    gmin == 0 && (return TR(0), TR(0))
 

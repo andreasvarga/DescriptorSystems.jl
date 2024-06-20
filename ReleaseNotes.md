@@ -1,5 +1,9 @@
 # Release Notes
 
+## Version 1.4.2
+
+Enhanced definition of the `DescriptorStateSpace` object.   
+
 ## Version 1.4.1
 
 Patch release with enhanced functions for the computation of system norms. 
