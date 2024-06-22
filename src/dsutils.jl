@@ -2,7 +2,8 @@
 # covers the case when a vector represents the row of a matrix 
 to_matrix(T, A::AbstractVector, wide::Bool = false) = wide ? Matrix{T}(reshape(A, 1, length(A))) : Matrix{T}(reshape(A, length(A), 1))
 #to_matrix(T, A::AbstractMatrix, wide::Bool = false) = Matrix{T}(A)  # Fallback
-to_matrix(T, A::AbstractMatrix, wide::Bool = false) = T.(A)  # Fallback
+#to_matrix(T, A::AbstractMatrix, wide::Bool = false) = T.(A)  # Fallback
+to_matrix(T, A::AbstractMatrix, wide::Bool = false) = AbstractMatrix{T}(A)  # Fallback
 # to_matrix(T, A::SparseMatrixCSC, wide::Bool = false) = T.(A)  # Fallback for sparse matrices
 to_matrix(T, A::Number, wide::Bool = true) = fill(T(A), 1, 1)
 # Handle Adjoint Matrices

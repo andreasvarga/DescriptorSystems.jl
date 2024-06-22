@@ -95,10 +95,8 @@ function hcat(SYS1::DescriptorStateSpace{T1, TE1}, SYS2::DescriptorStateSpace{T2
     D = [ T.(SYS1.D) T.(SYS2.D)]
     return DescriptorStateSpace{T}(A, E, B, C, D, Ts)
 end
-#hcat(SYS :: DescriptorStateSpace, MAT :: AbstractNumOrArray) = hcat(SYS,dss(MAT,Ts=SYS.Ts))
-hcat(SYS :: DescriptorStateSpace{T} where T, MAT :: Union{Number, AbstractVecOrMat{<:Number}}) = hcat(SYS,dss(MAT,Ts=SYS.Ts))
-#hcat(MAT :: AbstractNumOrArray, SYS :: DescriptorStateSpace) = hcat(dss(MAT,Ts=SYS.Ts),SYS)
-hcat(MAT :: Union{Number, AbstractVecOrMat{<:Number}}, SYS :: DescriptorStateSpace) = hcat(dss(MAT,Ts=SYS.Ts),SYS)
+hcat(SYS :: DescriptorStateSpace{T}, MAT :: Union{Number, AbstractVecOrMat{<:Number}}) where {T} = hcat(SYS,dss(promote_type(T,eltype(MAT)).(MAT),Ts=SYS.Ts))
+hcat(MAT :: Union{Number, AbstractVecOrMat{<:Number}}, SYS :: DescriptorStateSpace{T}) where {T} = hcat(dss(promote_type(T,eltype(MAT)).(MAT),Ts=SYS.Ts),SYS)
 hcat(SYS :: DescriptorStateSpace, MAT :: UniformScaling) = hcat(SYS,dss(Matrix{promote_type(eltype(SYS),eltype(MAT))}(MAT,SYS.ny,SYS.ny),Ts=SYS.Ts))
 hcat(MAT :: UniformScaling, SYS :: DescriptorStateSpace) = hcat(dss(Matrix{promote_type(eltype(SYS),eltype(MAT))}(MAT,SYS.ny,SYS.ny),Ts=SYS.Ts),SYS)
 
@@ -209,9 +207,8 @@ function vcat(SYS1::DescriptorStateSpace{T1, TE1}, SYS2::DescriptorStateSpace{T2
     return DescriptorStateSpace{T}(A, E, B, C, D, Ts)
 end
 
-vcat(SYS :: DescriptorStateSpace, MAT :: Union{Number, AbstractVecOrMat{<:Number}}) = vcat(SYS,dss(MAT,Ts=SYS.Ts))
-#vcat(MAT :: AbstractNumOrArray, SYS :: DescriptorStateSpace) = vcat(dss(MAT,Ts=SYS.Ts),SYS)
-vcat(MAT :: Union{Number, AbstractVecOrMat{<:Number}}, SYS :: DescriptorStateSpace) = vcat(dss(MAT,Ts=SYS.Ts),SYS)
+vcat(SYS :: DescriptorStateSpace{T}, MAT :: Union{Number, AbstractVecOrMat{<:Number}}) where {T} = vcat(SYS,dss(promote_type(T,eltype(MAT)).(MAT),Ts=SYS.Ts))
+vcat(MAT :: Union{Number, AbstractVecOrMat{<:Number}}, SYS :: DescriptorStateSpace{T}) where {T} = vcat(dss(promote_type(T,eltype(MAT)).(MAT),Ts=SYS.Ts),SYS)
 vcat(SYS :: DescriptorStateSpace, MAT :: UniformScaling) = vcat(SYS,dss(Matrix{promote_type(eltype(SYS),eltype(MAT))}(MAT,SYS.nu,SYS.nu),Ts=SYS.Ts))
 vcat(MAT :: UniformScaling, SYS :: DescriptorStateSpace) = vcat(dss(Matrix{promote_type(eltype(SYS),eltype(MAT))}(MAT,SYS.nu,SYS.nu),Ts=SYS.Ts),SYS)
 
