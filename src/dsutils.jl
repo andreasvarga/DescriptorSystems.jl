@@ -8,6 +8,11 @@ to_matrix(T, A::AbstractMatrix, wide::Bool = false) = AbstractMatrix{T}(A)  # Fa
 to_matrix(T, A::Number, wide::Bool = true) = fill(T(A), 1, 1)
 # Handle Adjoint Matrices
 to_matrix(T, A::Adjoint{R, MT}, wide::Bool = false) where {R<:Number, MT<:AbstractMatrix} = to_matrix(T, MT(A))
+to_matrix(T, A::Diagonal, wide::Bool = false) = Matrix{T}(A)  # Fallback
+to_matrix(T, A::UpperTriangular, wide::Bool = false) = Matrix{T}(A)  # Fallback
+to_matrix(T, A::LowerTriangular, wide::Bool = false) = Matrix{T}(A)  # Fallback
+to_matrix(T, A::UpperHessenberg, wide::Bool = false) = Matrix{T}(A)  # Fallback
+
 
 #
 eye(n) = Matrix{Bool}(I, n, n)

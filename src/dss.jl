@@ -58,7 +58,7 @@ function dss(A::AbstractNumOrArray, E::Union{AbstractNumOrArray,UniformScaling},
     check_reg && E != I && !MatrixPencils.isregular(to_matrix(T,A), to_matrix(T,E), atol1 = atol1, atol2 = atol2, rtol = rtol ) && 
                             error("The pencil A-λE is not regular")
     p = typeof(C) <: Union{Vector,Number} ? (size(A,1) <= 1 ? size(C,1) : 1) : size(C,1)                        
-    m = typeof(B) <: Union{Vector,Number} ? 1 : size(B,2)                        
+    m = typeof(B) <: Union{Vector,Number} ? 1 : size(B,2)       
     return DescriptorStateSpace{T}(to_matrix(T,A), E == I ? I : to_matrix(T,E), to_matrix(T,B), to_matrix(T,C,p <=1), 
                                    typeof(D) <: Number && iszero(D) ? zeros(T,p,m) : p <=1 ? to_matrix(T,D,m > p) : to_matrix(T,D), Ts)
 end
@@ -79,18 +79,18 @@ function dss(D::AbstractNumOrArray; Ts::Real = 0)
     T = eltype(D)
     return DescriptorStateSpace{T}(zeros(T,0,0),I,zeros(T,0,m),zeros(T,p,0),to_matrix(T,D),Ts)
 end
-function dss(;A::Union{AbstractNumOrArray} = zeros(Bool,0,0), E::Union{AbstractNumOrArray,UniformScaling} = I, B::Union{AbstractNumOrArray,Missing} = missing, 
+function dss(;A::AbstractNumOrArray = zeros(Bool,0,0), E::Union{AbstractNumOrArray,UniformScaling} = I, B::Union{AbstractNumOrArray,Missing} = missing, 
               C::Union{AbstractNumOrArray,Missing} = missing, D::Union{AbstractNumOrArray,Missing} = missing, 
               Ts::Real = 0, check_reg::Bool = false, 
               atol::Real = zero(real(eltype(A))), atol1::Real = atol, atol2::Real = atol, 
               rtol::Real = (typeof(A) <: Number ? 1 : min(size(A)...))*eps(real(float(one(eltype(A)))))*iszero(min(atol1,atol2))) 
     T = Bool
-    T = promote_type(T, ismissing(A) ? T : eltype(A), E == I ? Bool : eltype(E), ismissing(B) ? T : eltype(B), 
+    T = promote_type(T, eltype(A), E == I ? Bool : eltype(E), ismissing(B) ? T : eltype(B), 
                      ismissing(C) ? T : eltype(C), ismissing(D) ? T : eltype(D))
     A = to_matrix(T,A)
     n = size(A,1)
     E == I || (E = to_matrix(T,E))
-    check_reg && E != I && !isregular(A, E, atol1 = atol1, atol2 = atol2, rtol = rtol ) && 
+    check_reg && E != I && !MatrixPencils.isregular(A, E, atol1 = atol1, atol2 = atol2, rtol = rtol ) && 
                             error("The pencil A-λE is not regular")
 
     ismissing(D) || (D1 = to_matrix(T,D))

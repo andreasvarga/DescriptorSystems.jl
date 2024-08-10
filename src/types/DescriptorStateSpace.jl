@@ -65,19 +65,33 @@ The dimensions `nx`, `ny` and `nu` can be obtained as `SYS.nx`, `SYS.ny` and `SY
 #         new{T, typeof(E)}(A, E, B, C, D, Float64(Ts))
 #     end
 # end
-struct DescriptorStateSpace{T, ET <: ETYPE{T}, MT<:AbstractMatrix{T}} <: AbstractDescriptorStateSpace
+# struct DescriptorStateSpace{T, ET <: ETYPE{T}, MT<:AbstractMatrix{T}} <: AbstractDescriptorStateSpace
+#     A::MT
+#     E::ET
+#     B::MT
+#     C::MT
+#     D::MT
+#     Ts::Float64
+#     function DescriptorStateSpace{T}(A::MT, E::ETYPE{T},
+#                                      B::MT, C::MT, D::MT,  Ts::Real) where {T, MT<:AbstractMatrix{T}}
+#         dss_validation(A, E, B, C, D, Ts)
+#         new{T, typeof(E), MT}(A, E, B, C, D, Float64(Ts))
+#     end
+# end
+struct DescriptorStateSpace{T, ET <: Union{AbstractMatrix{T},UniformScaling{Bool}}, MT<:AbstractMatrix{T}} <: AbstractDescriptorStateSpace
     A::MT
     E::ET
     B::MT
     C::MT
     D::MT
     Ts::Float64
-    function DescriptorStateSpace{T}(A::MT, E::ETYPE{T},
+    function DescriptorStateSpace{T}(A::MT, E::Union{MT,UniformScaling{Bool}},
                                      B::MT, C::MT, D::MT,  Ts::Real) where {T, MT<:AbstractMatrix{T}}
         dss_validation(A, E, B, C, D, Ts)
         new{T, typeof(E), MT}(A, E, B, C, D, Float64(Ts))
     end
 end
+
 
 #function dss_validation(A::Matrix{T}, E::Union{Matrix{T},UniformScaling}, 
 # function dss_validation(A::Matrix{T}, E::ETYPE{T}, 

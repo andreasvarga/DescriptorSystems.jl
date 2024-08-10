@@ -1,5 +1,9 @@
 # Release Notes
 
+## Version 1.4.4
+
+Some fixes to handle structured and sparse matrices in the `dss` function.   
+
 ## Version 1.4.3
 
 Some fixes of errors originating from the enhanced definition of the `DescriptorStateSpace` object.   

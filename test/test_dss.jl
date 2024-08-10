@@ -3,6 +3,8 @@ module Test_dss
 using DescriptorSystems
 using LinearAlgebra
 using Polynomials
+using SparseArrays
+using Measurements
 using Test
 
 println("Test_dss")
@@ -224,6 +226,30 @@ try
 catch
     @test false
 end
+
+# some tests involving the new DescriptorStateSpace structure
+
+t = rand(3,3)
+sys = dss(UpperHessenberg(t), UpperTriangular(t),LowerTriangular(t),Diagonal(t),0)
+@test istriu(sys.A,-1) && istriu(sys.E) && istril(sys.B) && isdiag(sys.C) && iszero(sys.D)
+
+ssys = dss(sparse(sys.A),sparse(sys.E),sparse(sys.B),sparse(sys.C),sparse(sys.D))
+@test istriu(ssys.A,-1) && istriu(ssys.E) && istril(ssys.B) && isdiag(ssys.C) && iszero(ssys.D)
+
+ρ1 = measurement(0, 0.25); ρ2 = measurement(0, 0.25);
+# build uncertain state matrix A(p)
+A = [-.8 0 0;0 -.5*(1+ρ1) .6*(1+ρ2); 0 -0.6*(1+ρ2) -0.5*(1+ρ1)];
+B = [1 1;1 0;0 1]; 
+C = [0 1 1; 1 1 0]; D = zeros(2,2); 
+# build an uncertain system 
+try
+    usys = dss(A,B,C,D)
+    @test true
+catch
+    @test false
+end
+
+
 
 
 end
