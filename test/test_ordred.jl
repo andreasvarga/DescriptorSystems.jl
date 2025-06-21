@@ -4,7 +4,6 @@ using DescriptorSystems
 using LinearAlgebra
 using Polynomials
 using SparseArrays
-using IterativeSolvers
 using BandedMatrices
 using JLD2
 using Random
