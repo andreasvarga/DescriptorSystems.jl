@@ -529,8 +529,8 @@ end # fast
 end # Ty
 
 # sparse model
-cd(joinpath(pkgdir(DescriptorSystems), "Examples"))
-G = load("mirror.jld2","G");
+cd(joinpath(pkgdir(DescriptorSystems), "test"))
+G = load("mirror315.jld2","G");
 # alternatively use
 A, E, B, C, D = load("mirror.jld2","A","E","B","C","D");
 Ge = dss(Symmetric(A-0.0001I),Diagonal(E),B,C,D)
@@ -970,7 +970,7 @@ end # gnugap
 cd(joinpath(pkgdir(DescriptorSystems), "test"))
 #G = load("mirror.jld2","G");
 # alternatively use
-A, E, B, C, D = load("mirror.jld2","A","E","B","C","D");
+A, E, B, C, D = load("mirror315.jld2","A","E","B","C","D");
 G = dss(A-0.0001I,E,B,C,D);
 Ge = dss(Symmetric(A-0.0001I),Diagonal(E),B,C,D);
 Gs = dss(sparse(A-0.0001I),sparse(E),sparse(B),sparse(C),sparse(D));
