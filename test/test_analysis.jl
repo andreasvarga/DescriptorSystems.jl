@@ -967,8 +967,8 @@ end # gnugap
 @testset "Sparse models" begin
 
 # sparse model norms
-cd(joinpath(pkgdir(DescriptorSystems), "Examples"))
-G = load("mirror.jld2","G");
+cd(joinpath(pkgdir(DescriptorSystems), "test"))
+#G = load("mirror.jld2","G");
 # alternatively use
 A, E, B, C, D = load("mirror.jld2","A","E","B","C","D");
 G = dss(A-0.0001I,E,B,C,D);
