@@ -12,8 +12,15 @@ Polynomials = "f27b6e38-b328-58d1-80ce-0feddd5e7a45"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 
+[extras]
+BandedMatrices = "aae01518-5342-5314-be14-df237901396f"
+JLD2 = "033835bb-8acc-5ee8-8aae-3f567f8a3819"
+Measurements = "eff96d63-e80a-5855-80a2-b1b0885c5ab7"
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
 [compat]
 BandedMatrices = "1.9"
+JLD2 = "0.5"
 LinearAlgebra = "1"
 MatrixEquations = "2.5"
 MatrixPencils = "1.8"
@@ -24,11 +31,6 @@ SparseArrays = "1"
 Test = "1"
 julia = "1.8"
 
-[extras]
-BandedMatrices = "aae01518-5342-5314-be14-df237901396f"
-Measurements = "eff96d63-e80a-5855-80a2-b1b0885c5ab7"
-Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
-
 [targets]
-test = ["BandedMatrices", "Measurements", "Test"]
+test = ["BandedMatrices", "JLD2", "Measurements", "Test"]
 
