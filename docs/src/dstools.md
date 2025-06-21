@@ -13,6 +13,8 @@
 * **[`dszeros`](@ref)**   Setting a subsystem to zero.
 * **[`dssubsel`](@ref)**   Selecting a subsystem according to a given zero-nonzero pattern.
 * **[`dsdiag`](@ref)**   Building a `k`-times diagonal concatenation of a descriptor system. 
+* **[`dss2full`](@ref)**   Conversion of a descriptor state-space model to one with full matrices. 
+* **[`dss2sparse`](@ref)**  Conversion of a descriptor state-space model to one with sparse matrices. 
 
 ```@docs
 order
@@ -28,4 +30,6 @@ dssubset
 dszeros
 dssubsel
 dsdiag
+dss2full
+dss2sparse
 ```

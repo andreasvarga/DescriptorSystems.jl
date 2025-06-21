@@ -98,15 +98,62 @@ function chess(a::MT, e::Union{MT,UniformScaling}, b::MT, c::MT, d::MT) where {T
     return ac, ec, bc, cc, dc
 end
 """
+
+     H = freqresp(sys::SparseDescriptorStateSpace, ω)
+
+Compute the frequency response `H` of the sparse descriptor system `sys = (A-λE,B,C,D)` at the real frequencies `ω`. 
+    
+For a system with `p` outputs and `m` inputs, and for `N` frequency values in `ω`,
+`H` is a `p × m × N` array, where `H[:,:,i]` contains the `i`-th value of the frequency response computed as
+`C*((w[i]*E - A)^-1)*B + D`, where `w[i] = im*ω[i]` for a continuous-time system and `w[i] = exp(im*ω[i]*|Ts|)` 
+for a discrete-time system with sampling time `Ts`. 
+
+The function `freqresp` can be also used if `sys` has the type `DescriptorStateSpaceExt`.
+
+Parallel computation of the frequency response matrices can be alternatively performed 
+by starting Julia with several execution threads. 
+The number of execution threads is controlled either by using the `-t/--threads` command line argument 
+or by using the `JULIA_NUM_THREADS` environment variable.  
+"""
+
+function freqresp(sys::Union{SparseDescriptorStateSpace{T},DescriptorStateSpaceExt{T}}, ω::Union{AbstractVector{<:Real},Real}) where T
+    T1 = T <: BlasFloat ? T : promote_type(Float64,T) 
+    ONE = one(T1)
+    typeof(ω) <: Real && (ω = [ω])
+    N = length(ω)    
+    a, e, b, c, d = dssdata(T1,sys)
+    if isempty(a)
+        # overcome bug in orghr! for null dimension #43680 
+        dmat = Matrix(d)
+        H = similar(dmat, eltype(dmat), sys.ny, sys.nu, N)
+        for i = 1:N
+           copyto!(view(H,:,:,i),dmat)
+       end
+       return complex(H)
+    end
+
+    Ts = abs(sys.Ts)
+    disc = !iszero(Ts)
+    # create the complex frequency scaling
+    sw = disc ? im*abs(sys.Ts) : im
+    dc = complex(Matrix(d))
+    H = similar(dc, eltype(dc), sys.ny, sys.nu, N)
+    Threads.@threads for i = 1:N
+        H[:,:,i] = evalfr(sys, fval=ω[i])
+    end
+    return H
+end
+
+"""
     nx = order(sys)
 
 Return the order `nx` of the descriptor system `sys` as the dimension of the state variable vector. 
 For improper or non-minimal systems, `nx` is less than the McMillan degree of the system.   
 """
-function order(sys::DescriptorStateSpace)
+function order(sys::DSTYPE)
     return sys.nx
 end
-function Base.ndims(::DescriptorStateSpace)
+function Base.ndims(::DSTYPE)
 # """
 #     ndims(sys)
 
@@ -121,13 +168,13 @@ end
 
 Return the number of outputs `p` and the number of inputs `m` of a descriptor system `sys`.
 """
-function Base.size(sys::DescriptorStateSpace)
+function Base.size(sys::DSTYPE)
     size(sys.D)
 end
-function Base.size(sys::DescriptorStateSpace, d::Integer)
+function Base.size(sys::DSTYPE, d::Integer)
     d <= 2 ? size(sys)[d] : 1
 end
-function Base.length(sys::DescriptorStateSpace)
+function Base.length(sys::DSTYPE)
 # """
 #     length(sys)
 
@@ -167,9 +214,45 @@ The keyword argument `atol` can be used to simultaneously set `atol1 = atol` and
 """
 function iszero(sys::DescriptorStateSpace{T}; atol::Real = zero(real(T)), atol1::Real = atol, atol2::Real = atol, 
                 rtol::Real =  ((max(size(sys.A)...))+1)*eps(real(float(one(real(T)))))*iszero(max(atol1,atol2)), 
-                fastrank::Bool = true) where T
-    return (sprank(dssdata(sys)..., atol1 = atol1, atol2 = atol2, rtol = rtol, fastrank = fastrank) == sys.nx)
+                fastrank::Bool = true) where T   
+   return (sprank(dssdata(sys)..., atol1 = atol1, atol2 = atol2, rtol = rtol, fastrank = fastrank) == sys.nx)
 end
+function iszero(sys::SparseDescriptorStateSpace{T}; atol::Real = zero(real(T)), atol1::Real = atol, atol2::Real = atol, 
+    rtol::Real =  ((max(size(sys.A)...))+1)*eps(real(float(one(real(T)))))*iszero(max(atol1,atol2)), 
+    fastrank::Bool = true) where T  
+    if sys.E == I 
+       nrmA = opnorm(sys.A,1)
+       scale = max(nrmA,1)*rand()
+       nrmM = max(nrmA, opnorm(sys.B,1), opnorm(sys.C,Inf), opnorm(sys.D,1))
+       return rank([sys.A+scale*sys.E sys.B; sys.C sys.D], tol = max(atol1,atol2) + nrmM*rtol) == sys.nx
+    else
+       nrmN = opnorm(sys.E,1)
+       nrmM = max(opnorm(sys.A,1), opnorm(sys.B,1), opnorm(sys.C,Inf), opnorm(sys.D,1))
+       nrmN == zero(nrmN) && (return rank([sys.A sys.B; sys.C sys.D], tol = max(atol1,atol2) + nrmM*rtol) == sys.nx)
+       scale = nrmM/nrmN*rand()
+       return rank([sys.A+scale*sys.E sys.B; sys.C sys.D], tol = max(atol1,atol2) + max(nrmN,nrmM)*rtol) == sys.nx
+    end
+end
+function iszero(sys::DescriptorStateSpaceExt{T}; atol::Real = zero(real(T)), atol1::Real = atol, atol2::Real = atol, 
+    rtol::Real =  ((max(size(sys.A)...))+1)*eps(real(float(one(real(T)))))*iszero(max(atol1,atol2)), 
+    fastrank::Bool = true) where T  
+    if issparse(sys.A) 
+       if sys.E == I 
+         nrmA = opnorm(sys.A,1)
+         scale = max(nrmA,1)*rand()
+         nrmM = max(nrmA, opnorm(sys.B,1), opnorm(sys.C,Inf), opnorm(sys.D,1))
+         return rank([sys.A+scale*sys.E sys.B; sys.C sys.D], tol = max(atol1,atol2) + nrmM*rtol) == sys.nx
+       else
+         nrmN = opnorm(sys.E,1)
+         nrmM = max(opnorm(sys.A,1), opnorm(sys.B,1), opnorm(sys.C,Inf), opnorm(sys.D,1))
+         nrmN == zero(nrmN) && (return rank([sys.A sys.B; sys.C sys.D], tol = max(atol1,atol2) + nrmM*rtol) == sys.nx)
+         scale = nrmM/nrmN*rand()
+         return rank([sys.A+scale*sys.E sys.B; sys.C sys.D], tol = max(atol1,atol2) + max(nrmN,nrmM)*rtol) == sys.nx
+      end
+    end
+    return (sprank(dssdatafull(sys)..., atol1 = atol1, atol2 = atol2, rtol = rtol, fastrank = fastrank) == sys.nx)
+end
+
 """
     Gval = evalfr(sys, val; atol1 = 0, atol2 = 0, rtol, fast = true) 
 
@@ -190,6 +273,11 @@ The rank decision based on the SVD-decomposition is generally more reliable, but
 """
 function evalfr(SYS::DescriptorStateSpace, val::Number; kwargs...) 
     return lseval(dssdata(SYS)..., val; kwargs...)
+end
+function evalfr(sys::Union{SparseDescriptorStateSpace{T},DescriptorStateSpaceExt{T}}, val::Number) where {T}
+    T1 = promote_type(Float64, typeof(val), T)        
+    isinf(val) && (return fill(NaN,size(sys.D)...))   
+    return sys.C*((T1(val)*sys.E-sys.A)\Matrix(sys.B))+sys.D
 end
 """
     Gval = evalfr(sys; fval = 0, atol = 0, atol1 = atol, atol2 = atol, rtol, fast = true) 
@@ -213,8 +301,20 @@ The rank decision based on the SVD-decomposition is generally more reliable, but
 """
 function evalfr(SYS::DescriptorStateSpace{T}; fval::Real = 0, atol::Real = zero(real(T)), atol1::Real = atol, atol2::Real = atol, 
     rtol::Real =  ((max(size(SYS.A)...))+1)*eps(real(float(one(real(T)))))*iszero(max(atol1,atol2)), fast::Bool = true) where T
-    val = SYS.Ts == 0 ? im*abs(fval) : exp(im*abs(fval*SYS.Ts)) 
+    if SYS.Ts == 0
+       val =  fval == 0 ? zero(T) : im*abs(fval) 
+    else
+       val = fval == 0 ? one(T) : exp(im*abs(fval*SYS.Ts)) 
+    end
     return lseval(dssdata(SYS)..., val; fast = fast, atol1 = atol1, atol2 = atol2, rtol = rtol)
+end
+function evalfr(SYS::Union{SparseDescriptorStateSpace{T},DescriptorStateSpaceExt{T}}; fval::Real = 0) where {T}
+    if SYS.Ts == 0
+       val = fval == 0 ? zero(T) : im*abs(fval) 
+    else
+       val = fval == 0 ? one(T) : exp(im*abs(fval*SYS.Ts)) 
+    end
+    return evalfr(SYS,val) 
 end
 """
     Gval = dcgain(sys; atol1, atol2, rtol, fast = true) 
@@ -235,10 +335,15 @@ algorithms, which employ rank determinations based on either the use of
 rank revealing QR-decomposition with column pivoting, if `fast = true`, or the SVD-decomposition.
 The rank decision based on the SVD-decomposition is generally more reliable, but the involved computational effort is higher.
 """
-function dcgain(SYS::DescriptorStateSpace; kwargs...) 
+function dcgain(SYS::DescriptorStateSpace; kwargs...)
     SYS.Ts == 0 ? (return lseval(dssdata(SYS)..., 0; kwargs...) ) : 
                   (return lseval(dssdata(SYS)..., 1; kwargs...) )
 end
+dcgain(SYS::Union{SparseDescriptorStateSpace,DescriptorStateSpaceExt}) = evalfr(SYS)
+# function dcgain(SYS::DescriptorStateSpace; kwargs...) 
+#     SYS.Ts == 0 ? (return lseval(dssdata(SYS)..., 0; kwargs...) ) : 
+#                   (return lseval(dssdata(SYS)..., 1; kwargs...) )
+# end
 """
      opnorm(sys[, p = Inf]; kwargs...) 
      opnorm(sys, 2; kwargs...) -> sysnorm
@@ -362,6 +467,11 @@ function dsxvarsel(SYS::DescriptorStateSpace{T},ind::Union{UnitRange{Int64},Step
     isempty(ind) &&  (return DescriptorStateSpace{T}(zeros(T,0,0),I,zeros(T,0,SYS.nu),zeros(T,SYS.ny,0),SYS.D,SYS.Ts))
     (minimum(ind) < 1 || maximum(ind) > SYS.nx) && error("BoundsError: selected indices $ind out of range $(1:SYS.nx)")
     return DescriptorStateSpace{T}(SYS.A[ind,ind], SYS.E == I ? I : SYS.E[ind,ind], SYS.B[ind,:], SYS.C[:,ind], SYS.D, SYS.Ts)
+end
+function dsxvarsel(SYS::SparseDescriptorStateSpace{T},ind::Union{UnitRange{Int64},StepRange{Int64, Int64}, Array{Int64,1}}) where T
+    isempty(ind) &&  (return DescriptorStateSpace{T}(zeros(T,0,0),I,zeros(T,0,SYS.nu),zeros(T,SYS.ny,0),SYS.D,SYS.Ts))
+    (minimum(ind) < 1 || maximum(ind) > SYS.nx) && error("BoundsError: selected indices $ind out of range $(1:SYS.nx)")
+    return SparseDescriptorStateSpace{T}(SYS.A[ind,ind], SYS.E == I ? I : SYS.E[ind,ind], SYS.B[ind,:], SYS.C[:,ind], SYS.D, SYS.Ts)
 end
 
 """

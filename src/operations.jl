@@ -27,6 +27,34 @@ function inv(sys::DescriptorStateSpace{T}; checkinv::Bool = true,
                 error("The system is not invertible"))
    return DescriptorStateSpace{T}(Ai, Ei, Bi, Ci, Di, sys.Ts) 
 end
+function inv(sys::SparseDescriptorStateSpace{T}; checkinv::Bool = true, rtol = missing) where T
+   p, m = sys.ny, sys.nu
+   n = sys.nx
+   m == p  || error("The system must have the same number of inputs and outputs")
+   Ai = [sys.A sys.B; sys.C sys.D]
+   Bi = [SparseArrays.spzeros(T,n,m); -I]
+   Ci = [SparseArrays.spzeros(T,m,n) I]
+   Di = SparseArrays.spzeros(T,m,m)
+   Ei = (sys.E == I) ? blockdiag(sparse(T.(I),n,n),SparseArrays.spzeros(T,m,m)) : 
+                       blockdiag(sys.E,SparseArrays.spzeros(T,m,m)) 
+   checkinv && isregular(Ai, Ei, tol = rtol ) || error("The system is not invertible")
+   return SparseDescriptorStateSpace{T}(Ai, Ei, Bi, Ci, Di, sys.Ts) 
+end
+function isregular(A::SparseMatrixCSC{T},E::Union{SparseMatrixCSC{T},UniformScaling{Bool}}; tol = missing) where {T} 
+    n, m = size(A)
+    if n == m 
+       E == I && (return true)
+    else
+       E == I && throw(ArgumentError("A must be square if E = I"))
+       n, m == size(E) || throw(ArgumentError("A and E must have the same dimensions"))
+       return false
+    end
+    normA = maximum(norm(view(A, :, i)) for i in 1:n)
+    normE = maximum(norm(view(E, :, i)) for i in 1:n)      
+    ismissing(tol) && (tol = 20*n*eps(real(float(one(T))))*max(normA,normE))
+    scal = (1+rand(real(T)))*max(1,normA)/max(1,normE)
+    return rank(A+scal*E; tol) == n
+end
 """
     sysldiv = ldiv(sys1, sys2; atol = 0, atol1 = atol, atol2 = atol, rtol = n*ϵ, checkinv = true)
     sysldiv = sys1 \\ sys2
@@ -146,7 +174,7 @@ such that the transfer function matrix `Gdual(λ)` of `sysdual` is the transpose
 If `rev = true`, the tranposition is combined with the reverse permutation of the state variables, such that
 `sysdual = (P*Ad*P-λP*Ed*P,P*Bd,Cd*P,Dd)`, where `P` is the permutation matrix with ones down the second diagonal. 
 """
-function gdual(SYS::DescriptorStateSpace{T};kwargs...) where T
+function gdual(SYS::DSTYPE{T};kwargs...) where T
     transpose(SYS;kwargs...)
 end
 function transpose(SYS::DescriptorStateSpace{T}; rev = false) where T
@@ -156,6 +184,16 @@ function transpose(SYS::DescriptorStateSpace{T}; rev = false) where T
                                       reverse(transpose(SYS.C),dims=1), reverse(transpose(SYS.B),dims=2), copy(transpose(SYS.D)), SYS.Ts)
    else
        return DescriptorStateSpace{T}(copy(transpose(SYS.A)), SYS.E == I ? I : copy(transpose(SYS.E)), copy(transpose(SYS.C)), copy(transpose(SYS.B)),
+                                      copy(transpose(SYS.D)), SYS.Ts)
+   end
+end
+function transpose(SYS::SparseDescriptorStateSpace{T}; rev = false) where T
+   if rev
+       return SparseDescriptorStateSpace{T}(reverse(reverse(transpose(SYS.A),dims=1),dims=2), 
+                                      SYS.E == I ? I : reverse(reverse(transpose(SYS.E),dims=1),dims=2),
+                                      reverse(transpose(SYS.C),dims=1), reverse(transpose(SYS.B),dims=2), copy(transpose(SYS.D)), SYS.Ts)
+   else
+       return SparseDescriptorStateSpace{T}(copy(transpose(SYS.A)), SYS.E == I ? I : copy(transpose(SYS.E)), copy(transpose(SYS.C)), copy(transpose(SYS.B)),
                                       copy(transpose(SYS.D)), SYS.Ts)
    end
 end
@@ -180,6 +218,21 @@ function ctranspose(sys::DescriptorStateSpace{T}) where T
                                      [sys.B' zeros(T,nu,ny)], copy(sys.D'), sys.Ts) 
    end
 end
+function ctranspose(sys::SparseDescriptorStateSpace{T}) where T
+   if sys.Ts == 0
+      # continuous-time case
+      return SparseDescriptorStateSpace{T}(copy(-sys.A'), sys.E == I ? I : copy(sys.E'), copy(-sys.C'), copy(sys.B'), copy(sys.D'), sys.Ts) 
+   else
+      # discrete-time case
+      (nx, ny, nu) = (sys.nx, sys.ny, sys.nu)
+      n = nx+ny
+      return SparseDescriptorStateSpace{T}(sys.E == I ? sparse(T.(1)*I,n,n) : blockdiag(sys.E',sparse(T.(1)*I,ny,ny)), 
+                                     [sys.A' sys.C'; SparseArrays.spzeros(T,ny,n)], 
+                                     [SparseArrays.spzeros(T,nx,ny) ; -I], 
+                                     [sys.B' SparseArrays.spzeros(T,nu,ny)], copy(sys.D'), sys.Ts) 
+   end
+end
+
 """
     sysconj = adjoint(sys) 
     sysconj = sys' 
@@ -191,7 +244,7 @@ is the appropriate conjugate transpose of `G(λ)`, as follows:
 for a continuous-time system with `λ = s`, `Gconj(s) := transpose(G(-s))`, while 
 for a discrete-time system with `λ = z`, `Gconj(z) := transpose(G(1/z))`.
 """
-function adjoint(sys::DescriptorStateSpace)
+function adjoint(sys::DSTYPE)
     ctranspose(sys)
 end
     

@@ -4,8 +4,57 @@ using DescriptorSystems
 using LinearAlgebra
 using Polynomials
 using Test
+using SparseArrays
+using JLD2
 
 println("Test_analysis")
+@testset "Frequency response" begin
+
+w = collect(LinRange(.1,100,1000));
+sys = rss(50,4,3);
+@time H = freqresp(sys,w);
+@time begin for i = 1:1000 H[:,:,i] -= evalfr(sys,fval=w[i]); end end
+@test norm(H,Inf) < 1.e-5
+
+sys = rss(50,4,3,disc=true);
+@time H = freqresp(sys,w);
+@time begin for i = 1:1000 H[:,:,i] -= evalfr(sys,fval=w[i]); end end
+@test norm(H,Inf) < 1.e-6
+
+sys = rdss(50,4,3);
+@time H = freqresp(sys,w);
+@time begin for i = 1:1000 H[:,:,i] -= evalfr(sys,fval=w[i]); end end
+@test norm(H,Inf) < 1.e-6
+
+sys = rdss(50,4,3,disc=true);
+@time H = freqresp(sys,w);
+@time begin for i = 1:1000 H[:,:,i] -= evalfr(sys,fval=w[i]); end end
+@test norm(H,Inf) < 1.e-6
+
+# sparse models
+syss = dss(sprand(50,50,0.7),sprand(50,3,.4),sprand(4,50,0.5),sprand(4,3,0.1));
+@time H = freqresp(syss,w);
+@time begin for i = 1:1000 H[:,:,i] -= evalfr(syss,fval=w[i]); end end
+@test norm(H,Inf) < 1.e-5
+
+syss = dss(sprand(50,50,0.7),sprand(50,3,.4),sprand(4,50,0.5),sprand(4,3,0.1),Ts=0.1);
+@time H = freqresp(syss,w);
+@time begin for i = 1:1000 H[:,:,i] -= evalfr(syss,fval=w[i]); end end
+@test norm(H,Inf) < 1.e-5
+
+syss = dss(sprand(50,50,0.7),sprand(50,50,0.7), sprand(50,3,.4),sprand(4,50,0.5),sprand(4,3,0.1));
+@time H = freqresp(syss,w);
+@time begin for i = 1:1000 H[:,:,i] -= evalfr(syss,fval=w[i]); end end
+@test norm(H,Inf) < 1.e-5
+
+syss = dss(sprand(50,50,0.7),sprand(50,50,0.7),sprand(50,3,.4),sprand(4,50,0.5),sprand(4,3,0.1),Ts=0.1);
+@time H = freqresp(syss,w);
+@time begin for i = 1:1000 H[:,:,i] -= evalfr(syss,fval=w[i]); end end
+@test norm(H,Inf) < 1.e-5
+
+end #freqresp
+
+
 @testset "test_analysis" begin
 @testset "zeros, rank, poles" begin
 
@@ -359,6 +408,7 @@ sys = rdss(n,p,m, T = Ty, stable = true, id=ones(Int,3));
 
 end # fast
 end # Ty
+
 end # gl2norm
 
 @testset "ghanorm" begin
@@ -477,6 +527,15 @@ sys = rdss(n,p,m,T = Ty, disc = true,stable = true);
 
 end # fast
 end # Ty
+
+# sparse model
+cd(joinpath(pkgdir(DescriptorSystems), "Examples"))
+G = load("mirror.jld2","G");
+# alternatively use
+A, E, B, C, D = load("mirror.jld2","A","E","B","C","D");
+Ge = dss(Symmetric(A-0.0001I),Diagonal(E),B,C,D)
+Gs = dss(sparse(A-0.0001I),sparse(E),sparse(B),sparse(C),sparse(D));
+
 end # ghanorm
 
 @testset "glinfnorm & ghinfnorm" begin
@@ -904,6 +963,33 @@ nugap2, fpeak2 = gnugap(sysc2,sysc1,fast = fast, atol=1.e-7)
 end # fast
 end # Ty
 end # gnugap
+
+@testset "Sparse models" begin
+
+# sparse model norms
+cd(joinpath(pkgdir(DescriptorSystems), "Examples"))
+G = load("mirror.jld2","G");
+# alternatively use
+A, E, B, C, D = load("mirror.jld2","A","E","B","C","D");
+G = dss(A-0.0001I,E,B,C,D);
+Ge = dss(Symmetric(A-0.0001I),Diagonal(E),B,C,D);
+Gs = dss(sparse(A-0.0001I),sparse(E),sparse(B),sparse(C),sparse(D));
+@test gh2norm(G) ≈ gh2norm(Ge) ≈ gh2norm(Gs)
+@test ghanorm(G)[1] ≈ ghanorm(Ge)[1] ≈ ghanorm(Gs)[1]
+@test abs(ghinfnorm(G)[1]-ghinfnorm(Gs,fmin=0)[1]) < 1.e-7
+
+@test gnrank(G-G) == 0 &&  gnrank(Ge-Ge) == 0 &&  gnrank(Ge-Ge) == 0 && gnrank(Gs) == 2
+@test isregular(Gs)
+
+G = dss(A,E,B,C,D,Ts=0.1);
+Ge = dss(Symmetric(A),Diagonal(E),B,C,D,Ts=0.1);
+Gs = dss(sparse(A),sparse(E),sparse(B),sparse(C),sparse(D),Ts=0.1);
+@test gh2norm(G) ≈ gh2norm(Ge) ≈ gh2norm(Gs)
+@test ghanorm(G)[1] ≈ ghanorm(Ge)[1] ≈ ghanorm(Gs)[1]
+@test abs(ghinfnorm(G)[1]-ghinfnorm(Gs)[1]) < 1.e-6
+
+end # sparse models
+
 end # test_analysis
 
 end # module

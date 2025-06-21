@@ -53,32 +53,97 @@ function dss(A::AbstractNumOrArray, E::Union{AbstractNumOrArray,UniformScaling},
              Ts::Real = 0, check_reg::Bool = false, 
              atol::Real = zero(real(eltype(A))), atol1::Real = atol, atol2::Real = atol, 
              rtol::Real = (typeof(A) <: Number ? 1 : min(size(A)...))*eps(real(float(one(eltype(A)))))*iszero(min(atol1,atol2))) 
-
     T = promote_type(eltype(A), E == I ? Bool : eltype(E), eltype(B), eltype(C), eltype(D))
     check_reg && E != I && !MatrixPencils.isregular(to_matrix(T,A), to_matrix(T,E), atol1 = atol1, atol2 = atol2, rtol = rtol ) && 
                             error("The pencil A-λE is not regular")
     p = typeof(C) <: Union{Vector,Number} ? (size(A,1) <= 1 ? size(C,1) : 1) : size(C,1)                        
-    m = typeof(B) <: Union{Vector,Number} ? 1 : size(B,2)       
-    return DescriptorStateSpace{T}(to_matrix(T,A), E == I ? I : to_matrix(T,E), to_matrix(T,B), to_matrix(T,C,p <=1), 
-                                   typeof(D) <: Number && iszero(D) ? zeros(T,p,m) : p <=1 ? to_matrix(T,D,m > p) : to_matrix(T,D), Ts)
+    m = typeof(B) <: Union{Vector,Number} ? 1 : size(B,2)   
+    if typeof(D) <: Number
+       if iszero(D)
+          ds = zeros(T,p,m)
+       else
+          ds = fill(T(D),p,m)
+       end
+    else
+       ds = p <=1 ? to_matrix(T,D,m > p) : to_matrix(T,D)
+    end
+    MAT = Union{Matrix,Vector,Number,SubArray,Adjoint{T,Matrix{T}} where T} 
+    if typeof(A) <: MAT && typeof(B) <: MAT && typeof(C) <: MAT && typeof(C) <: MAT && E == I ? true : (typeof(E) <: MAT)   
+       return DescriptorStateSpace{T}(to_matrix(T,A), E == I ? I : to_matrixA(T,E), to_matrix(T,B), to_matrix(T,C,p <=1), ds, Ts)
+                                   #typeof(D) <: Number && iszero(D) ? zeros(T,p,m) : p <=1 ? to_matrix(T,D,m > p) : to_matrix(T,D), Ts)
+    else
+        return DescriptorStateSpaceExt{T}(to_matrixA(T,A), E == I ? I : to_matrixA(T,E), to_matrix(T,B), to_matrix(T,C,p <=1), ds, Ts)
+                                   #typeof(D) <: Number && iszero(D) ? zeros(T,p,m) : p <=1 ? to_matrix(T,D,m > p) : to_matrix(T,D), Ts)
+    end
 end
+function dss(A::SparseMatrixCSC, E::Union{SparseMatrixCSC,UniformScaling}, B::Union{SparseMatrixCSC,SparseVector}, C::Union{SparseMatrixCSC,SparseVector}, D::Union{SparseMatrixCSC,SparseVector,Number}; 
+             Ts::Real = 0, check_reg::Bool = false, 
+             atol::Real = zero(real(eltype(A))), atol1::Real = atol, atol2::Real = atol, 
+             rtol::Real = (typeof(A) <: Number ? 1 : min(size(A)...))*eps(real(float(one(eltype(A)))))*iszero(min(atol1,atol2))) 
+    T = promote_type(eltype(A), E == I ? Bool : eltype(E), eltype(B), eltype(C), eltype(D))
+    check_reg && E != I && isregular(T.(A), T.(E), tol = rtol ) && error("The pencil A-λE is not regular")
+    p = typeof(C) <: SparseVector ? (size(A,1) <= 1 ? size(C,1) : 1) : size(C,1)                        
+    m = typeof(B) <: SparseVector ? 1 : size(B,2)  
+    if typeof(D) <: Number
+       if iszero(D)
+          ds = SparseArrays.spzeros(T,p,m)
+       else
+          ds = sparse(fill(T(D),p,m))
+       end
+    else
+       ds = p <=1 ? to_matrixA(T,D,m > p) : to_matrixA(T,D)
+    end
+    return SparseDescriptorStateSpace{T}(to_matrixA(T,A), E == I ? I : to_matrixA(T,E), to_matrixA(T,B), to_matrixA(T,C,p <=1), ds, Ts)
+end
+
 function dss(A::AbstractNumOrArray, B::AbstractNumOrArray, C::AbstractNumOrArray, D::AbstractNumOrArray; Ts::Real = 0) 
     T = promote_type(eltype(A),eltype(B),eltype(C),eltype(D))
     p = typeof(C) <: Union{Vector,Number} ? (size(A,1) <= 1 ? size(C,1) : 1) : size(C,1)                        
-    m = size(B,2)                        
-    return DescriptorStateSpace{T}(to_matrix(T,A), I, to_matrix(T,B), to_matrix(T,C,p <=1), 
-                                   typeof(D) <: Number && iszero(D) ? zeros(T,p,m) : p <=1 ? to_matrix(T,D,m > p) : to_matrix(T,D), Ts)
+    m = typeof(B) <: Union{Vector,Number} ? 1 : size(B,2)   
+    if typeof(D) <: Number
+       if iszero(D)
+          ds = zeros(T,p,m)
+       else
+          ds = fill(T(D),p,m)
+       end
+    else
+       ds = p <=1 ? to_matrix(T,D,m > p) : to_matrix(T,D)
+    end
+    MAT = Union{Matrix,Vector,Number,SubArray,Adjoint{T,Matrix{T}} where T} 
+    if typeof(A) <: MAT && typeof(B) <: MAT && typeof(C) <: MAT && typeof(C) <: MAT   
+        return DescriptorStateSpace{T}(to_matrix(T,A), I, to_matrix(T,B), to_matrix(T,C,p <=1), ds, Ts)
+    else
+        return DescriptorStateSpaceExt{T}(to_matrixA(T,A), I, to_matrix(T,B), to_matrix(T,C,p <=1), ds, Ts) 
+    end
 end
-# function dss(A::SparseMatrixCSC, B::SparseMatrixCSC, C::SparseMatrixCSC, D::SparseMatrixCSC; Ts::Real = 0) 
-#     T = promote_type(eltype(A),eltype(B),eltype(C),eltype(D))
-#     return DescriptorStateSpace{T}(A, I, B, C, D, Ts)
-# end
+function dss(A::SparseMatrixCSC, B::Union{SparseMatrixCSC,SparseVector}, C::Union{SparseMatrixCSC,SparseVector}, D::Union{SparseMatrixCSC,SparseVector,Number}; Ts::Real = 0) 
+    T = promote_type(eltype(A),eltype(B),eltype(C),eltype(D))
+    p = typeof(C) <: SparseVector ? (size(A,1) <= 1 ? size(C,1) : 1) : size(C,1)                        
+    m = typeof(B) <: SparseVector ? 1 : size(B,2)  
+    if typeof(D) <: Number
+       if iszero(D)
+          ds = SparseArrays.spzeros(T,p,m)
+       else
+          ds = sparse(fill(T(D),p,m))
+       end
+    else
+       ds = p <=1 ? to_matrixA(T,D,m > p) : to_matrixA(T,D)
+    end
+    return SparseDescriptorStateSpace{T}(to_matrixA(T,A), I, to_matrixA(T,B), to_matrixA(T,C,p <=1), ds, Ts)
+                                      #typeof(D) <: Number && iszero(D) ? SparseArrays.spzeros(T,p,m) : p <=1 ? to_matrixA(T,D,m > p) : to_matrixA(T,D), Ts)
+end
 function dss(D::AbstractNumOrArray; Ts::Real = 0) 
-    D == [] && (T = Int64; return DescriptorStateSpace{T}(zeros(T,0,0),I,zeros(T,0,0),zeros(T,0,0),zeros(T,0,0),Ts))
     p, m = size(D,1),size(D,2)
     T = eltype(D)
+    isempty(D) && (return DescriptorStateSpace{T}(zeros(T,0,0),I,zeros(T,0,m),zeros(T,p,0),zeros(T,p,m),Ts))
     return DescriptorStateSpace{T}(zeros(T,0,0),I,zeros(T,0,m),zeros(T,p,0),to_matrix(T,D),Ts)
 end
+function dss(D::SparseMatrixCSC; Ts::Real = 0) 
+    p, m = size(D,1),size(D,2)
+    T = eltype(D)
+    return SparseDescriptorStateSpace{T}(SparseArrays.spzeros(T,0,0),I,SparseArrays.spzeros(T,0,m),SparseArrays.spzeros(T,p,0),to_matrixA(T,D),Ts)
+end
+
 function dss(;A::AbstractNumOrArray = zeros(Bool,0,0), E::Union{AbstractNumOrArray,UniformScaling} = I, B::Union{AbstractNumOrArray,Missing} = missing, 
               C::Union{AbstractNumOrArray,Missing} = missing, D::Union{AbstractNumOrArray,Missing} = missing, 
               Ts::Real = 0, check_reg::Bool = false, 
@@ -449,12 +514,43 @@ end
 Extract the matrices `A`, `E`, `B`, `C`, `D` of a descriptor system model `sys = (A-λE,B,C,D)`. 
 If the type `T` is specified, the resulting matrices are converted to this type. 
 """
-function dssdata(sys::DescriptorStateSpace)
+function dssdata(sys::DSTYPE)
     return copy(sys.A), copy(sys.E), copy(sys.B), copy(sys.C), copy(sys.D)
 end
-function dssdata(T::Type,sys::DescriptorStateSpace)
+function dssdata(T::Type,sys::DSTYPE)
     #eltype(sys) == T ? (return sys.A, sys.E, sys.B, sys.C, sys.D) :
     return copy_oftype(sys.A,T), sys.E == I ? I : copy_oftype(sys.E,T), copy_oftype(sys.B,T), copy_oftype(sys.C,T), copy_oftype(sys.D,T)
+end
+"""
+    A, E, B, C, D  = dssdatafull([T,] sys) 
+    
+Extract the full matrices `A`, `E`, `B`, `C`, `D` of a descriptor system model `sys = (A-λE,B,C,D)`. 
+If the type `T` is specified, the resulting matrices are converted to this type. 
+"""
+function dssdatafull(sys::DSTYPE)
+    return Matrix(copy(sys.A)), sys.E == I ? I : Matrix(copy(sys.E)), Matrix(copy(sys.B)), Matrix(copy(sys.C)), Matrix(copy(sys.D))
+end
+function dssdatafull(T::Type,sys::DSTYPE)
+    #eltype(sys) == T ? (return sys.A, sys.E, sys.B, sys.C, sys.D) :
+    return Matrix(copy_oftype(sys.A,T)), sys.E == I ? I : Matrix(copy_oftype(sys.E,T)), Matrix(copy_oftype(sys.B,T)), Matrix(copy_oftype(sys.C,T)), Matrix(copy_oftype(sys.D,T))
+end
+"""
+    sysf = dss2full(sys) 
+    
+Convert the descriptor system representation `sys = (A-λE,B,C,D)` to an equivalent one `sysf`
+with full matrices.   
+"""
+function dss2full(sys::DSTYPE)
+    return dss(Matrix(sys.A), sys.E == I ? I : Matrix(sys.E), Matrix(sys.B), Matrix(sys.C), Matrix(sys.D),Ts = sys.Ts)
+end
+"""
+    syss = dss2sparse(sys) 
+    
+Convert the descriptor system representation `sys = (A-λE,B,C,D)` to an equivalent one `syss`
+with sparse matrices.   
+"""
+function dss2sparse(sys::DSTYPE)
+    return dss(sparse(sys.A), sys.E == I ? I : sparse(sys.E), sparse(sys.B), sparse(sys.C), sparse(sys.D),Ts = sys.Ts)
 end
 
 

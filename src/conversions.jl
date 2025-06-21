@@ -211,6 +211,103 @@ function c2d(sysc::DescriptorStateSpace{T}, Ts::Real, meth::String = "zoh"; simp
     end                        
     # end C2D
 end
+function c2d(sysc::DescriptorStateSpaceExt{T}, Ts::Real, meth::String = "zoh"; simple_infeigs::Bool = true,
+             x0::Vector = zeros(T,sysc.nx), u0::Vector = zeros(T,sysc.nu), state_mapping::Bool = false, 
+             prewarp_freq::Real = 0, standard::Bool = true, fast::Bool = true, 
+             atol::Real = zero(float(real(T))), atol1::Real = atol, atol2::Real = atol, 
+             rtol::Real = sysc.nx*eps(real(float(one(T))))*iszero(min(atol1,atol2))) where T
+
+    sysc.Ts == 0 || error("c2d can not be applied to a discrete-time system")
+    Ts > 0 || error("the sampling time Ts must be positive")
+    T1 = T <: BlasFloat ? T : promote_type(Float64,T) 
+    ONE = one(T1)
+    n = sysc.nx 
+    m = sysc.nu
+    length(x0) == n || error("initial state vector and system state vector dimensions must coincide")
+    length(u0) == m || error("initial input vector and system input vector dimensions must coincide")
+    issparse(sysc.A) && (meth = "tustin"; standard = false)
+    state_mapping || ( Mx = nothing; Mu = nothing)
+    # quick exit in constant case  
+    n == 0 && (return dss(sysc.D; Ts), x0, state_mapping ? zeros(T1,0,0) : Mx, state_mapping ? zeros(T1,0,m) : Mu)
+
+    meth = lowercase(meth)
+
+    if meth == "zoh" || meth == "foh" || meth == "impulse"
+       if sysc.E != I 
+          # eliminate (if possible) all infinite eigenvalues in the continuous-time case with singular E
+          syscr, xt0, Mx, Mu = dss2ss(sysc, x0; state_mapping, simple_infeigs, fast, atol1, atol2, rtol) 
+          isnothing(Mx) && (state_mapping = false)
+          state_mapping && norm(Mx*xt0+Mu*u0-x0,Inf) >= eps(norm(x0,Inf)*100) && (@warn "Inconsistent initial state")
+          x0 = copy(xt0)
+          A, _, B, C, D = dssdata(syscr)
+          n, m = size(B) 
+         # if rcond(sysc.E) >= n*eps(float(real(T1)))
+         #     # E invertible
+         #     A, E, B, C, D = dssdata(T1,sysc)
+         #     F = lu!(E)
+         #     # get rid of E matrix
+         #     ldiv!(F,A); ldiv!(F,B)
+         #     state_mapping && (Mx = I; Mu = zeros(T1,n,m))
+         #  else
+         #     # E singular
+         #     syscr, xt0, Mx, Mu = dss2ss(sysc, x0; state_mapping, simple_infeigs, fast, atol1, atol2, rtol) 
+         #     isnothing(Mx) && (state_mapping = false)
+         #     state_mapping && norm(Mx*xt0+Mu*u0-x0,Inf) >= eps(norm(x0,Inf)*100) && (@warn "Inconsistent initial state")
+         #     x0 = copy(xt0)
+         #     A, _, B, C, D = dssdata(syscr)
+         #     n, m = size(B) 
+         #  end
+       else
+          A, _, B, C, D = dssdata(T1,sysc)
+          state_mapping && (Mx = I; Mu = zeros(T1,n,m))
+       end
+       m = size(D,2)
+       if meth == "zoh"
+          G = exp([ rmul!(A,Ts) rmul!(B,Ts); zeros(T1,m,n+m)])
+          return (dss(view(G,1:n,1:n), view(G,1:n,n+1:n+m), C, D; Ts), x0, Mx, Mu)
+       elseif meth == "foh"
+          G = exp([ rmul!(A,Ts) rmul!(B,Ts) zeros(T1,n,m); zeros(T1,m,n+m) 1/Ts*I; zeros(T1,m,n+2m)])
+          Ad = view(G,1:n,1:n)
+          G1 = view(G,1:n,n+1:n+m)
+          G2 = view(G,1:n,n+m+1:n+2m)
+          # discrete to continuous state map Mx = M1 Mu = Mu+Mx*G2
+          state_mapping && mul!(Mu, Mx, G2, ONE, ONE) 
+          return (dss(Ad, G1+(Ad-I)*G2, C, D+C*G2; Ts), x0-G2*u0, Mx, Mu)
+       else # meth == "impulse"
+         G = exp(rmul!(A,Ts))
+         return (dss(G, G*B, C, C*B; Ts), x0, Mx, Mu)
+       end
+    elseif meth == "tustin"
+       A, E, B, C, D = dssdata(T1,sysc)
+       prewarp_freq == 0 ? t = Ts : t = 2*tan(prewarp_freq*Ts/2)/prewarp_freq 
+       if standard
+          Ed = E-t/2*A   
+          xd0 = Ed*x0 
+          state_mapping ? F = lu(Ed) : F = lu!(Ed)
+          X = ldiv!(F,Matrix(B*t))
+          Ad = rdiv!(E+t/2*A,F)    # Ad = (E + A*T/2)/(E - A*T/2)
+          Bd = E*X                 # Bd = E * (E - A*T/2) \ B*T
+          mul!(D,C,X,0.5,1)        # Dd = D + C*(E - A*T/2)\B*(T/2) = D + C*X/2
+          rdiv!(C,F)               # Cd = C/(E - A*T/2)
+          xd0 -= (X*u0)/2          # xd0 = (E - A*T/2)*x0 - (E - A*T/2)\B*(T/2)*u0 = (E - A*T/2)*x0 - X*u0/2
+          state_mapping && ( Mx = inv(F); Mu = copy(ldiv!(F,X/2)))
+          return (dss(Ad, Bd, C, D; Ts), xd0, Mx, Mu)
+       else
+          Ed = E-t/2*A              # Ed = E - A*T/2 
+          X = Ed\Matrix(B*t)              # X = (E - A*T/2)\B*T 
+          mul!(D,C,X,0.5,1.)        # Dd = D + (T/2)*C*(E - A*T/2)\B = D + C*X/2
+          Ad = E+t/2*A              # Ad = E + A*T/2;  Cd = C
+          Bd = E*X                  # Bd = E * (E - A*T/2) \ B*T
+          xd0 = x0 - (X*u0)/2       # xd0 = x0 - (E - A*T/2)\B*(T/2)*u0 = x0 - X*u0/2
+          state_mapping && ( Mx = I; Mu = X/2)
+          return (dss(Ad, Ed, Bd, C, D; Ts), xd0, Mx, Mu)
+       end
+    else
+       error("no such method")
+    end                        
+    # end C2D
+end
+
 """
     rd = c2d(rc, Ts, meth = "zoh"; prewarp_freq = freq, atol = 0, rtol = n*ϵ) 
 

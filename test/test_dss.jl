@@ -7,6 +7,7 @@ using SparseArrays
 using Measurements
 using Test
 
+
 println("Test_dss")
 
 @testset "test_dss" begin
@@ -146,8 +147,15 @@ res2 = dssubsel(sys,sys.D .< 0.5, minimal = false)
 @test iszero(sys-copy(sys),atol=1.e-7)
 @test iszero(dsdiag(sys,2)-append(sys,sys),atol=1.e-7)
 
-
-
+# new constructors using polynomial coefficients (similar to MATLAB)
+# example from https://github.com/JuliaControl/ControlSystems.jl/issues/992
+G = rtf(1, [2, 3])
+W1 = rtf(4, [5, 6])
+W2 = rtf(7, [8, 9])
+W3 = rtf(10, [11, 12])
+P = [W1 -W1*G; 0 W2; 0 W3*G; 1 -G]
+sys = dss(P; minimal=true)
+@test order(sys) == 4
 
 
 A = [-1.0 -2.0; 0.0 -1.0]
@@ -169,6 +177,27 @@ sysd = dss(A, E, B, C, D, Ts = -1)
 @test iszero(sys - adjoint(adjoint(sys)))
 @test iszero(sysd - adjoint(adjoint(sysd)))
 @test iszero(sysd - dsxvarsel(sysd,[2,1]))
+
+
+A = sparse([-1.0 -2.0; 0.0 -1.0])
+E = sparse([1.0 2.0; 0.0 1.0])
+B = sparse([0.0; -2.0])
+C = sparse([1.0 1.0])
+D = sparse([1.0])
+ssys = dss(A, E, B, C, D)
+ssysd = dss(A, E, B, C, D, Ts = -1)
+
+@test ssys + 1.0 == dss(A, E, B, C, D .+ 1.0)
+@test 2.0 + ssys == dss(A, E, B, C, D .+ 2.0)
+@test -ssys == dss(A, E, B, -C, -D)
+
+# transpose, dual, adjoints
+@test ssys == transpose(transpose(ssys))
+@test iszero(ssys -gdual(gdual(ssys,rev=true)))
+@test iszero(ssys - adjoint(adjoint(ssys)))
+@test iszero(ssysd - adjoint(adjoint(ssysd)))
+@test iszero(ssysd - dsxvarsel(ssysd,[2,1]))
+
 
 # Accessing Ts through .Ts
 @test D_111.Ts == 0.005
@@ -232,9 +261,11 @@ end
 t = rand(3,3)
 sys = dss(UpperHessenberg(t), UpperTriangular(t),LowerTriangular(t),Diagonal(t),0)
 @test istriu(sys.A,-1) && istriu(sys.E) && istril(sys.B) && isdiag(sys.C) && iszero(sys.D)
+@test iszero(sys-sys)
 
 ssys = dss(sparse(sys.A),sparse(sys.E),sparse(sys.B),sparse(sys.C),sparse(sys.D))
 @test istriu(ssys.A,-1) && istriu(ssys.E) && istril(ssys.B) && isdiag(ssys.C) && iszero(ssys.D)
+@test iszero(ssys-ssys)
 
 ρ1 = measurement(0, 0.25); ρ2 = measurement(0, 0.25);
 # build uncertain state matrix A(p)

@@ -36,7 +36,7 @@ It is well known that the descriptor system representation is the most general d
 
 The theoretical background for the analysis of descriptor systems closely relies on investigating the properties of certain linear matrix pencils, as the regular _pole pencil_ `P(λ) = A-λE`, or the generally singular _system matrix pencil_ `S(λ) = [A-λE B; C D]`. Therefore, the main analysis tools of descriptor systems are pencil manipulation techniques (e.g., reductions to various Kronecker-like forms), as available in the [MatrixPencils](https://github.com/andreasvarga/MatrixPencils.jl) package [2]. Among the main applications of pencil manipulation algorithms, we mention  the computation of minimal nullspace bases, the computation of poles and zeros, the determination of the normal rank of polynomial and rational matrices, computation of various factorizations of rational matrices, as well as the solution of linear equations with polynomial or rational matrices. Important additional computational ingredients in these applications are tools for solving matrix equations, as various Lyapunov, Sylvester and Riccati equations. These tools are provided by the [MatrixEquations](https://github.com/andreasvarga/MatrixEquations.jl) package [3].
 
-The available functions in the `DescriptorSystems.jl` package cover both standard and descriptor systems with real or complex coefficient matrices. The current version of the package includes the following functions:
+The available functions in the `DescriptorSystems.jl` package cover both standard and descriptor systems with real or complex coefficient matrices. Several functions have been extended to handle large order descriptor systems with sparse and structured matrix data. The current version of the package includes the following functions:
 
 **Building descriptor system state-space models**
 
@@ -108,7 +108,6 @@ The available functions in the `DescriptorSystems.jl` package cover both standar
 * **[`timeresp`](@ref)**   Time response of a descriptor system.
 * **[`stepresp`](@ref)**   Step response of a descriptor system.
 * **[`gbalqual`](@ref)** Evaluation of the scaling quality of the matrices of a descriptor system.
-* **[`pbalqual`](@ref)** Evaluation of the scaling quality of the matrices of a linear pencil.
 
 **Factorization of descriptor systems**
 

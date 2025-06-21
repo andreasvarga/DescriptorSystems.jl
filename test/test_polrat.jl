@@ -97,7 +97,7 @@ D2 = zeros(Int,3,3);
 
 sys = dss(A2, E2, B2, C2, D2, Ts = -1)
 @time P = ls2pm(dssdata(sys)...)
-@test pmeval(P,1) ≈ dcgain(sys)
+@test pmeval(P,1) ≈ dcgain(sys) ≈ dcgain(dss2sparse(sys))
 
 # Example 3 - (Varga, Kybernetika, 1990) 
 A2 = [
@@ -140,7 +140,7 @@ D2 = zeros(Int,2,2);
 sys = dss([A2 B2; C2 D2], [E2 zeros(8,2); zeros(2,10)], [zeros(8,2);I], [zeros(2,8) -I], 0, Ts = -1)
 
 @time P = ls2pm(dssdata(sys)...,atol1 = 1.e-7,atol2=1.e-7);
-@test pmeval(P,1) ≈ dcgain(sys)
+@test pmeval(P,1) ≈ dcgain(sys) ≈ dcgain(dss2sparse(sys))
 
 end # Polynomial matrix realizations
 
@@ -418,29 +418,5 @@ end # polynomial system matrix realizations
 
 end # realization tools
 
-@testset "Frequency response" begin
-
-w = collect(LinRange(.1,100,1000));
-sys = rss(50,4,3);
-@time H = freqresp(sys,w);
-@time begin for i = 1:1000 H[:,:,i] -= evalfr(sys,fval=w[i]); end end
-@test norm(H,Inf) < 1.e-5
-
-sys = rss(50,4,3,disc=true);
-@time H = freqresp(sys,w);
-@time begin for i = 1:1000 H[:,:,i] -= evalfr(sys,fval=w[i]); end end
-@test norm(H,Inf) < 1.e-6
-
-sys = rdss(50,4,3);
-@time H = freqresp(sys,w);
-@time begin for i = 1:1000 H[:,:,i] -= evalfr(sys,fval=w[i]); end end
-@test norm(H,Inf) < 1.e-6
-
-sys = rdss(50,4,3,disc=true);
-@time H = freqresp(sys,w);
-@time begin for i = 1:1000 H[:,:,i] -= evalfr(sys,fval=w[i]); end end
-@test norm(H,Inf) < 1.e-6
-
-end #freqresp
 
 end #module

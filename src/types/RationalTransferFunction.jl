@@ -157,7 +157,8 @@ the transfer function of a single-input single-output system of the form
 where `U(λ)` and `Y(λ)` are the Laplace or `Z` transformed input `u(t)` and output `y(t)`, respectively, 
 and `λ = s`, the complex variable in the Laplace transform, if `rts = 0`, or  `λ = z`,  
 the complex variable in the `Z` transform, if `rts ≠ 0`. 
-Both `num` and `den` can be real or complex numbers as well. 
+Both `num` and `den` can be real or complex numbers, or vectors of 
+polynomial coefficients in decreasing order of degrees as well. 
 
 The resulting `r` is such that `r.Ts = rts` (default `rts = 0`) and `r.var = rvar`.
 The default value of `rvar` is `rvar = Polynomials.indeterminate(num)` if `num` is a polynomial, 
@@ -181,6 +182,19 @@ function rtf(num::Number, den::Number; Ts::Real = 0, var::Symbol = :s)
     T = promote_type(eltype(num),eltype(den))
     return RationalTransferFunction{T,var,Polynomial{T,var},Float64(Ts)}(Polynomial{T,var}(num),Polynomial{T,var}(den))
 end
+function rtf(num::Vector, den::Vector; Ts::Real = 0, var::Symbol = Ts == 0 ? :s : :z) 
+   T = promote_type(eltype(num),eltype(den))
+   return RationalTransferFunction{T,var,Polynomial{T,var},Float64(Ts)}(Polynomial{T,var}(reverse(num)), Polynomial{T,var}(reverse(den)))
+end
+function rtf(num::Number, den::Vector; Ts::Real = 0, var::Symbol = Ts == 0 ? :s : :z) 
+    T = promote_type(eltype(num),eltype(den))
+    return RationalTransferFunction{T,var,Polynomial{T,var},Float64(Ts)}(Polynomial{T,var}(num), Polynomial{T,var}(reverse(den)))
+end
+function rtf(num::Vector, den::Number; Ts::Real = 0, var::Symbol = Ts == 0 ? :s : :z) 
+    T = promote_type(eltype(num),eltype(den))
+    return RationalTransferFunction{T,var,Polynomial{T,var},Float64(Ts)}(Polynomial{T,var}(reverse(num)), Polynomial{T,var}(den))
+ end
+  
 
 # display sys
 Base.print(io::IO, sys::RationalTransferFunction) = show(io, sys)

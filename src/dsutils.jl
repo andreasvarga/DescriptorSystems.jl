@@ -1,11 +1,15 @@
 # The function to_matrix is a fork from ControlSystems.jl
 # covers the case when a vector represents the row of a matrix 
 to_matrix(T, A::AbstractVector, wide::Bool = false) = wide ? Matrix{T}(reshape(A, 1, length(A))) : Matrix{T}(reshape(A, length(A), 1))
+to_matrixA(T, A::AbstractVector, wide::Bool = false) = wide ? AbstractMatrix{T}(reshape(A, 1, length(A))) : AbstractMatrix{T}(reshape(A, length(A), 1))
 #to_matrix(T, A::AbstractMatrix, wide::Bool = false) = Matrix{T}(A)  # Fallback
 #to_matrix(T, A::AbstractMatrix, wide::Bool = false) = T.(A)  # Fallback
-to_matrix(T, A::AbstractMatrix, wide::Bool = false) = AbstractMatrix{T}(A)  # Fallback
+#to_matrix(T, A::AbstractMatrix, wide::Bool = false) = AbstractMatrix{T}(A)  # Fallback
+to_matrix(T, A::MT, wide::Bool = false) where {MT <: AbstractMatrix} = AbstractMatrix{T}(A)  # Fallback
+to_matrixA(T, A::MT, wide::Bool = false) where {MT <: AbstractMatrix} = AbstractMatrix{T}(A)  # Fallback
 # to_matrix(T, A::SparseMatrixCSC, wide::Bool = false) = T.(A)  # Fallback for sparse matrices
 to_matrix(T, A::Number, wide::Bool = true) = fill(T(A), 1, 1)
+to_matrixA(T, A::Number, wide::Bool = true) = fill(T(A), 1, 1)
 # Handle Adjoint Matrices
 to_matrix(T, A::Adjoint{R, MT}, wide::Bool = false) where {R<:Number, MT<:AbstractMatrix} = to_matrix(T, MT(A))
 to_matrix(T, A::Diagonal, wide::Bool = false) = Matrix{T}(A)  # Fallback
@@ -72,13 +76,8 @@ end
 #     return res
 # end
 # taken from ControlSystems.jl
-@static if VERSION >= v"1.8.0-beta1"
-    blockdiag(mats...) = cat(mats..., dims=Val((1,2)))
-    blockdiag(mats::Union{<:Tuple, <:Base.Generator}) = cat(mats..., dims=Val((1,2)))
-else
-    blockdiag(mats...) = cat(mats..., dims=(1,2))
-    blockdiag(mats::Union{<:Tuple, <:Base.Generator}) = cat(mats..., dims=(1,2))
-end
+blockdiag(mats...) = cat(mats..., dims=(1,2))
+blockdiag(mats::Union{<:Tuple, <:Base.Generator}) = cat(mats..., dims=(1,2))
  
 function sblockdiag(blockdims::Vector{Int},mats::Union{AbstractMatrix,UniformScaling}...) 
     nmat = sum(blockdims)

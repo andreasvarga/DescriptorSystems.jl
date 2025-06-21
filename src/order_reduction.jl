@@ -444,9 +444,9 @@ IEEE Transactions on Automatic Control, vol. AC-26, pp. 111-129, 1981.
 [2] A. Varga, Solving Fault Diagnosis Problems - Linear Synthesis Techniques, Springer Verlag, 2017. 
 """
 function gminreal(sys::DescriptorStateSpace{T}; prescale = gbalqual(sys) > 10000, atol::Real = zero(real(T)), atol1::Real = atol, atol2::Real = atol, 
-    rtol::Real =  sys.nx*eps(real(float(one(real(T)))))*iszero(max(atol1,atol2)), 
+    rtol::Real =  100*sys.nx*eps(real(float(one(real(T)))))*iszero(max(atol1,atol2)), 
     fast::Bool = true, contr::Bool = true, obs::Bool = true, noseig::Bool = true) where T
-    SYS = prescale ? gprescale(sys)[1] : sys         
+    SYS = prescale ? gprescale(sys)[1] : sys     
     if SYS.E == I
         A, B, C = lsminreal(SYS.A, SYS.B, SYS.C; fast = fast, atol = atol1, rtol = rtol, contr = contr, obs = obs) 
         T1 = eltype(A)
@@ -459,11 +459,11 @@ function gminreal(sys::DescriptorStateSpace{T}; prescale = gbalqual(sys) > 10000
     end
 end
 """
-    gbalmr(sys, balance = false, matchdc = false, ord = missing, offset = √ϵ,
+    gbalmr(sys::DescriptorStateSpace, pext = 0, balance = false, matchdc = false, ord = missing, offset = √ϵ,
            atolhsv = 0, rtolhsv = nϵ, atolmin = atolhsv, rtolmin = rtolhsv, 
            atol = 0, atol1 = atol, atol2 = atol, rtol, fast = true) -> (sysr, hs)
 
-Compute for a proper and stable descriptor system `sys = (A-λE,B,C,D)` with the transfer function
+Compute for a dense proper and stable descriptor system `sys = (A-λE,B,C,D)` with the transfer function
 matrix `G(λ)`, a reduced order realization `sysr = (Ar-λEr,Br,Cr,Dr)` and the vector `hs` of decreasingly 
 ordered Hankel singular values of the system `sys`. If `balance = true`, a balancing-based approach
 is used to determine a reduced order minimal realization 
@@ -474,6 +474,9 @@ If additonally `matchdc = true`, the resulting `sysr` is computed using state re
 In this case, the resulting realization `sysr` is balanced (for both continuous- and discrete-time systems).
 If `balance = false`, an enhanced accuracy balancing-free approach is used to determine the 
 reduced order system `sysr`. 
+
+If the keyword argument `pext` is nonzero, then the trailing `pext` system outputs are not included in the determination of the reduced
+order model. However, all state coordinate transformations are also performed on these outputs. 
 
 If `ord = nr`, the resulting order of `sysr` is `min(nr,nrmin)`, where `nrmin` is the order of a minimal  
 realization of `sys` determined as the number of Hankel singular values exceeding `max(atolmin,rtolmin*HN)`, with
@@ -530,8 +533,8 @@ References
     Balancing-free square-root algorithm for computing singular perturbation approximations.
     Proc. 30-th IEEE CDC,  Brighton, Dec. 11-13, 1991, Vol. 2, pp. 1062-1065.
 """   
-function gbalmr(sys::DescriptorStateSpace{T}; balance::Bool = false, matchdc::Bool = false, fast::Bool = true, 
-    ord::Union{Int,Missing} = missing, atolhsv::Real = zero(real(T)), 
+function gbalmr(sys::DescriptorStateSpace{T}; balance::Bool = false, matchdc::Bool = false, pext::Int = 0,
+    fast::Bool = true, ord::Union{Int,Missing} = missing, atolhsv::Real = zero(real(T)), 
     rtolhsv::Real = sqrt(eps(real(float(one(T)))))*iszero(atolhsv), atolmin::Real = atolhsv, rtolmin::Real = rtolhsv, 
     offset::Real = sqrt(eps(float(real(T)))), atol::Real = zero(real(T)), atol1::Real = atol, atol2::Real = atol, 
     rtol::Real = (size(sys.A,1)*eps(real(float(one(T)))))*iszero(min(atol1,atol2))) where T
@@ -541,9 +544,11 @@ function gbalmr(sys::DescriptorStateSpace{T}; balance::Bool = false, matchdc::Bo
     disc = !iszero(sys.Ts)
     standsys = sys.E == I
     ONE = one(T1)
-       
+    n = order(sys)
+    p = size(sys.D,1)-pext
+    p >= 0 || throw(ArgumentError("pext must not exceed the number of system outputs"))
+        
     if  standsys
-        n = order(sys)
         # for a non-dynamic system, we set the Hankel norm to zero,
         # but the Hankel singular values are empty
         n == 0 && (return sys, zeros(real(T1),0))
@@ -555,7 +560,7 @@ function gbalmr(sys::DescriptorStateSpace{T}; balance::Bool = false, matchdc::Bo
         bs = SF.Z'*sys.B
         cs = sys.C*SF.Z
         S = plyaps(SF.T, bs; disc = disc)
-        R = plyaps(SF.T', cs'; disc = disc)
+        R = plyaps(SF.T', view(cs,1:p,:)'; disc = disc)
         SV = svd!(R*S); hs = SV.S
     else
         # eliminate uncontrollable infinite eigenvalues and non-dynamic modes if possible
@@ -576,7 +581,7 @@ function gbalmr(sys::DescriptorStateSpace{T}; balance::Bool = false, matchdc::Bo
         bs = SF.Q'*sys.B
         cs = sys.C*SF.Z
         S = plyaps(SF.S, SF.T, bs; disc = disc)
-        R = plyaps(SF.S', SF.T', cs'; disc = disc)
+        R = plyaps(SF.S', SF.T', view(cs,1:p,:)'; disc = disc)
         SV = svd!(R*UpperTriangular(SF.T)*S); hs = SV.S
     end
     # determine the order nrmin of a minimal realization
@@ -673,6 +678,225 @@ function gbalmr(sys::DescriptorStateSpace{T}; balance::Bool = false, matchdc::Bo
     end
     # end GBALMR
 end
+"""
+    gbalmr(sys::SparseDescriptorStateSpace, pext = 0, balance = false, matchdc = false, ord = missing, 
+           atolhsv = 0, rtolhsv = nϵ, atolmin = atolhsv, rtolmin = rtolhsv, abstol = 1e-12, reltol = 0, 
+           Trsave = false, Tlsave = false, maxiter = 100, shifts = missing, cyclic = false) -> (sysr, hs, info)
+
+Compute for a sparse proper and stable descriptor system `sys = (A-λE,B,C,D)` with the transfer function
+matrix `G(λ)`, a reduced order realization `sysr = (Ar-λEr,Br,Cr,Dr)` and the vector `hs` of decreasingly 
+ordered relevant Hankel singular values of the system `sys`. If `balance = true`, a balancing-based approach
+is used to determine a reduced order minimal realization 
+of the form `sysr = (Ar-λI,Br,Cr,Dr)`. For a continuous-time system `sys`, the resulting realization `sysr`
+is balanced, i.e., the controllability and observability grammians are equal and diagonal. 
+If additonally `matchdc = true`, the resulting `sysr` is computed using state rezidualization formulas 
+(also known as _singular perturbation approximation_) which additionally preserves the DC-gain of `sys`. 
+In this case, the resulting realization `sysr` is balanced (for both continuous- and discrete-time systems).
+If `balance = false`, an enhanced accuracy balancing-free approach is used to determine the 
+reduced order system `sysr`. 
+
+The function `gbalmr` can be also used if `sys` has the type `DescriptorStateSpaceExt`.
+
+If the keyword argument `pext` is nonzero, then the trailing `pext` system outputs are not included in the determination of the reduced
+order model. However, all state coordinate transformations are also performed on these outputs. 
+
+If `ord = nr`, the resulting order of `sysr` is `min(nr,nrmin)`, where `nrmin` is the order of a minimal  
+realization of `sys` determined as the number of Hankel singular values exceeding `max(atolmin,rtolmin*HN)`, with
+`HN`, the Hankel norm of `G(λ)`. If `ord = missing`, the resulting order is chosen as the number of Hankel 
+singular values exceeding `max(atolhsv,rtolhsv*HN)`. 
+
+_Method:_  For the order reduction of a standard system, the balancing-free method of [1] or 
+the balancing-based method of [2] are used. For a descriptor system the balancing related order reduction 
+methods of [3] are used. To preserve the DC-gain of the original system, the singular perturbation 
+approximation method of [4] is used in conjunction with the balancing-based or balancing-free
+approach of [5]. 
+
+The controlability and observability gramians are determined in factored forms `S*S'` and `R*R'`, respectively,
+where `S` and `R` are low rank matrices. The Hankel singular values `hs` are computed as the singular values of the product `R'*E*S`.
+For the computation of factors `S` and `R`, the low-rank ADI (LR-ADI) method with enhancements proposed in [6] 
+are employed.  
+The projection matrices `Tl` and `Tr` used to generate the matrices 
+of the reduced order models as `Er = Tl'*E*Tr`, `Ar = Tl'*A*Tr`, `Br = Tl'*B`, `Cr = C*Tr`, 
+are computed from the singular value decomposition of the product `R'*E*S`. 
+If the keyword arguments `Tlsave = true` and `Trsave = true`, then the named touple `info` contains in `info.Tl` and `info.Tr` 
+the respective projection matrices.     
+
+For the convergence tests used in the LR-ADI method, the keyword argument `abstol` (default: `abstol = 1e-12`) 
+can be used to specify the tolerance on the normalized residuals, while the keyword argument
+`reltol` (default: `reltol = 0`) can be used to specify the tolerance for the relative changes of the solution. 
+The keyword argument `maxiter` can be used to set the maximum number of iterations (default: `maxiter = 100`).
+The keyword argument `nshifts` specifies the desired number of shifts to be used in an iteration cycle (default: `nshifts = 6`). 
+The keyword argument `shifts` can be used to provide a pre-calculated set of complex conjugated shifts to be used
+to start the iterations (default: `shifts = missing`).    
+If `cyclic = true`, the cyclic low-rank method of [7] is used, with the
+pre-calculated shifts provided in the keyword argument `shifts`. 
+
+_Note:_ There is no check of the stability of the eigenvalues of the pencil `A-λE` implemented. 
+For an unstable model the LR-ADI methods does not converge and either an error message is issued or the maximum
+number of allowed iterations are reached. 
+
+_References_
+
+[1] A. Varga. 
+    Efficient minimal realization procedure based on balancing.
+    In A. El Moudni, P. Borne, and S.G. Tzafestas (Eds.), 
+    Prepr. of the IMACS Symp. on Modelling and Control of Technological 
+    Systems, Lille, France, vol. 2, pp.42-47, 1991.
+
+[2] M. S. Tombs and I. Postlethwaite. 
+    Truncated balanced realization of a stable non-minimal state-space 
+    system. Int. J. Control, vol. 46, pp. 1319–1330, 1987.
+
+[3] T. Stykel. 
+    Gramian based model reduction for descriptor systems. 
+    Mathematics of Control, Signals, and Systems, 16:297–319, 2004.
+
+[4] Y. Liu Y. and B.D.O. Anderson 
+    Singular Perturbation Approximation of Balanced Systems,
+    Int. J. Control, Vol. 50, pp. 1379-1405, 1989.
+
+[5] Varga A.
+    Balancing-free square-root algorithm for computing singular perturbation approximations.
+    Proc. 30-th IEEE CDC,  Brighton, Dec. 11-13, 1991, Vol. 2, pp. 1062-1065.
+
+[6] P. Kürschner. Efficient Low-Rank Solution of Large-Scale Matrix Equations. 
+    Dissertation, Otto-von-Guericke-Universität, Magdeburg, Germany, 2016. Shaker Verlag,
+
+[7] T. Penzl, A cyclic low-rank Smith method for large sparse Lyapunov equations, 
+    SIAM J. Sci. Comput. 21 (4) (1999) 1401–1418.    
+"""   
+function gbalmr(sys::Union{DescriptorStateSpaceExt{T},SparseDescriptorStateSpace{T}}; balance::Bool = false, matchdc::Bool = false, pext::Int = 0,
+    ord::Union{Int,Missing} = missing, atolhsv::Real = zero(real(T)), 
+    rtolhsv::Real = sqrt(eps(real(float(one(T)))))*iszero(atolhsv), atolmin::Real = atolhsv, rtolmin::Real = rtolhsv, 
+    abstol = 1e-12, reltol = 0, Trsave = false, Tlsave = false, 
+    maxiter = 100, shifts = missing, nshifts = 6, cyclic = false) where {T}
+    T1 = T <: BlasFloat ? T : promote_type(Float64,T) 
+
+    disc = !iszero(sys.Ts)
+    standsys = sys.E == I
+    ONE = one(T1)
+
+    p = size(sys.D,1)-pext
+    p >= 0 || throw(ArgumentError("pext must not exceed the number of system outputs"))
+       
+    n = order(sys); 
+
+    # for a non-dynamic system, we set the Hankel norm to zero,
+    # but the Hankel singular values are empty
+    n == 0 && (return sys, zeros(real(T1),0))
+    # reduce the system to generalized Schur coordinate form
+    S = 0; R = 0; info = nothing
+    try 
+        if sys.Ts != 0
+           S, info = plyapdi(sys.A, sys.E, sys.B; abstol, reltol, maxiter, shifts, nshifts, cyclic)
+           R = plyapdi(sys.A', sys.E', view(sys.C,1:p,:)'; abstol, reltol, maxiter, cyclic, shifts = cyclic ? shifts : info.used_shifts)[1]
+        else
+           S, info = plyapci(sys.A, sys.E, sys.B; abstol, reltol, maxiter, shifts, nshifts, cyclic)
+           R = plyapci(sys.A', sys.E', view(sys.C,1:p,:)'; abstol, reltol, maxiter, cyclic, shifts = cyclic ? shifts : info.used_shifts)[1]
+        end
+    catch
+       error("the system is possibly unstable")
+    end
+    SV = svd!(R'*Matrix(sys.E*S)); hs = SV.S
+
+    # determine the order nrmin of a minimal realization
+    atolhsv >= 0 || error("The threshold atolhsv must be non-negative")
+    rtolhsv >= 0 || error("The threshold rtolhsv must be non-negative")
+    atolmin >= 0 || error("The threshold atolmin must be non-negative")
+    rtolmin >= 0 || error("The threshold rtolmin must be non-negative")
+    nrmin = count(hs .> max(atolmin,rtolmin*hs[1]))
+    # determine the order nr of the reduced model 
+    if ismissing(ord)
+       nr = min(nrmin, count(hs .> max(atolhsv,rtolhsv*hs[1])))
+    else
+       ord >= 0 || error("Desired order ord must be non-negative, got instead $ord")
+       nr = min(nrmin,ord)
+    end
+    nr == 0 && (return dss(Matrix(sys.D),Ts = sys.Ts), hs, (Tr = nothing, Tl = nothing))
+    i1 = 1:nr
+    if balance
+       # apply balancing-based formulas: resulting Er = I
+       if matchdc && nr < nrmin
+          indmin = 1:nrmin
+          hsi2 = Diagonal(1 ./sqrt.(view(hs,indmin)))
+          Tl = (R*view(SV.U,:,indmin))*hsi2
+          Tr = (S*view(SV.V,:,indmin))*hsi2
+          amin = Tl'*sys.A*Tr
+          bmin = Tl'*sys.B
+          cmin = sys.C*Tr
+          i2 = nr+1:nrmin
+          Ar = view(amin,i1,i1)
+          Br = view(bmin,i1,:)
+          Cr = view(cmin,:,i1)
+          Dr = copy_oftype(Matrix(sys.D),T1)
+          disc && (amin[i2,i2] -= I) 
+          LUF = lu!(view(amin,i2,i2))
+          ldiv!(LUF,view(amin,i2,i1))
+          ldiv!(LUF,view(bmin,i2,:))
+          # apply state residualization formulas
+          mul!(Dr,view(cmin,:,i2),view(bmin,i2,:),-ONE, ONE)
+          mul!(Br,view(amin,i1,i2),view(bmin,i2,:),-ONE, ONE)
+          mul!(Cr,view(cmin,:,i2),view(amin,i2,i1),-ONE, ONE)
+          mul!(Ar,view(amin,i1,i2),view(amin,i2,i1),-ONE, ONE)
+          # return the minimal balanced system
+          return dss(Ar, I, Br, Cr, Dr, Ts = sys.Ts), hs, (Tr = Trsave ? Tr : nothing, Tl = Tlsave ? Tl : nothing)
+       else
+          hsi2 = Diagonal(1 ./sqrt.(view(hs,i1)))
+          Tl = (R*view(SV.U,:,i1))*hsi2
+          Tr = (S*view(SV.V,:,i1))*hsi2
+          # return the minimal balanced system
+          return dss(Tl'*sys.A*Tr, I, Tl'*sys.B, sys.C*Tr, Matrix(sys.D), Ts = sys.Ts), hs, 
+                (Tr = Trsave ? Tr : nothing, Tl = Tlsave ? Tl : nothing, used_shifts = info.used_shifts)
+       end
+    else
+        # apply balancing-free formulas
+       if nr < n 
+            if matchdc
+                i2 = nr+1:nrmin
+                Tl = [Matrix(qr!(R*view(SV.U,:,i1)).Q) Matrix(qr!(R*view(SV.U,:,i2)).Q)]
+                Tr = [Matrix(qr!(S*SV.V[:,i1]).Q) Matrix(qr!(S*SV.V[:,i2]).Q)]
+                #standsys ? (amin = Tl'*SF.T*Tr; emin = Tl'*Tr) : (amin = Tl'*SF.S*Tr; emin = Tl'*SF.T*Tr)
+                amin = Tl'*sys.A*Tr
+                bmin = Tl'*sys.B
+                cmin = sys.C*Tr
+                Ar = view(amin,i1,i1)
+                Er = standsys ? view(Tl,:,i1)'*view(Tr,:,i1) : view(Tl,:,i1)'*sys.E*view(Tr,:,i1)
+                Br = view(bmin,i1,:)
+                Cr = view(cmin,:,i1)
+                Dr = copy_oftype(Matrix(sys.D),T1)
+                disc && (amin[i2,i2] -= standsys ? view(Tl,:,i2)'*view(Tr,:,i2) : view(Tl,:,i2)'*sys.E*view(Tr,:,i2))
+                LUF = lu!(view(amin,i2,i2))
+                ldiv!(LUF,view(amin,i2,i1))
+                ldiv!(LUF,view(bmin,i2,:))
+                # apply state residualization formulas
+                mul!(Dr,view(cmin,:,i2),view(bmin,i2,:),-ONE, ONE)
+                mul!(Br,view(amin,i1,i2),view(bmin,i2,:),-ONE, ONE)
+                mul!(Cr,view(cmin,:,i2),view(amin,i2,i1),-ONE, ONE)
+                mul!(Ar,view(amin,i1,i2),view(amin,i2,i1),-ONE, ONE)
+            else
+                Tl = Matrix(qr!(R*view(SV.U,:,i1)).Q)
+                Tr = Matrix(qr!(S*SV.V[:,i1]).Q)
+                Ar = Tl'*sys.A*Tr; Er = Tl'*sys.E*Tr; Br = Tl'*sys.B; Cr = sys.C*Tr
+            end
+            # build the minimal system
+            SV = svd!(Er)
+            if standsys
+               # determine a standard reduced system if sys is a standard system 
+               di2 = Diagonal(1 ./sqrt.(SV.S))
+               return dss(di2*SV.U'*Ar*SV.Vt'*di2, I, di2*SV.U'*Br, Cr*SV.Vt'*di2, Matrix(sys.D), Ts = sys.Ts), hs, 
+                          (Tr = Trsave ? view(Tr,:,1:nr)*(SV.Vt'*di2) : nothing, Tl = Tlsave ? view(Tl,:,1:nr)*(SV.U*di2) : nothing, used_shifts = info.used_shifts)
+            else
+               # determine a descriptor reduced system with diagonal E if sys is a standard system 
+               return dss(SV.U'*Ar*SV.Vt', Diagonal(SV.S), SV.U'*Br, Cr*SV.Vt', Matrix(sys.D), Ts = sys.Ts), hs, 
+                          (Tr = Trsave ? view(Tr,:,1:nr)*SV.Vt' : nothing, Tl = Tlsave ? view(Tl,:,1:nr)*SV.U : nothing, used_shifts = info.used_shifts)
+            end
+         else
+            return sys, hs, (Tr = nothing, Tl = nothing, used_shifts = missing)  # keep original system if order is preserved
+         end
+    end
+    # end GBALMR
+end
+
 function lsminreal2_lrtran(A::AbstractMatrix, E::AbstractMatrix, 
                     B::AbstractVecOrMat, C::AbstractMatrix, D::AbstractVecOrMat; 
                     withQ::Bool = false, withZ::Bool = false, 
@@ -871,3 +1095,276 @@ function lsminreal2_lrtran(A::AbstractMatrix, E::AbstractMatrix,
       return Ar[ir,ir], Er[ir,ir], Br[ir,:], Cr[:,ir], Dr, withQ ? Q[:,[iz1;iz2]] : Q, withZ ? Z[:,[iz1;iz2]] : Z, nuc, nuo, 0
    end
 end
+function projection_shifts(adj, A, E, V, W, p_old; num_desired = 6, implicitVtAV = true)
+   ## function p = projection_shifts(A, E, V, W, num_desired, p_old) 
+   #
+   # Computes new shifts by implicitly or explicitly
+   # projecting the E and A matrices to the span of V. Note that the
+   # width of V must be a multiple of that of W, V is the newest part
+   # of the ADI solution factor Z and the old shift
+   # vector p_old passed in must have this multiple as its length.
+   #
+   # Whether or not the projection is computed implicitly from the
+   # contents of V or by an explicit projection, is determined via
+   # the implicitVtAV keyword argument. 
+   #
+   
+   #
+   # This function is based on the function mess_projection_shifts, which is
+   # part of the M-M.E.S.S. project  (http://www.mpi-magdeburg.mpg.de/projects/mess).
+   # Authors: Jens Saak, Martin Koehler, Peter Benner and others.
+   #
+   
+   ## Check data
+   # if not(isfield(opts, 'shifts')) || not(isstruct(opts.shifts))
+   #     mess_warn(opts, 'control_data', ...
+   #               ['shift parameter control structure missing.', ...
+   #                'Switching to default num_desired = 25.']);
+   #     opts.shifts.num_desired = 25;
+   # else
+   #     if not(isfield(opts.shifts, 'num_desired')) || ...
+   #        not(isnumeric(opts.shifts.num_desired))
+   
+   #         mess_warn(opts, 'control_data', ...
+   #                   ['Missing or Corrupted opts.shifts.num_desired field.', ...
+   #                    'Switching to default: 25']);
+   #         opts.shifts.num_desired = 25;
+   #     end
+   #     if not(isfield(opts.shifts, 'implicitVtAV')) || ...
+   #             isempty(opts.shifts.implicitVtAV)
+   #         opts.shifts.implicitVtAV = true;
+   #     end
+   # end
+   haveUV = false
+   haveE = (E !== I)
+   
+   
+   L = length(p_old)
+   cols_V = size(V, 2);
+   cols_W = size(W, 2);
+   
+   if L > 0 && !iszero(p_old)  
+       (cols_V / cols_W == L) || error("V and W have inconsistent no. of columns")
+   end
+   
+   # Initialize data
+   T1 = eltype(A) 
+   if L > 0 && !iszero(p_old)
+       T = zeros(T1,L, L)
+       K = zeros(T1,1, L)
+       D = zeros(T1,0,0)
+       Ir = Matrix{T1}(I(cols_W))
+       iC = findall(iszero,imag(p_old))
+       iCh = iC[1:2:end]
+       iR = findall(!iszero,imag(p_old))
+       isubdiag = [iR; iCh]
+       h = 1
+   end
+   
+   # Process previous shifts
+   if L > 0 && !iszero(p_old) && implicitVtAV
+       while h <= L
+           is = isubdiag[isubdiag .< h]
+           K[1, h] = 1
+           if isreal(p_old[h]) # real shift
+               T[h, h] = p_old[h]
+               if !isempty(is)
+                   T[h, is] = 2 * p_old[h] * ones(1, length(is))
+               end
+               D = cat(D, sqrt(-2 * p_old[h]), dims=Val((1,2)))
+               h = h + 1;
+           else # complex conjugated pair of shifts
+               rpc = real(p_old[h])
+               ipc = imag(p_old[h])
+               beta = rpc / ipc
+               T[h:h + 1, h:h + 1] = [3*rpc -ipc
+                                      ipc*(1 + 4 * beta^2) -rpc]
+               if !isempty(is)
+                   T[h:h +  1, is] = [4*rpc; 4*rpc*beta] * ones(1, length(is))
+               end
+               # D = blkdiag(D, ...
+               #             2 * sqrt(-rpc) * [1, 0; beta, sqrt(1 + beta^2)]);
+               D = cat(D, 2*sqrt(-rpc)*[1  0; beta sqrt(1 + beta^2)], dims=Val((1,2)))
+               h = h + 2;
+           end
+       end
+       S = kron(D \ (T * D), Ir)
+       K = kron(K * D, Ir)
+   else  # explicit AV (unless already computed in mess_para)
+       S = 0;
+       K = 1;
+       if !iszero(p_old)
+           W = A*V
+           if haveUV
+               if adj #eqn.type == 'T'
+                   W = W + eqn.V * (eqn.U' * V);
+               else
+                   W = W + eqn.U * (eqn.V' * V);
+               end
+           end
+       end
+   end
+   
+   ## Compute projection matrices
+   F = eigen(V'*V)
+   s = F.values
+   v = F.vectors
+   r = (s .> eps() * s[end] * cols_V)
+   st = v[:,r]*Diagonal(1 ./ s[r].^.5)
+   U = V * st
+   
+   ## Project V and compute Ritz values
+   if haveE
+       E_V = E*V
+       G = U' * E_V;
+       H = U' * W * K * st + G * (S * st);
+       G = G * st;
+       p = eigvals(H, G);
+   else
+       H = U' * (W * K) * st + U' * (V * (S * st));
+       p = eigvals(H);
+   end
+   
+   ## Postprocess new shifts
+   
+   # remove infinite values
+   p = p[isfinite.(p)]
+   
+   # remove zeros
+   p = p[abs.(p) .> eps()]
+   
+   # make all shifts are stable
+   p[real.(p) .> 0] = -p[real.(p) .> 0]
+   
+   if !isempty(p)
+       # remove small imaginary perturbations
+       small_imag = findall(abs.(imag.(p)) ./ abs.(p) .< 1e-12)
+       p[small_imag] = real(p[small_imag])
+   
+       # sort (s.t. compl. pairs are together)
+       sort!(p,by=real)
+       length(p) > num_desired && (p = mess_mnmx(p, num_desired))
+   end
+   return p
+end
+function mess_mnmx(rw, num_desired)
+   #
+   #  Suboptimal solution of the ADI minimax problem. The delivered parameter
+   #  set is closed under complex conjugation.
+   #
+   #  Calling sequence:
+   #
+   #    p = mess_mnmx(rw,num_desired)
+   #
+   #  Input:
+   #
+   #    rw            a vector containing numbers in the open left
+   #                  half plane, which approximate the spectrum of
+   #                  the corresponding matrix, e.g., a set of Ritz
+   #                  values. The set must be closed w.r.t. complex
+   #                  conjugation;
+   #    num_desired   desired number of shift parameters
+   #                  (length(rw) >= num_desired)
+   #                  (The algorithm delivers either num_desired or
+   #                  num_desired+1 parameters, to ensure closedness
+   #                  under complex conjugation!).
+   #
+   #  Output:
+   #
+   #    p             a num_desired- or num_desired+1-vector of
+   #                  suboptimal ADI parameters;
+   #
+   
+   #
+   # This file is part of the M-M.E.S.S. project
+   # (http://www.mpi-magdeburg.mpg.de/projects/mess).
+   # Copyright (c) 2009-2023 Jens Saak, Martin Koehler, Peter Benner and others.
+   # All rights reserved.
+   # License: BSD 2-Clause License (see COPYING)
+   #
+   
+   #  Exact copy from
+   #
+   #  LYAPACK 1.0 (Thilo Penzl, October 1999)
+   
+   length(rw) < num_desired || throw(ArgumentError("length(rw) must be at least num_desired"))
+    
+   max_rr = +Inf                       # Choose initial parameter (pair)
+   
+   p0 = rw[1]
+   for i = 1:length(rw)
+       max_r = mess_s(rw[i], rw)[1]
+       if max_r < max_rr
+           p0 = rw[i]
+           max_rr = max_r
+       end
+   end
+   
+   if !iszero(imag(p0))
+       p = [p0; conj(p0)]
+   else
+       p = p0
+   end
+   
+   i = mess_s(p, rw)[2]         # Choose further parameters.
+   
+   while size(p, 1) < num_desired   
+       p0 = rw[i]
+       if !iszero(imag(p0))
+           p = [p; p0; conj(p0)]; ##ok<AGROW>
+       else
+           p = [p; p0]; ##ok<AGROW>
+       end  
+       i = mess_s(p, rw)[2]   
+   end
+   return p
+end
+function mess_s(p, set)
+   #
+   # Computation of the maximal magnitude of the rational ADI function over
+   # a discrete subset of the left complex half plane.
+   #
+   #   Calling sequence:
+   #
+   #     [max_r,ind] = mess_s(p,set)
+   #
+   #   Input:
+   #
+   #     p        vector of ADI parameters;
+   #     set      vector representing the discrete set.
+   #
+   #   Output:
+   #
+   #     max_r    maximal magnitude of the rational ADI function over set;
+   #     ind      index - maximum is attained for set(ind).
+   #
+   
+   #
+   # This file is part of the M-M.E.S.S. project
+   # (http://www.mpi-magdeburg.mpg.de/projects/mess).
+   # Copyright (c) 2009-2023 Jens Saak, Martin Koehler, Peter Benner and others.
+   # All rights reserved.
+   # License: BSD 2-Clause License (see COPYING)
+   #
+   
+   #   Exact copy from
+   #
+   #   LYAPACK 1.0 (Thilo Penzl, Jan 1999)
+   #
+   max_r = -1
+   ind = 0
+   
+   for i = 1:length(set)  
+       x = set[i]  
+       rr = 1
+       for j = 1:length(p)  
+           rr = rr * abs(p[j] - x) / abs(p[j] + x)  
+       end  
+       if rr > max_r  
+           max_r = rr
+           ind = i   
+       end   
+   end
+   return max_r, ind
+end
+   

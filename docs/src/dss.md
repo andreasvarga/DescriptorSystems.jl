@@ -3,9 +3,11 @@
 * **[`DescriptorStateSpace`](@ref)**  Descriptor state-space object.
 * **[`dss`](@ref)**  Construction of descriptor state-space models.
 * **[`dssdata`](@ref)**   Extraction of matrix data from a descriptor state-space model.
+* **[`dssdatafull`](@ref)**   Extraction of full matrix data of a descriptor state-space model.
 
 ```@docs
 DescriptorStateSpace
 dss
 dssdata
+dssdatafull
 ```

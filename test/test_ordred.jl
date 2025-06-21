@@ -3,6 +3,10 @@ module Test_ordred
 using DescriptorSystems
 using LinearAlgebra
 using Polynomials
+using SparseArrays
+using IterativeSolvers
+using BandedMatrices
+using JLD2
 using Random
 using Test
 
@@ -691,6 +695,95 @@ end
 
 end # fast
 end # Ty
+
+
+# large scale order reduction
+cd(joinpath(pkgdir(DescriptorSystems),"test"))
+A, E, B, C, D = load("mirror315.jld2","A","E","B","C","D");
+
+# continuous-time
+syscs = dss(sparse(A-0.0001*E),sparse(E),sparse(B),sparse(C),sparse(D));
+@time sysr, hsv, info = gbalmr(syscs, balance = true, matchdc = false, atolhsv = 1.e-7, Trsave = true, Tlsave = true);
+@test info.Tl'*syscs.E*info.Tr ≈ I && gh2norm(syscs-sysr) < 1.e-7
+
+@time sysr, hsv, info = gbalmr(syscs, balance = true, matchdc = false, atolhsv = 1.e-7, Trsave = true, shifts = info.used_shifts; Tlsave = true);
+@test info.Tl'*syscs.E*info.Tr ≈ I && gh2norm(syscs-sysr) < 1.e-7
+
+@time sysr1, hsv, info = gbalmr(syscs, balance = false, matchdc = false, atolhsv = 1.e-7, Trsave = true, Tlsave = true);
+@test gh2norm(syscs-sysr1) < 1.e-7 && iszero(sysr-sysr1) && info.Tl'*syscs.E*info.Tr ≈ sysr1.E
+
+@time sysr2, hsv, info = gbalmr(syscs, balance = true, matchdc = true, atolhsv = 1.e-10, Trsave = true, Tlsave = true);
+@test info.Tl'*syscs.E*info.Tr ≈ I && gh2norm(syscs-sysr2) < 1.e-7 && norm(evalfr(syscs-sysr2,fval=0),Inf) < 1.e-7
+
+@time sysr3, hsv, info = gbalmr(syscs, balance = false, matchdc = true, atolhsv = 1.e-10, Trsave = true, Tlsave = true);
+@test gh2norm(syscs-sysr3) < 1.e-7 && norm(evalfr(syscs-sysr3,fval=0),Inf) < 1.e-7 && iszero(sysr2-sysr3,atol = 1.e-7) && info.Tl'*syscs.E*info.Tr ≈ sysr3.E
+
+# discrete-time
+sysds = dss(sparse(A),sparse(E),sparse(B),sparse(C),sparse(D),Ts = 0.1);
+@time sysr, hsv, info = gbalmr(sysds, balance = true, matchdc = false, atolhsv = 1.e-12, Trsave = true; Tlsave = true);
+@test info.Tl'*sysds.E*info.Tr ≈ I && gh2norm(sysds-sysr) < 1.e-7
+
+@time sysr1, hsv, info = gbalmr(sysds, balance = false, matchdc = false, atolhsv = 1.e-12, Trsave = true; Tlsave = true);
+@test gh2norm(sysds-sysr1) < 1.e-7 && iszero(sysr-sysr1) && info.Tl'*syscs.E*info.Tr ≈ sysr1.E
+
+@time sysr2, hsv, info = gbalmr(sysds, balance = true, matchdc = true, ord = 2, atolhsv = 1.e-12, Trsave = true; Tlsave = true);
+@test info.Tl'*sysds.E*info.Tr ≈ I && gh2norm(sysds-sysr2) < 1.e-7 && norm(evalfr(sysds-sysr2,fval=0),Inf) < 1.e-7
+
+@time sysr3, hsv, info = gbalmr(sysds, balance = false, matchdc = true, ord = 2, atolhsv = 1.e-12, Trsave = true; Tlsave = true); 
+@test gh2norm(sysds-sysr3) < 1.e-7 && norm(evalfr(sysds-sysr3,fval=0),Inf) < 1.e-7 && iszero(sysr2-sysr3) && iszero(sysr2-sysr3) && info.Tl'*syscs.E*info.Tr ≈ sysr3.E
+
+# continuous-time
+syscs = dss(BandedMatrix(sparse(A-0.0001*E)),BandedMatrix(sparse(E)),B,C,D,Ts = 0.1);
+@time sysr, hsv, info = gbalmr(syscs, balance = true, matchdc = false, atolhsv = 1.e-7, Trsave = true, Tlsave = true);
+@test info.Tl'*syscs.E*info.Tr ≈ I && gh2norm(syscs-sysr) < 1.e-7
+
+@time sysr, hsv, info = gbalmr(syscs, balance = true, matchdc = false, atolhsv = 1.e-7, Trsave = true, shifts = info.used_shifts; Tlsave = true);
+@test info.Tl'*syscs.E*info.Tr ≈ I && gh2norm(syscs-sysr) < 1.e-7
+
+@time sysr1, hsv, info = gbalmr(syscs, balance = false, matchdc = false, atolhsv = 1.e-7, Trsave = true, Tlsave = true);
+@test gh2norm(syscs-sysr1) < 1.e-7 && iszero(sysr-sysr1)
+
+@time sysr2, hsv, info = gbalmr(syscs, balance = true, matchdc = true, atolhsv = 1.e-10, Trsave = true, Tlsave = true);
+@test info.Tl'*syscs.E*info.Tr ≈ I && gh2norm(syscs-sysr2) < 1.e-7 && norm(evalfr(syscs-sysr2,fval=0),Inf) < 1.e-7
+
+@time sysr3, hsv, info = gbalmr(syscs, balance = false, matchdc = true, atolhsv = 1.e-10, Trsave = true, Tlsave = true);
+@test gh2norm(syscs-sysr3) < 1.e-7 && norm(evalfr(syscs-sysr3,fval=0),Inf) < 1.e-7 && iszero(sysr2-sysr3)
+
+# discrete-time
+sysds = dss(BandedMatrix(sparse(A)),BandedMatrix(sparse(E)),B,C,D,Ts = 0.1);
+@time sysr, hsv, info = gbalmr(sysds, balance = true, matchdc = false, atolhsv = 1.e-12, Trsave = true; Tlsave = true);
+@test info.Tl'*sysds.E*info.Tr ≈ I && gh2norm(sysds-sysr) < 1.e-7
+
+@time sysr1, hsv, info = gbalmr(sysds, balance = false, matchdc = false, atolhsv = 1.e-12, Trsave = true; Tlsave = true);
+@test gh2norm(sysds-sysr1) < 1.e-7 && iszero(sysr-sysr1)
+
+@time sysr2, hsv, info = gbalmr(sysds, balance = true, matchdc = true, ord = 2, atolhsv = 1.e-12, Trsave = true; Tlsave = true);
+@test info.Tl'*sysds.E*info.Tr ≈ I && gh2norm(sysds-sysr2) < 1.e-7 && norm(evalfr(sysds-sysr2,fval=0),Inf) < 1.e-7
+
+@time sysr3, hsv, info = gbalmr(sysds, balance = false, matchdc = true, ord = 2, atolhsv = 1.e-12, Trsave = true; Tlsave = true);
+@test gh2norm(sysds-sysr3) < 1.e-7 && norm(evalfr(sysds-sysr3,fval=0),Inf) < 1.e-7 && iszero(sysr2-sysr3)
+
+
+# continuous-time 
+A1 = [-0.01 -200; 200 0.001]
+A2 = [-0.2 -300; 300 -0.1]
+A3 = [-0.02 -500; 500 0]
+A4 = [-0.01 -520; 520 -0.01]
+A = cat(A1, A2, A3, A4, Diagonal(-1:-1:-400), dims=Val((1,2)));
+# A = blkdiag(A1, A2, A3, A4, diag(-1:-1:-400))
+B = ones(408,1); C = ones(1,408);
+
+syscs = dss(sparse(A),sparse(B),sparse(C),0);
+@time sysr, hsv, info = gbalmr(syscs, balance = true, matchdc = false, atolhsv = 1.e-7, Trsave = true, Tlsave = true);
+@test info.Tl'*syscs.E*info.Tr ≈ I && ghanorm(syscs-sysr)[1] < 1.e-7
+
+# discrete-time
+n = 500; A = BandedMatrix(1 => 0.49*ones(n-1),-1 => -0.49*ones(n-1)); B = [I;zeros(n-2,2)]; C = B'
+sysds = dss(A,B,C,0,Ts=0.1)
+@time sysr, hsv, info = gbalmr(sysds, balance = true, matchdc = false, atolhsv = 1.e-7, Trsave = true, Tlsave = true);
+@test ghanorm(dss(sparse(sysds.A),B,C,0,Ts=0.1)-sysr)[1] < 1.e-6
+
+
 end # gbalmr
 
 end

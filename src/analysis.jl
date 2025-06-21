@@ -17,6 +17,7 @@ where `σ₁` is the largest singular value of `S(γ)` and `γ` is a randomly ge
 If `fastrank = false`, the rank is evaluated as `nr + ni + nf + nl`, where `nr` and `nl` are the sums of right and left Kronecker indices, 
 respectively, while `ni` and `nf` are the number of infinite and finite eigenvalues, respectively. The sums `nr+ni` and  
 `nf+nl` are determined from an appropriate Kronecker-like form of the pencil `S(λ)`, exhibiting the spliting of the right and left structures.
+Note: This option is not available for sparse descriptor system models.
 
 The keyword arguments `atol1`, `atol2`, and `rtol`, specify, respectively, 
 the absolute tolerance for the nonzero elements of `A`, `B`, `C`, `D`,  
@@ -25,11 +26,28 @@ and the relative tolerance for the nonzero elements of `A`, `B`, `C`, `D` and `E
 The default relative tolerance is `n*ϵ`, where `ϵ` is the working machine epsilon. 
 The keyword argument `atol` can be used to simultaneously set `atol1 = atol` and `atol2 = atol`. 
 """
-function gnrank(sys::DescriptorStateSpace; fastrank = true, atol::Real = 0, atol1::Real = atol, atol2::Real = atol, 
+function gnrank(sys::DSTYPEX; fastrank = true, atol::Real = 0, atol1::Real = atol, atol2::Real = atol, 
                 rtol::Real = (max(sys.nx,sys.nu,sys.ny)*eps(real(float(one(eltype(sys.A))))))*iszero(min(atol1,atol2))) 
     sys.nx == 0 && (return rank(sys.D; atol = atol1, rtol))             
     return max(0,sprank(dssdata(sys)..., atol1 = atol1, atol2 = atol2, rtol = rtol, fastrank = fastrank) - sys.nx)
 end
+function gnrank(sys::SparseDescriptorStateSpace; fastrank = true, atol::Real = 0, atol1::Real = atol, atol2::Real = atol, 
+                rtol::Real = (max(sys.nx,sys.nu,sys.ny)*eps(real(float(one(eltype(sys.A))))))*iszero(min(atol1,atol2))) 
+    sys.nx == 0 && (return rank(Matrix(sys.D); atol = atol1, rtol))             
+    if sys.E == I 
+       nrmA = opnorm(sys.A,1)
+       scale = max(nrmA,1)*rand()
+       nrmM = max(nrmA, opnorm(sys.B,1), opnorm(sys.C,Inf), opnorm(sys.D,1))
+       return rank([sys.A+scale*sys.E sys.B; sys.C sys.D], tol = max(atol1,atol2) + nrmM*rtol) - sys.nx
+    else
+       nrmN = opnorm(sys.E,1)
+       nrmM = max(opnorm(sys.A,1), opnorm(sys.B,1), opnorm(sys.C,Inf), opnorm(sys.D,1))
+       nrmN == zero(nrmN) && (return rank([sys.A sys.B; sys.C sys.D], tol = max(atol1,atol2) + nrmM*rtol) - sys.nx)
+       scale = nrmM/nrmN*rand()
+       return rank([sys.A+scale*sys.E sys.B; sys.C sys.D], tol = max(atol1,atol2) + nrmM*rtol) - sys.nx
+    end
+end
+
 """
     val = gzero(sys; fast = false, prescale, atol = 0, atol1 = atol, atol2 = atol, rtol = n*ϵ) 
 
@@ -369,9 +387,10 @@ end
 
 Return `true` if the descriptor system `sys = (A-λE,B,C,D)` has a regular pole pencil `A-λE` and `false` otherwise.  
 
-To test whether the pencil `A-λE` is regular (i.e., `det(A-λE) ̸≡ 0`),  
+For a dense model, to test whether the pencil `A-λE` is regular (i.e., `det(A-λE) ̸≡ 0`),  
 the underlying computational procedure reduces the pencil `A-λE` to an appropriate Kronecker-like form, 
-which provides information on the rank of `A-λE`. 
+which provides information on the rank of `A-λE`. For a sparse model, the rank of `A-λE` is evaluated for a randomly 
+generated value of `λ`. 
 
 The keyword arguements `atol1`, `atol2` and `rtol` specify the absolute tolerance for the nonzero
 elements of `A`, the absolute tolerance for the nonzero elements of `E`, and the relative tolerance 
@@ -380,7 +399,7 @@ The default relative tolerance is `n*ϵ`, where `n` is the size of  `A`, and `ϵ
 working machine epsilon. 
 The keyword argument `atol` can be used to simultaneously set `atol1 = atol` and `atol2 = atol`. 
 """
-function isregular(SYS::DescriptorStateSpace{T}; atol::Real = zero(float(real(T))), atol1::Real = atol, atol2::Real = atol, 
+function isregular(SYS::DSTYPEX{T}; atol::Real = zero(float(real(T))), atol1::Real = atol, atol2::Real = atol, 
     rtol::Real = SYS.nx*eps(real(float(one(T))))*iszero(min(atol1,atol2))) where T
     SYS.E == I && (return true)
     epsm = eps(float(one(real(T))))
@@ -388,6 +407,12 @@ function isregular(SYS::DescriptorStateSpace{T}; atol::Real = zero(float(real(T)
     rcond(SYS.E) > SYS.nx*epsm && (return true)
     return MatrixPencils.isregular(SYS.A, SYS.E, atol1 = atol1, atol2 = atol2, rtol = rtol )
 end
+function isregular(SYS::SparseDescriptorStateSpace{T}; atol::Real = zero(float(real(T))), atol1::Real = atol, atol2::Real = atol, 
+    rtol::Real = SYS.nx*eps(real(float(one(T))))*iszero(min(atol1,atol2))) where T
+    SYS.E == I && (return true)
+    return isregular(SYS.A, SYS.E, tol = rtol )
+end
+
 """
     isproper(sys; atol = 0, atol1 = atol, atol2 = atol, rtol = = n*ϵ, fast = true)
 
@@ -464,17 +489,19 @@ function isstable(SYS::DescriptorStateSpace{T}, smarg::Real = SYS.Ts == 0 ? 0 : 
     return disc ? all(abs.(poles) .< smarg-β) : all(real.(poles) .< smarg-β)
 end
 """
-    ghanorm(sys, fast = true, atol = 0, atol1 = atol, atol2 = atol, rtol = n*ϵ) -> (hanorm, hs)
+    ghanorm(sys::DescriptorStateSpace, fast = true, atol = 0, atol1 = atol, atol2 = atol, rtol = n*ϵ) -> (hanorm, hs)
 
 Compute for a proper and stable descriptor system `sys = (A-λE,B,C,D)` with the transfer function
 matrix `G(λ)`, the Hankel norm `hanorm =` ``\\small ||G(\\lambda)||_H`` and 
-the vector of Hankel singular values `hs` of the minimal realizatioj of the system.
+the vector of Hankel singular values `hs` of the minimal realization of the system.
 
-For a non-minimal system, the uncontrollable and unobservable finite and infinite eigenvalues of the pair `(A,E)` and
+For a dense non-minimal system, the uncontrollable and unobservable finite and infinite eigenvalues of the pair `(A,E)` and
 the non-dynamic modes are elliminated using minimal realization techniques.
 The rank determinations in the performed reductions
 are based on rank revealing QR-decompositions with column pivoting 
 if `fast = true` or the more reliable SVD-decompositions if `fast = false`. 
+For a sparse system, the Hankel norm and Hankel singular values of a low order approximation of 
+the minimal order system are computed.
 
 The keyword arguments `atol1`, `atol2`, and `rtol`, specify, respectively, 
 the absolute tolerance for the nonzero elements of `A`, `B`, `C`, `D`,  
@@ -535,7 +562,62 @@ function ghanorm(sys::DescriptorStateSpace{T}; fast::Bool = true,
     # end GHANORM
 end
 """
-    gh2norm(sys, fast = true, offset = sqrt(ϵ), atol = 0, atol1 = atol, atol2 = atol, atolinf = atol, rtol = n*ϵ) 
+    ghanorm(sys::SparseDescriptorStateSpace, abstol = 1e-12, reltol = 0, 
+           maxiter = 100, shifts = missing, nshifts = 6, cyclic = false) -> (hanorm, hs)
+
+Compute for a proper and stable sparse descriptor system `sys = (A-λE,B,C,D)` with the transfer function
+matrix `G(λ)`, the Hankel norm `hanorm =` ``\\small ||G(\\lambda)||_H`` and 
+the vector of Hankel singular values `hs` of a low order approximation of 
+the minimal order system.
+
+The function `ghanorm` can be also used if `sys` has the type `DescriptorStateSpaceExt`.
+
+The Hankel singular values `hs` are computed as the singular values of 
+the product `R'*E*S`, where `S*S'` and `R*R'` are the controlability and observability gramians, respectively, 
+with `S` and `R` low rank matrices. 
+For the computation of factors `S` and `R`, the low-rank ADI (LR-ADI) method with enhancements proposed in [1] 
+is employed.     
+
+For the convergence tests used in the LR-ADI method, the keyword argument `abstol` (default: `abstol = 1e-12`) 
+can be used to specify the tolerance on the normalized residuals, while the keyword argument
+`reltol` (default: `reltol = 0`) can be used to specify the tolerance for the relative changes of the solution. 
+The keyword argument `maxiter` can be used to set the maximum number of iterations (default: `maxiter = 100`).
+The keyword argument `nshifts` specifies the desired number of shifts to be used in an iteration cycle (default: `nshifts = 6`). 
+The keyword argument `shifts` can be used to provide a pre-calculated set of complex conjugated shifts to be used
+to start the iterations (default: `shifts = missing`).    
+If `cyclic = true`, the cyclic low-rank method of [2] is used, with the
+pre-calculated shifts provided in the keyword argument `shifts`. 
+
+_Note:_ There is no check of the stability of the eigenvalues of the pencil `A-λE` implemented. 
+For an unstable model the LR-ADI methods does not converge and either an error message is issued or the maximum
+number of allowed iterations are reached. 
+
+_References:_
+
+[1] P. Kürschner. Efficient Low-Rank Solution of Large-Scale Matrix Equations. 
+    Dissertation, Otto-von-Guericke-Universität, Magdeburg, Germany, 2016. Shaker Verlag,
+
+[2] T. Penzl, A cyclic low-rank Smith method for large sparse Lyapunov equations, 
+    SIAM J. Sci. Comput. 21 (4) (1999) 1401–1418.    
+"""   
+function ghanorm(sys::Union{DescriptorStateSpaceExt{T},SparseDescriptorStateSpace{T}}; 
+                 abstol = 1e-12, reltol = 0, maxiter = 100, shifts = missing, nshifts = 6, cyclic = false)  where T 
+   try 
+      if sys.Ts != 0
+         S, info = plyapdi(sys.A, sys.E, sys.B; abstol, reltol, maxiter, shifts, nshifts, cyclic)
+         R = plyapdi(sys.A', sys.E', sys.C'; abstol, reltol, maxiter, cyclic, shifts = cyclic ? shifts : info.used_shifts)[1]
+      else
+         S, info = plyapci(sys.A, sys.E, sys.B; abstol, reltol, maxiter, shifts, nshifts, cyclic)
+         R = plyapci(sys.A', sys.E', sys.C'; abstol, reltol, maxiter, cyclic, shifts = cyclic ? shifts : info.used_shifts)[1]
+      end
+      hs = svdvals(R'*Matrix(sys.E*S)); 
+      return hs[1], hs
+   catch
+      error("the system is possibly unstable")
+   end
+end
+"""
+    gh2norm(sys::DescriptorStateSpace, fast = true, offset = sqrt(ϵ), atol = 0, atol1 = atol, atol2 = atol, atolinf = atol, rtol = n*ϵ) 
 
 Compute for a descriptor system `sys = (A-λE,B,C,D)` the `H2` norm of its transfer function  matrix `G(λ)`.
 The `H2` norm is infinite, if `G(λ)` has unstable poles, or, for a continuous-time, the system has nonzero gain at infinity.
@@ -548,13 +630,15 @@ have moduli less than `1-β` for a discrete-time system, where `β` is the stabi
 The offset  `β` to be used can be specified via the keyword parameter `offset = β`. 
 The default value used for `β` is `sqrt(ϵ)`, where `ϵ` is the working machine precision. 
 
-For a continuous-time system `sys` with `E` singular, a reduced order realization is determined first, without 
+For a dense continuous-time system `sys` with `E` singular, a reduced order realization is determined first, without 
 uncontrollable and unobservable finite and infinite eigenvalues of the pencil `A-λE`. 
-For a discrete-time system or for a system with invertible `E`, a reduced order realization is determined first, without 
+For a dense discrete-time system or for a system with invertible `E`, a reduced order realization is determined first, without 
 uncontrollable and unobservable finite eigenvalues of the pencil `A-λE`.
 The rank determinations in the performed reductions
 are based on rank revealing QR-decompositions with column pivoting 
 if `fast = true` or the more reliable SVD-decompositions if `fast = false`.   
+For a sparse system, the `H2` norm of a low order approximation of 
+the minimal order system is computed.
 
 The keyword arguments `atol1`, `atol2`, and `rtol`, specify, respectively, 
 the absolute tolerance for the nonzero elements of `A`, `B`, `C`, `D`,  
@@ -569,8 +653,58 @@ to simultaneously set `atol1 = atol` and `atol2 = atol`.
 function gh2norm(sys::DescriptorStateSpace{T}; fast::Bool = true, offset::Real = sqrt(eps(float(real(T)))), 
                  atol::Real = zero(float(real(T))), atol1::Real = atol, atol2::Real = atol, atolinf::Real = atol, 
                  rtol::Real = sys.nx*eps(real(float(one(T))))*iszero(min(atol1,atol2)))  where T 
-    return gl2norm(sys; h2norm = true, fast = fast, offset = offset, atol1 = atol1, atol2 = atol2, atolinf = atolinf, rtol = rtol)
-    
+    return gl2norm(sys; h2norm = true, fast = fast, offset = offset, atol1 = atol1, atol2 = atol2, atolinf = atolinf, rtol = rtol)    
+end
+"""   
+    gh2norm((sys::SparseDescriptorStateSpace, abstol = 1e-12, reltol = 0, 
+            maxiter = 100, shifts = missing, nshifts = 6, cyclic = false) 
+
+Compute for a descriptor system `sys = (A-λE,B,C,D)` the `H2` norm of its transfer function  matrix `G(λ)`.
+The `H2` norm is infinite, if, for a continuous-time, the system has nonzero feedthrough matrix.
+
+The function `gh2norm` can be also used if `sys` has the type `DescriptorStateSpaceExt`.
+
+The H2-norm is computed as the Frobenius-norm of `R'*B` for a continuous-time system and of `[R'*B;D]` for a discrete-time system,
+where `R*R'` is the observability gramian, with R of low rank. 
+For the computation of `R`, the low-rank ADI (LR-ADI) method with enhancements proposed in [1] is employed.     
+
+For the convergence tests used in the LR-ADI method, the keyword argument `abstol` (default: `abstol = 1e-12`) 
+can be used to specify the tolerance on the normalized residuals, while the keyword argument
+`reltol` (default: `reltol = 0`) can be used to specify the tolerance for the relative changes of the solution. 
+The keyword argument `maxiter` can be used to set the maximum number of iterations (default: `maxiter = 100`).
+The keyword argument `nshifts` specifies the desired number of shifts to be used in an iteration cycle (default: `nshifts = 6`). 
+The keyword argument `shifts` can be used to provide a pre-calculated set of complex conjugated shifts to be used
+to start the iterations (default: `shifts = missing`).    
+If `cyclic = true`, the cyclic low-rank method of [2] is used, with the
+pre-calculated shifts provided in the keyword argument `shifts`. 
+
+_Note:_ There is no check of the stability of the eigenvalues of the pencil `A-λE` implemented. 
+For an unstable model the LR-ADI methods does not converge and either an error message is issued or the maximum
+number of allowed iterations are reached. 
+
+_References:_
+
+[1] P. Kürschner. Efficient Low-Rank Solution of Large-Scale Matrix Equations. 
+    Dissertation, Otto-von-Guericke-Universität, Magdeburg, Germany, 2016. Shaker Verlag,
+
+[2] T. Penzl, A cyclic low-rank Smith method for large sparse Lyapunov equations, 
+    SIAM J. Sci. Comput. 21 (4) (1999) 1401–1418.    
+"""   
+function gh2norm(sys::Union{DescriptorStateSpaceExt,SparseDescriptorStateSpace}; 
+                 abstol = 1e-12, reltol = 0, maxiter = 100, shifts = missing, nshifts = 6, cyclic = false)  
+   try 
+      if sys.Ts != 0
+         R = plyapdi(sys.A', sys.E', sys.C'; abstol, reltol, maxiter, shifts, nshifts, cyclic)[1]
+         return norm([R'*Matrix(sys.B); Matrix(sys.D)]) 
+      else
+         iszero(sys.D) || (return Inf)
+         R = plyapci(sys.A', sys.E', sys.C'; abstol, reltol, maxiter, shifts, nshifts, cyclic)[1]
+         return norm(R'*Matrix(sys.B))  
+      end
+   catch
+      @warn "the pair (A,E) is possibly unstable"
+      return Inf 
+   end
 end
 """
     gl2norm(sys, h2norm = false, fast = true, offset = sqrt(ϵ), atol = 0, atol1 = atol, atol2 = atol, atol3 = atol, atolinf = atol, rtol = n*ϵ) 
@@ -716,8 +850,7 @@ The keyword argument `atol` can be used to simultaneously set `atol1 = atol` and
 function ghinfnorm(sys::DescriptorStateSpace{T}; rtolinf::Real = float(real(T))(0.001), fast::Bool = true, offset::Real = sqrt(eps(float(real(T)))), 
                    atol::Real = zero(float(real(T))), atol1::Real = atol, atol2::Real = atol,  
                    rtol::Real = (size(sys.A,1)*eps(real(float(one(T)))))*iszero(min(atol1,atol2)))  where T 
-    return glinfnorm(sys; hinfnorm = true, rtolinf = rtolinf, fast = fast, offset = offset, atol1 = atol1, atol2 = atol2, rtol = rtol)
-
+   return glinfnorm(sys; hinfnorm = true, rtolinf = rtolinf, fast = fast, offset = offset, atol1 = atol1, atol2 = atol2, rtol = rtol)
 end
 """
     glinfnorm(sys, hinfnorm = false, rtolinf = 0.001, fast = true, offset = sqrt(ϵ), atol = 0, atol1 = atol, atol2 = atol, rtol = n*ϵ) -> (linfnorm, fpeak)
@@ -1029,7 +1162,36 @@ function norminfd(a, e, b, c, d, ft0, Ts, tol)
       iter += 1
    end
 end  
- 
+"""
+    glinfnorm(sys::SparseDescriptorStateSpace, fmin::Real = 0.00001, fmax::Real = 10., fvals::Int = 100) -> (linfnorm, fpeak)
+
+Compute for a sparse descriptor system `sys = (A-λE,B,C,D)` with the transfer function  matrix `G(λ)` 
+the `L∞` norm `linfnorm` (i.e.,  the peak gain of `G(λ)`) and 
+the corresponding peak frequency `fpeak`, where the peak gain is achieved. 
+The `L∞` norm is evaluated as the largest singular value of the frequency response over a uniform grid of 
+`fvals` frequency values on the interval  `[fmin, fmax]`. 
+
+Note: For a stable system the `L∞` norm is equal to the `H∞` norm. However, no stability check is implemented
+for sparse models. 
+"""   
+function glinfnorm(sys::Union{SparseDescriptorStateSpace{T},DescriptorStateSpaceExt{T}}; 
+                   fmin::Real = 0.00001, fmax::Real = 10., fvals::Int = 100)  where {T} 
+   T1 = T <: BlasFloat ? T : promote_type(Float64,T) 
+   f = T1(fmin)
+   hinf = svdvals(evalfr(sys,fval=f))[1]
+   finf = f
+   fvals == 1 && (return hinf, finf)
+   fstep = (fmax-fmin)/fvals
+   for k in 2:fvals
+       f += fstep
+       hc = svdvals(evalfr(sys,fval=f))[1]
+       if hc > hinf
+          hinf = hc; finf = f
+       end
+   end
+   return hinf, finf                    
+end 
+ghinfnorm(sys::Union{SparseDescriptorStateSpace,DescriptorStateSpaceExt}; kwargs...) = glinfnorm(sys; kwargs...)
 """   
     gnugap(sys1, sys2; freq = ω, rtolinf = 0.00001, fast = true, offset = sqrt(ϵ), 
            atol = 0, atol1 = atol, atol2 = atol, rtol = n*ϵ) -> (nugapdist, fpeak)

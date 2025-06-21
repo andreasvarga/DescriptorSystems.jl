@@ -13,6 +13,6 @@ Pages = [ "dss.md",
           "advanced_operations.md",
           "model_matching.md",
           "dstools.md" ]
-Module = ["DescriptorSystems"]
+Modules = [DescriptorSystems]
 Order = [:type, :function]
 ```

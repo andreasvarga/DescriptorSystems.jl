@@ -14,9 +14,10 @@ using MatrixEquations
 using MatrixPencils
 using Polynomials
 using Random
+using SparseArrays
 isdefined(Polynomials,:order) && (import Polynomials: order)
 
-export DescriptorStateSpace, AbstractDescriptorStateSpace, dss, dssdata, rdss, rss, iszero, order
+export DescriptorStateSpace, DS, AbstractDescriptorStateSpace, dss, dss2full, dss2sparse, dssdata, dssdatafull, rdss, rss, iszero, order
 export RationalTransferFunction, rtf
 export gminreal, gir, gir_lrtran, gbalmr, dsxvarsel, gss2ss, dss2ss, gprescale!, gprescale, gbalqual, pbalqual
 export gbilin, c2d, dss2rm, dss2pm, timeresp, stepresp
