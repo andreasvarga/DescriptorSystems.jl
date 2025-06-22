@@ -70,7 +70,7 @@ function dss2pm(sys::DescriptorStateSpace{T}; fast::Bool = true,
    end
 end
 """
-    c2d(sysc, Ts, meth = "zoh"; x0, u0, standard = true, fast = true, prewarp_freq = freq, 
+    c2d(sysc::DescriptorStateSpace, Ts, meth = "zoh"; x0, u0, standard = true, fast = true, prewarp_freq = freq, 
                state_mapping = false, simple_infeigs = true, 
                atol = 0, atol1 = atol, atol2 = atol, rtol = n*ϵ) -> (sysd, xd0, Mx, Mu)
 
@@ -211,101 +211,52 @@ function c2d(sysc::DescriptorStateSpace{T}, Ts::Real, meth::String = "zoh"; simp
     end                        
     # end C2D
 end
-function c2d(sysc::DescriptorStateSpaceExt{T}, Ts::Real, meth::String = "zoh"; simple_infeigs::Bool = true,
+"""
+    c2d(sysc::SparseDescriptorStateSpace, Ts; x0, u0, prewarp_freq = freq, 
+               state_mapping = false) -> (sysd, xd0, Mx, Mu)
+
+Compute for the sparse continuous-time descriptor system `sysc = (A-sE,B,C,D)` with the proper 
+transfer function matrix `Gc(λ)` and for a sampling time `Ts`, the corresponding discretized
+descriptor system `sysd = (Ad-zEd,Bd,Cd,Dd)` with the transfer function matrix `Gd(z)` 
+corresponding to the Tustin's discretization. 
+`xd0` is the mapped initial condition of the state of the discrete-time system `sysd` determined from the 
+initial conditions of the state `x0` and input `u0` of the continuous-time system `sysc`. 
+The keyword argument `state_mapping = true` specifies the option to compute the state mapping matrices `Mx` and `Mu` such that 
+the values `xc(t)` and `xd(t)` of the system state vectors of the continuous-time system `sysc` and of the discrete-time system
+`sysd`, respectively, and of the input vector `u(t)` are related as `xc(t) = Mx*xd(t)+Mu*u(t)`.   
+If `state_mapping = false` (the default option), then `Mx = nothing` and `Mu = nothing`.
+
+The Tustin transformation (also known as trapezoidal integration) is employed. If a nonzero prewarping frequency
+`freq` is specified using the keyword parameter `prewarp_freq = freq`, then the matching condition  
+`Gd(exp(im*freq*Ts)) = Gc(im*freq)` is fulfilled.
+
+"""
+function c2d(sysc::SparseDescriptorStateSpace{T}, Ts::Real;
              x0::Vector = zeros(T,sysc.nx), u0::Vector = zeros(T,sysc.nu), state_mapping::Bool = false, 
-             prewarp_freq::Real = 0, standard::Bool = true, fast::Bool = true, 
-             atol::Real = zero(float(real(T))), atol1::Real = atol, atol2::Real = atol, 
-             rtol::Real = sysc.nx*eps(real(float(one(T))))*iszero(min(atol1,atol2))) where T
+             prewarp_freq::Real = 0) where {T}
 
-    sysc.Ts == 0 || error("c2d can not be applied to a discrete-time system")
-    Ts > 0 || error("the sampling time Ts must be positive")
-    T1 = T <: BlasFloat ? T : promote_type(Float64,T) 
-    ONE = one(T1)
-    n = sysc.nx 
-    m = sysc.nu
-    length(x0) == n || error("initial state vector and system state vector dimensions must coincide")
-    length(u0) == m || error("initial input vector and system input vector dimensions must coincide")
-    issparse(sysc.A) && (meth = "tustin"; standard = false)
-    state_mapping || ( Mx = nothing; Mu = nothing)
-    # quick exit in constant case  
-    n == 0 && (return dss(sysc.D; Ts), x0, state_mapping ? zeros(T1,0,0) : Mx, state_mapping ? zeros(T1,0,m) : Mu)
+   sysc.Ts == 0 || error("c2d can not be applied to a discrete-time system")
+   Ts > 0 || error("the sampling time Ts must be positive")
+   T1 = T <: BlasFloat ? T : promote_type(Float64,T) 
+   n = sysc.nx 
+   m = sysc.nu
+   length(x0) == n || error("initial state vector and system state vector dimensions must coincide")
+   length(u0) == m || error("initial input vector and system input vector dimensions must coincide")
+   state_mapping || ( Mx = nothing; Mu = nothing)
+   # quick exit in constant case  
+   n == 0 && (return dss(sysc.D; Ts), x0, state_mapping ? zeros(T1,0,0) : Mx, state_mapping ? zeros(T1,0,m) : Mu)
 
-    meth = lowercase(meth)
-
-    if meth == "zoh" || meth == "foh" || meth == "impulse"
-       if sysc.E != I 
-          # eliminate (if possible) all infinite eigenvalues in the continuous-time case with singular E
-          syscr, xt0, Mx, Mu = dss2ss(sysc, x0; state_mapping, simple_infeigs, fast, atol1, atol2, rtol) 
-          isnothing(Mx) && (state_mapping = false)
-          state_mapping && norm(Mx*xt0+Mu*u0-x0,Inf) >= eps(norm(x0,Inf)*100) && (@warn "Inconsistent initial state")
-          x0 = copy(xt0)
-          A, _, B, C, D = dssdata(syscr)
-          n, m = size(B) 
-         # if rcond(sysc.E) >= n*eps(float(real(T1)))
-         #     # E invertible
-         #     A, E, B, C, D = dssdata(T1,sysc)
-         #     F = lu!(E)
-         #     # get rid of E matrix
-         #     ldiv!(F,A); ldiv!(F,B)
-         #     state_mapping && (Mx = I; Mu = zeros(T1,n,m))
-         #  else
-         #     # E singular
-         #     syscr, xt0, Mx, Mu = dss2ss(sysc, x0; state_mapping, simple_infeigs, fast, atol1, atol2, rtol) 
-         #     isnothing(Mx) && (state_mapping = false)
-         #     state_mapping && norm(Mx*xt0+Mu*u0-x0,Inf) >= eps(norm(x0,Inf)*100) && (@warn "Inconsistent initial state")
-         #     x0 = copy(xt0)
-         #     A, _, B, C, D = dssdata(syscr)
-         #     n, m = size(B) 
-         #  end
-       else
-          A, _, B, C, D = dssdata(T1,sysc)
-          state_mapping && (Mx = I; Mu = zeros(T1,n,m))
-       end
-       m = size(D,2)
-       if meth == "zoh"
-          G = exp([ rmul!(A,Ts) rmul!(B,Ts); zeros(T1,m,n+m)])
-          return (dss(view(G,1:n,1:n), view(G,1:n,n+1:n+m), C, D; Ts), x0, Mx, Mu)
-       elseif meth == "foh"
-          G = exp([ rmul!(A,Ts) rmul!(B,Ts) zeros(T1,n,m); zeros(T1,m,n+m) 1/Ts*I; zeros(T1,m,n+2m)])
-          Ad = view(G,1:n,1:n)
-          G1 = view(G,1:n,n+1:n+m)
-          G2 = view(G,1:n,n+m+1:n+2m)
-          # discrete to continuous state map Mx = M1 Mu = Mu+Mx*G2
-          state_mapping && mul!(Mu, Mx, G2, ONE, ONE) 
-          return (dss(Ad, G1+(Ad-I)*G2, C, D+C*G2; Ts), x0-G2*u0, Mx, Mu)
-       else # meth == "impulse"
-         G = exp(rmul!(A,Ts))
-         return (dss(G, G*B, C, C*B; Ts), x0, Mx, Mu)
-       end
-    elseif meth == "tustin"
-       A, E, B, C, D = dssdata(T1,sysc)
-       prewarp_freq == 0 ? t = Ts : t = 2*tan(prewarp_freq*Ts/2)/prewarp_freq 
-       if standard
-          Ed = E-t/2*A   
-          xd0 = Ed*x0 
-          state_mapping ? F = lu(Ed) : F = lu!(Ed)
-          X = ldiv!(F,Matrix(B*t))
-          Ad = rdiv!(E+t/2*A,F)    # Ad = (E + A*T/2)/(E - A*T/2)
-          Bd = E*X                 # Bd = E * (E - A*T/2) \ B*T
-          mul!(D,C,X,0.5,1)        # Dd = D + C*(E - A*T/2)\B*(T/2) = D + C*X/2
-          rdiv!(C,F)               # Cd = C/(E - A*T/2)
-          xd0 -= (X*u0)/2          # xd0 = (E - A*T/2)*x0 - (E - A*T/2)\B*(T/2)*u0 = (E - A*T/2)*x0 - X*u0/2
-          state_mapping && ( Mx = inv(F); Mu = copy(ldiv!(F,X/2)))
-          return (dss(Ad, Bd, C, D; Ts), xd0, Mx, Mu)
-       else
-          Ed = E-t/2*A              # Ed = E - A*T/2 
-          X = Ed\Matrix(B*t)              # X = (E - A*T/2)\B*T 
-          mul!(D,C,X,0.5,1.)        # Dd = D + (T/2)*C*(E - A*T/2)\B = D + C*X/2
-          Ad = E+t/2*A              # Ad = E + A*T/2;  Cd = C
-          Bd = E*X                  # Bd = E * (E - A*T/2) \ B*T
-          xd0 = x0 - (X*u0)/2       # xd0 = x0 - (E - A*T/2)\B*(T/2)*u0 = x0 - X*u0/2
-          state_mapping && ( Mx = I; Mu = X/2)
-          return (dss(Ad, Ed, Bd, C, D; Ts), xd0, Mx, Mu)
-       end
-    else
-       error("no such method")
-    end                        
-    # end C2D
+   A, E, B, C, D = dssdata(T1,sysc)
+   prewarp_freq == 0 ? t = Ts : t = 2*tan(prewarp_freq*Ts/2)/prewarp_freq 
+   Ed = E-t/2*A              # Ed = E - A*T/2 
+   X = Ed\Matrix(B*t)        # X = (E - A*T/2)\B*T 
+   mul!(D,C,X,0.5,1.)        # Dd = D + (T/2)*C*(E - A*T/2)\B = D + C*X/2
+   Ad = E+t/2*A              # Ad = E + A*T/2;  Cd = C
+   Bd = sparse(E*X)          # Bd = E * (E - A*T/2) \ B*T
+   xd0 = x0 - (X*u0)/2       # xd0 = x0 - (E - A*T/2)\B*(T/2)*u0 = x0 - X*u0/2
+   state_mapping && ( Mx = I; Mu = X/2)
+   return (dss(Ad, Ed, Bd, C, D; Ts), xd0, Mx, Mu)
+   # end C2D
 end
 
 """
@@ -515,6 +466,72 @@ function gbilin(sys::DescriptorStateSpace{T},g::RationalTransferFunction;
     # end GBILIN
 end
 """
+    gbilin(sys::SparseDescriptorStateSpace, g) -> (syst, ginv)
+
+Compute for the sparse descriptor system `sys = (A-λE,B,C,D)` with the transfer function matrix `G(λ)` and 
+a first degree real rational transfer function `g = g(δ)`, 
+the descriptor system realization `syst = (At-δEt,Bt,Ct,Dt)` of `G(g(δ))` corresponding to the bilinear transformation 
+`λ = g(δ) = (aδ+b)/(cδ+d)`. For a continuous-time transfer function `g(δ)`, `δ = s`, the complex variable in 
+the Laplace transform, while for a discrete-time transfer function,  
+`δ = z`, the complex variable in the `Z`-transform. `syst` inherits the sampling-time of `sys1`. 
+`sysi1` is the transfer function `ginv(λ) = (d*λ-b)/(-c*λ+a)` representing the inverse of the bilinear transformation `g(δ)` 
+(i.e., `g(ginv(λ)) = 1`).
+"""
+function gbilin(sys::SparseDescriptorStateSpace{T},g::RationalTransferFunction) where {T}
+    
+  
+    # check g is first order 
+    num = g.num; degn = degree(num) 
+    den = g.den; degd = degree(den)
+      
+    (degn > 1 || degd > 1 || max(degn,degd) == 0) && 
+        error("The McMillan degree of g must be one")
+    
+    iszero(num) && error("g must be nonzero")
+    
+    Ts = sys.Ts;
+    Ts1 = g.Ts;   
+    Ts > 0 && Ts1 > 0 && Ts != Ts1 && error("sys and g must have the same sampling periods")
+    
+    # assume g(delta) = (a*delta+b)/(c*delta+d)
+    degn > 0 ? (a = num[1]; b = num[0]) : (a = 0; b = num[0])
+    degd > 0 ? (c = den[1]; d = den[0]) : (a = a/den[0]; b = b/den[0]; c = 0; d = 1)
+    
+    A, E, B, C, D = dssdata(sys);
+    n, m = size(B); p = size(C,1);
+    
+    if degd > 0
+       # rational case
+       At = [-b*E+d*A d*B; SparseArrays.spzeros(T,m,n) -I];
+       Et = [a*E-c*A -c*B; SparseArrays.spzeros(T,m,n+m)];
+       Bt = [SparseArrays.spzeros(T,n,m); I];
+       Ct = [C D]; Dt = SparseArrays.spzeros(T,p,m);
+       syst = dss(At,Et,Bt,Ct,Dt, Ts = Ts1);
+    else
+       # polynomial case
+       if E == I
+          # preserve standard system form
+          syst = dss((A-b*E)/a,B/a,C,D,Ts=Ts1);
+       else
+          syst = dss(A-b*E,a*E,B,C,D,Ts=Ts1);
+       end
+    end
+
+    if Ts == 0 
+       Tsi = 0
+    elseif Ts != 0 && Ts1 == 0
+       Tsi = Ts
+    else # Ts != 0 && Ts1 != 0
+       Ts1 < 0 ? Tsi = Ts : Tsi = Ts1;
+    end
+    #ginv = (d*s-b)/(-c*s+a)
+     
+    ginv = rtf(Polynomial([-b, d]), Polynomial([a, -c]), Ts=Tsi, var = Tsi == 0 ? :s : :z)
+
+    return syst, ginv
+    # end GBILIN
+end 
+"""
     rt = confmap(r, f)
 
 Apply the conformal mapping transformation `λ = f(δ)` to the rational transfer function `r(λ)` 
@@ -554,7 +571,7 @@ function confmap(R::VecOrMat{<:RationalTransferFunction},f::RationalTransferFunc
     end
     return Rt 
 end
-function gprescale!(sys::DescriptorStateSpace; withB = true, withC = true) 
+function gprescale!(sys::DSTYPE; withB = true, withC = true) 
    D1, D2 = lsbalance!(sys.A,sys.E,sys.B,sys.C; withB, withC)
    return sys, D1, D2
 end
@@ -592,7 +609,7 @@ This function is merely an interface to the functions `lsbalance!` of the
 [1] F.M.Dopico, M.C.Quintana and P. van Dooren, 
     "Diagonal scalings for the eigenstructure of arbitrary pencils", SIMAX, 43:1213-1237, 2022. 
 """
-function gprescale(sys::DescriptorStateSpace; withB = true, withC = true)
+function gprescale(sys::DSTYPE; withB = true, withC = true)
    return gprescale!(copy(sys); withB, withC)
 end
 """
@@ -622,6 +639,6 @@ For a standard system with `E = I`, the above formulas are used assuming `E = 0`
 [1] F.M.Dopico, M.C.Quintana and P. van Dooren, 
     "Diagonal scalings for the eigenstructure of arbitrary pencils", SIMAX, 43:1213-1237, 2022. 
 """
-function gbalqual(sys::DescriptorStateSpace; SysMat = false) 
+function gbalqual(sys::DSTYPE; SysMat = false) 
    return lsbalqual(sys.A, sys.E, sys.B, sys.C; SysMat)
 end 

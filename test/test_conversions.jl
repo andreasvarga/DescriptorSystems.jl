@@ -4,8 +4,8 @@ using DescriptorSystems
 using LinearAlgebra
 using Polynomials
 using Test
-
-
+using SparseArrays
+using JLD2
 
 
 println("Test_conversions")
@@ -238,7 +238,6 @@ x0 = Mx*xd0+Mu*u0;
 @time sysd, xd1, Mx, Mu = c2d(sysc,1; x0, u0, state_mapping = true, simple_infeigs = true); 
 @test norm(Mx*xd1+Mu*u0 - x0) < 0.001
 
-
 end # c2d
 
 @testset "c2d - rational transfer functions" begin
@@ -402,9 +401,39 @@ sys = dss(A,E,B,C,0)
 @test gbalqual(sys) > 100000*gbalqual(sys_scaled)
 
 
-
 end
 
+@testset "Sparse models" begin
+
+# sparse model norms
+cd(joinpath(pkgdir(DescriptorSystems), "test"))
+A, E, B, C, D = load("mirror315.jld2","A","E","B","C","D");
+sysc = dss(sparse(A-0.0001*E),sparse(E),sparse(B),sparse(C),sparse(D));
+x0 = rand(315); u0 = rand(2);
+@time sysd, xd0, Mx, Mu = c2d(sysc,.1; x0, u0, state_mapping = true); 
+@test norm(dcgain(sysd) - dcgain(sysc),Inf) < 1.e-5
+@test norm(Mx*xd0+Mu*u0 - x0) < 0.001
+prewarp_freq = 0.01
+@time sysd, = c2d(sysc,.1; prewarp_freq); 
+@test norm(evalfr(sysd,fval = prewarp_freq) - evalfr(sysc,fval = prewarp_freq),Inf) < 1.e-5
+
+@time sys_scaled, D1, D2 = gprescale(sysc, withB = false, withC = false);
+@test sys_scaled.A == D1*sysc.A*D2 && sys_scaled.B == D1*sysc.B && sys_scaled.C == sysc.C*D2
+@test sys_scaled != sysc && iszero(sysc-sys_scaled)
+@test gbalqual(sysc) > gbalqual(sys_scaled)
+
+type = "cayley"; 
+@time g, ginv1 = rtfbilin(type)
+@time syst, g1 = gbilin(sysd,ginv1); 
+@time sysi, gi1 = gbilin(syst,g1); 
+@test iszero(sysd-sysi,atol=1.e-7) && iszero(g-g1) && ginv1 == gi1
+
+type = "tustin"; 
+@time g, ginv1 = rtfbilin(type,Ts=0.1)
+@time syst, gi = gbilin(sysc,g); 
+@test iszero(syst-sysd)
+
+end
 
 
 end #module
