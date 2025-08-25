@@ -203,7 +203,7 @@ G = rss(n1,p,m); F = rss(n2,pf,m);
 @time X, info = glasol(G, F; nehari = true, atol = 1.e-7); info
 @test abs(glinfnorm(X*G-F)[1] - info.mindist) < 0.01 &&  (!info.nonstandard && isstable(X)) 
 
-# discrete-time, both G and F unstable #fails
+# discrete-time, both G and F unstable 
 n1 = 3; n2 = 2; m = 3; p = 2; pf = 1; 
 G = rss(n1,p,m,disc=true); F = rss(n2,pf,m,disc=true);  
 @time X, info = glasol(G, F; reltol=0.0001, atol = 1.e-9); info
@@ -241,18 +241,17 @@ G = rss(n1,p,m,stable=true); F = rss(n2,pf,m,stable=true);
 @time X, info = glasol(G, F; nehari = true, atol = 1.e-7); info
 @test abs(glinfnorm(X*G-F)[1] - info.mindist) < 0.01 &&  (!info.nonstandard && isstable(X)) 
 
-# exact solution exists, no free poles 
-n1 = 3; n2 = 2; m = 3; p = 2; pf = 1; 
-G = rss(n1,p,m); X0 = rss(n2,pf,p,stable=true);  F = X0*G; 
-@time X, info = glasol(G, F, offset = 1.e-13, atol = 1.e-7); info  
-@test abs(glinfnorm(X*G-F)[1] - info.mindist) < 1.e-5 &&  (!info.nonstandard && isstable(X)) 
-
 # exact solution exists, free poles exist 
 n1 = 3; n2 = 2; m = 2; p = 3; pf = 1; 
 G = rss(n1,p,m,stable=true); X0 = rss(n2,pf,p,stable=true);  F = X0*G;
 @time X, info = glasol(G, F, atol = 1.e-7, poles = [-2, -3], sdeg = -1); info
 @test abs(glinfnorm(X*G-F)[1] - info.mindist) < 1.e-7 &&  (!info.nonstandard && isstable(X)) 
 
+# exact solution exists, no free poles 
+n1 = 3; n2 = 2; m = 3; p = 2; pf = 1; 
+G = rss(n1,p,m); X0 = rss(n2,pf,p,stable=true);  F = X0*G; 
+@time X, info = glasol(G, F, offset = 1.e-13, atol = 1.e-7); info  
+@test abs(glinfnorm(X*G-F)[1] - info.mindist) < 1.e-5 &&  (!info.nonstandard && isstable(X)) 
 
 n1 = 3; n2 = 2; m = 2; p = 3; pf = 1; 
 G = rss(n1,p,m,stable=true); X0 = rss(n2,pf,p,stable=true);  F = X0*G;
