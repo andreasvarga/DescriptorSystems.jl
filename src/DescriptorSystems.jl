@@ -3,7 +3,7 @@ module DescriptorSystems
 import Base: *, +, -, /, \, ^, (==), convert, eltype, hcat, hvcat, inv, isapprox, iszero,
     lastindex, length, ndims, nothing, one, print, promote_op, require_one_based_indexing,
     show, size, vcat, zero
-import LinearAlgebra: BlasComplex, BlasFloat, BlasReal, adjoint, copy_oftype, hcat,
+import LinearAlgebra: BlasComplex, BlasFloat, BlasReal, BlasInt, adjoint, copy_oftype, hcat,
     normalize, opnorm, rdiv!, transpose
 import MatrixPencils: isregular, rmeval
 import Polynomials:

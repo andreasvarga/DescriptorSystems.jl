@@ -24,18 +24,19 @@ eye(m,n) = Matrix{Bool}(I, m, n)
 eye(::Type{T}, n) where {T} = Matrix{T}(I, n, n)
 eye(::Type{T}, m, n) where {T} = Matrix{T}(I, m, n)
 
-function rcond(A::DenseMatrix, tola::Real = 0)
-    T = eltype(A)
-    T1 = T <: BlasFloat ? T : T1 = promote_type(T,Float64)
+function rcond(A::DenseMatrix{T},tola::Real = 0) where {T <: Union{BlasInt,BlasFloat}}
+    T1 = promote_type(T,Float64)
     max(size(A)...) == 0 && (return T1(Inf))
     nrmA = opnorm(A,1)
     nrmA <= tola && (return zero(real(T1)))
     istriu(A) ? (return LinearAlgebra.LAPACK.trcon!('1','U','N',copy_oftype(A,T1))) : 
         (return LinearAlgebra.LAPACK.gecon!('1', LinearAlgebra.LAPACK.getrf!(copy_oftype(A,T1))[1],real(T1)(nrmA)) ) 
 end
-function rcond(A::UpperTriangular, tola::Real = 0) 
-    T = eltype(A)
-    T1 = T <: BlasFloat ? T : T1 = promote_type(T,Float64)
+rcond(A::DenseMatrix{T},tola::Real = 0) where {T} = 1/cond(A,1)
+rcond(A::UpperTriangular{T}) where {T} = 1/cond(A,1)
+rcond(A::SparseMatrixCSC,tola::Real = 0) = 1/cond(A,1)
+function rcond(A::UpperTriangular{T}, tola::Real = 0) where {T <: Union{BlasInt,BlasFloat}}
+    T1 = promote_type(T,Float64)
     max(size(A)...) == 0 && (return T1(Inf))
     nrmA = opnorm(A,1)
     nrmA <= tola && (return zero(real(T1)))

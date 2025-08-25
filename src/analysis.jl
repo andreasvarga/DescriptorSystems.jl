@@ -115,14 +115,14 @@ function gpole(SYS::DescriptorStateSpace{T}; fast = false, atol::Real = 0, atol1
     T1 = T <: BlasFloat ? T : promote_type(Float64,T)
     A = copy_oftype(SYS.A,T1)
     if SYS.E == I
-       return isschur(A) ? ordeigvals(A) : MatrixPencils.eigvalsnosort(A)
+       return isschur(A) ? ordeigvals(A) : MatrixPencils.eigvalsnosort!(A)
     else
        E = copy_oftype(SYS.E,T1)
        if norm(E,Inf) > atol2 
           epsm = eps(float(one(real(T1))))
           isschur(A,E) && rcond(UpperTriangular(E)) >= SYS.nx*epsm && (return ordeigvals(A,E)[1])
-          istriu(E) && rcond(UpperTriangular(E)) >= SYS.nx*epsm && (return MatrixPencils.eigvalsnosort(A,E))
-          rcond(E) >= SYS.nx*epsm && (return MatrixPencils.eigvalsnosort(A,E))
+          istriu(E) && rcond(UpperTriangular(E)) >= SYS.nx*epsm && (return MatrixPencils.eigvalsnosort!(A,E))
+          rcond(E) >= SYS.nx*epsm && (return MatrixPencils.eigvalsnosort!(A,E))
        end
        # singular E
        poles, nip, krinfo = pzeros(A, E; fast = fast, atol1 = atol1, atol2 = atol2, rtol = rtol )

@@ -395,7 +395,7 @@ function rss(n::Int, p::Int, m::Int; disc::Bool = false, Ts::Real = -1.0, T::Typ
     Afuo = randn(T,nuo,nuo); Bfuo = randn(T,nuo,m); Cfuo = zeros(T,p,nuo); 
     stable && nuo > 0 && (disc ? rmul!(Afuo,1/(rand()+opnorm(Afuo,1))) : Afuo -= I*(rand()+maximum(real(eigvals(Afuo)))) ) 
     nx = nf+nuc+nuo
-    Q = randt ? qr!(rand(nx,nx)).Q : I
+    Q = randt ? qr!(rand(T,nx,nx)).Q : I
     return DescriptorStateSpace{T}(Q'*blockdiag(Af,Afuc,Afuo)*Q, I, 
                                    Q'*[Bf;Bfuc;Bfuo], [ Cf Cfuc Cfuo ]*Q, rand(T,p,m), 
                                    disc ? Ts : zero(real(T))) 
@@ -448,8 +448,8 @@ function rdss(n::Int, p::Int, m::Int; disc::Bool = false, stable::Bool = false, 
     stable && nfuo > 0 && (disc ? Afuo = Efuo*rmul!(Afuo,1/(rand()+opnorm(Afuo,1))) : Afuo = Efuo*(Afuo-I*(rand()+maximum(real(eigvals(Afuo))))) ) 
     niuo = sum(iduo); Aiuo = Matrix{T}(I,niuo,niuo); Eiuo = jordanblockdiag(zero(T),iduo); Biuo = randn(T,niuo,m); Ciuo = zeros(T,p,niuo);
     nx = nf+ni+nfuc+nfuo+niuc+niuo
-    Q = randlt ? qr!(rand(nx,nx)).Q : I
-    Z = randrt ? qr!(rand(nx,nx)).Q : I
+    Q = randlt ? qr!(rand(T,nx,nx)).Q : I
+    Z = randrt ? qr!(rand(T,nx,nx)).Q : I
     return DescriptorStateSpace{T}(Q*blockdiag(Af,Ai,Afuc,Aiuc,Afuo,Aiuo)*Z, Q*blockdiag(Ef,Ei,Efuc,Eiuc,Efuo,Eiuo)*Z, 
                                    Q*[Bf;Bi;Bfuc;Biuc;Bfuo;Biuo], [ Cf Ci Cfuc Ciuc Cfuo Ciuo]*Z, rand(T,p,m), 
                                    disc ? Ts : zero(real(T))) 
