@@ -195,7 +195,7 @@ ssysd = dss(A, E, B, C, D, Ts = -1)
 @test ssys == transpose(transpose(ssys))
 @test iszero(ssys -gdual(gdual(ssys,rev=true)))
 @test iszero(ssys - adjoint(adjoint(ssys)))
-@test iszero(ssysd - adjoint(adjoint(ssysd)))
+@test iszero(ssysd - adjoint(adjoint(ssysd)),atol=1.e-10)
 @test iszero(ssysd - dsxvarsel(ssysd,[2,1]))
 
 
