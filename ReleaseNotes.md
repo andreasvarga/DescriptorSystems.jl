@@ -7,8 +7,6 @@ Minor release which provides extended functionality covering sparse matrix model
 This release relies on the newly implemented generic functions available in the version `v1.8.9` of the 
 [`MatrixPencils.jl`](https://github.com/andreasvarga/MatrixPencils.jl) package.
 
-TODO: Implement basic connections for sparse matrix models. 
-
 ## Version 1.4.4
 
 Some fixes to handle structured and sparse matrices in the `dss` function.   

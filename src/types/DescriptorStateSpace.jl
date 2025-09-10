@@ -211,6 +211,9 @@ end
 -(sys1::SparseDescriptorStateSpace, sys2::SparseDescriptorStateSpace) = +(sys1,-sys2)
 +(sys1::SparseDescriptorStateSpace, sys2::DescriptorStateSpace) = +(sys1,DescriptorSystems.sparse(sys2))
 +(sys1::DescriptorStateSpace, sys2::SparseDescriptorStateSpace) = +(DescriptorSystems.sparse(sys1),sys2)
++(sys1::SparseDescriptorStateSpace, sys2::DSTYPEX) = +(sys1,DescriptorSystems.sparse(sys2))
++(sys1::DSTYPEX, sys2::SparseDescriptorStateSpace) = +(DescriptorSystems.sparse(sys1),sys2)
+
 # difference sys1-sys2
 function -(sys1::DSTYPE{T1}, sys2::DSTYPE{T2}) where {T1,T2}
     sys1.nu == 1 && sys1.ny == 1 && (sys2.ny > 1 || sys2.nu > 1) && (return ones(T1,sys2.ny,1)*sys1*ones(T1,1,sys2.nu) - sys2)
@@ -353,6 +356,9 @@ function *(sys1::SparseDescriptorStateSpace{T1}, sys2::SparseDescriptorStateSpac
     end
     return SparseDescriptorStateSpace{T}(A, E, B, C, D, Ts)
 end
+*(sys1::SparseDescriptorStateSpace, sys2::DSTYPEX) = *(sys1,DescriptorSystems.sparse(sys2))
+*(sys1::DSTYPEX, sys2::SparseDescriptorStateSpace) = *(DescriptorSystems.sparse(sys1),sys2)
+
 
 # sys*mat
 function *(sys::DSTYPE{T1}, mat::AbstractVecOrMat{T2}) where {T1,T2}

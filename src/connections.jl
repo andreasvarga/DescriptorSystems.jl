@@ -9,9 +9,9 @@ or with UniformScalings is also supported.
 Series coupling with a constant is equivalent to elementwise multiplication of 
 the transfer function matrix with the constant. 
 """
-series(sys1::DescriptorStateSpace, sys2::DescriptorStateSpace) = sys2*sys1
-series(sys1::DescriptorStateSpace, sys2::Union{AbstractNumOrArray,UniformScaling}) = sys2*sys1
-series(sys1::Union{AbstractNumOrArray,UniformScaling}, sys2::DescriptorStateSpace) = sys2*sys1
+series(sys1::DSTYPE, sys2::DSTYPE) = sys2*sys1
+series(sys1::DSTYPE, sys2::Union{AbstractNumOrArray,UniformScaling}) = sys2*sys1
+series(sys1::Union{AbstractNumOrArray,UniformScaling}, sys2::DSTYPE) = sys2*sys1
 
 """
     sys = parallel(sys1, sys2) 
@@ -24,9 +24,9 @@ or with UniformScalings is also supported.
 Parallel coupling with a constant is equivalent to elementwise parallel coupling of 
 the transfer function matrix with the constant. 
 """
-parallel(sys1::DescriptorStateSpace, sys2::DescriptorStateSpace) = sys1 + sys2
-parallel(sys1::DescriptorStateSpace, sys2::Union{AbstractNumOrArray,UniformScaling}) = sys1 + sys2
-parallel(sys1::Union{AbstractNumOrArray,UniformScaling},sys2::DescriptorStateSpace) = sys1 + sys2
+parallel(sys1::DSTYPE, sys2::DSTYPE) = sys1 + sys2
+parallel(sys1::DSTYPE, sys2::Union{AbstractNumOrArray,UniformScaling}) = sys1 + sys2
+parallel(sys1::Union{AbstractNumOrArray,UniformScaling},sys2::DSTYPE) = sys1 + sys2
 """
     sys = append(systems...) 
 
@@ -35,7 +35,7 @@ of individual systems. This corresponds to the block diagonal concatenation of
 their transfer function matrices. 
 Appending systems with constant matrices, vectors or scalars or with UniformScalings is also supported. 
 """
-function append(systems::DescriptorStateSpace...)
+function append(systems::DSTYPE...)
     T = promote_type(eltype.(systems)...)
     Ts = systems[1].Ts
     if !all(s.Ts == Ts for s in systems)
@@ -54,11 +54,14 @@ function append(systems::DescriptorStateSpace...)
     B = blockdiag([s.B for s in systems]...)
     C = blockdiag([s.C for s in systems]...)
     D = blockdiag([s.D for s in systems]...)
-    return DescriptorStateSpace{T}(A, E, B, C, D, Ts)
+    if issparse(A)
+       return SparseDescriptorStateSpace{T}(A, E, B, C, D, Ts)
+    else
+       return DescriptorStateSpace{T}(A, E, B, C, D, Ts)
+    end
 end
 
-
-function append(A::Union{DescriptorStateSpace,AbstractNumOrArray,UniformScaling}...)
+function append(A::Union{DSTYPE,AbstractNumOrArray,UniformScaling}...)
     for a in A
         isa(a, UniformScaling) && @warn "All UniformScaling objects in append are set to scalars"
         require_one_based_indexing(a)
@@ -95,7 +98,36 @@ end
 #     return DescriptorStateSpace{T}(A, E, B, C, D, Ts)
 # end
 
-function hcat(SYS1::DescriptorStateSpace{T1}, SYS2::DescriptorStateSpace{T2}) where {T1<:Number, T2<:Number}
+# function hcat(SYS1::DescriptorStateSpace{T1}, SYS2::DescriptorStateSpace{T2}) where {T1<:Number, T2<:Number}
+# #function hcat(SYS1 :: DescriptorStateSpace, SYS2 :: DescriptorStateSpace)
+#     ny = SYS1.ny
+#     ny == size(SYS2, 1) ||  error("The systems must have the same output dimension")
+#     #T = promote_type(eltype(SYS1), eltype(SYS2))
+#     T = promote_type(T1, T2)
+#     #TE = promote_type(TE1, TE2)
+#     TE1 = typeof(SYS1.E)
+#     TE2 = typeof(SYS2.E)
+#     TE = promote_Etype(T, TE1, TE2)
+#     Ts = promote_Ts(SYS1.Ts, SYS2.Ts) 
+
+#     A = blockdiag(T.(SYS1.A), T.(SYS2.A))
+  
+#     local E::TE
+#     if SYS1.E === I && SYS2.E === I 
+#     #if SYS1.E == I && SYS2.E == I 
+#         E = I 
+#     elseif SYS1.E == I || SYS2.E == I 
+#         blockdims = [size(SYS1.A,1), size(SYS2.A,1)]
+#         E = sblockdiag(blockdims, SYS1.E == I ? SYS1.E : T.(SYS1.E), SYS2.E == I ? SYS2.E : T.(SYS2.E))
+#     else
+#         E = blockdiag(T.(SYS1.E), T.(SYS2.E))
+#     end   
+#     B = blockdiag(T.(SYS1.B), T.(SYS2.B))
+#     C = [ T.(SYS1.C) T.(SYS2.C)]
+#     D = [ T.(SYS1.D) T.(SYS2.D)]
+#     return DescriptorStateSpace{T}(A, E, B, C, D, Ts)
+# end
+function hcat(SYS1::DSTYPE{T1}, SYS2::DSTYPE{T2}) where {T1<:Number, T2<:Number}
 #function hcat(SYS1 :: DescriptorStateSpace, SYS2 :: DescriptorStateSpace)
     ny = SYS1.ny
     ny == size(SYS2, 1) ||  error("The systems must have the same output dimension")
@@ -122,17 +154,24 @@ function hcat(SYS1::DescriptorStateSpace{T1}, SYS2::DescriptorStateSpace{T2}) wh
     B = blockdiag(T.(SYS1.B), T.(SYS2.B))
     C = [ T.(SYS1.C) T.(SYS2.C)]
     D = [ T.(SYS1.D) T.(SYS2.D)]
-    return DescriptorStateSpace{T}(A, E, B, C, D, Ts)
-end
-hcat(SYS :: DescriptorStateSpace{T}, MAT :: Union{Number, AbstractVecOrMat{<:Number}}) where {T} = hcat(SYS,dss(promote_type(T,eltype(MAT)).(MAT),Ts=SYS.Ts))
-hcat(MAT :: Union{Number, AbstractVecOrMat{<:Number}}, SYS :: DescriptorStateSpace{T}) where {T} = hcat(dss(promote_type(T,eltype(MAT)).(MAT),Ts=SYS.Ts),SYS)
-hcat(SYS :: DescriptorStateSpace, MAT :: UniformScaling) = hcat(SYS,dss(Matrix{promote_type(eltype(SYS),eltype(MAT))}(MAT,SYS.ny,SYS.ny),Ts=SYS.Ts))
-hcat(MAT :: UniformScaling, SYS :: DescriptorStateSpace) = hcat(dss(Matrix{promote_type(eltype(SYS),eltype(MAT))}(MAT,SYS.ny,SYS.ny),Ts=SYS.Ts),SYS)
+    #return DescriptorStateSpace{T}(A, E, B, C, D, Ts)
+    if issparse(A)
+       return SparseDescriptorStateSpace{T}(A, E, B, C, D, Ts)
+    else
+       return DescriptorStateSpace{T}(A, E, B, C, D, Ts)
+    end
 
-function isadss(DST :: Union{DescriptorStateSpace,AbstractNumOrArray,UniformScaling}...)
+end
+
+hcat(SYS :: DSTYPE{T}, MAT :: Union{Number, AbstractVecOrMat{<:Number}}) where {T} = hcat(SYS,dss(promote_type(T,eltype(MAT)).(MAT),Ts=SYS.Ts))
+hcat(MAT :: Union{Number, AbstractVecOrMat{<:Number}}, SYS :: DSTYPE{T}) where {T} = hcat(dss(promote_type(T,eltype(MAT)).(MAT),Ts=SYS.Ts),SYS)
+hcat(SYS :: DSTYPE, MAT :: UniformScaling) = hcat(SYS,dss(Matrix{promote_type(eltype(SYS),eltype(MAT))}(MAT,SYS.ny,SYS.ny),Ts=SYS.Ts))
+hcat(MAT :: UniformScaling, SYS :: DSTYPE) = hcat(dss(Matrix{promote_type(eltype(SYS),eltype(MAT))}(MAT,SYS.ny,SYS.ny),Ts=SYS.Ts),SYS)
+
+function isadss(DST :: Union{DSTYPE,AbstractNumOrArray,UniformScaling}...)
     # pick the index i of first system
     for i = 1:length(DST)
-        DST[i] isa DescriptorStateSpace && (return i)
+        DST[i] isa DSTYPE && (return i)
     end
     # set index to 0 if no system is present
     return 0
@@ -149,8 +188,8 @@ concatenation of their transfer function matrices.
 Concatenation of systems with constant matrices, vectors, or scalars having the same row dimensions 
 or with UniformScalings is also supported.  
 """
-horzcat(systems::Union{DescriptorStateSpace,AbstractNumOrArray,UniformScaling}...) = hcat(systems...)
-function Base.hcat(systems::DescriptorStateSpace...)
+horzcat(systems::Union{DSTYPE,AbstractNumOrArray,UniformScaling}...) = hcat(systems...)
+function Base.hcat(systems::DSTYPE...)
     # Perform checks
     T = promote_type(eltype.(systems)...)
     Ts = systems[1].Ts
@@ -170,7 +209,11 @@ function Base.hcat(systems::DescriptorStateSpace...)
     C = hcat([s.C for s in systems]...)
     D = hcat([s.D for s in systems]...)
 
-    return DescriptorStateSpace{T}(A, E, B, C, D, Ts)
+    if issparse(A)
+       return SparseDescriptorStateSpace{T}(A, E, B, C, D, Ts)
+    else
+       return DescriptorStateSpace{T}(A, E, B, C, D, Ts)
+    end
 end
 
 """
@@ -184,9 +227,9 @@ concatenation of their transfer function matrices.
 Concatenation of systems with constant matrices, vectors, or scalars having the same column dimensions 
 or with UniformScalings is also supported.  
 """
-vertcat(systems::Union{DescriptorStateSpace,AbstractNumOrArray,UniformScaling}...) = vcat(systems...)
+vertcat(systems::Union{DSTYPE,AbstractNumOrArray,UniformScaling}...) = vcat(systems...)
 
-function Base.vcat(systems::DescriptorStateSpace...)
+function Base.vcat(systems::DSTYPE...)
     # Perform checks
     T = promote_type(eltype.(systems)...)
     Ts = systems[1].Ts
@@ -205,7 +248,11 @@ function Base.vcat(systems::DescriptorStateSpace...)
     B = vcat([s.B for s in systems]...)
     C = blockdiag([s.C for s in systems]...)
     D = vcat([s.D for s in systems]...)
-    return DescriptorStateSpace{T}(A, E, B, C, D, Ts)
+    if issparse(A)
+       return SparseDescriptorStateSpace{T}(A, E, B, C, D, Ts)
+    else
+       return DescriptorStateSpace{T}(A, E, B, C, D, Ts)
+    end
 end
 
 # function vcat(SYS1::DescriptorStateSpace{T1, TE1}, SYS2::DescriptorStateSpace{T2, TE2}) where {T1<:Number, TE1<:ETYPE, T2<:Number, TE2<:ETYPE}
@@ -236,7 +283,7 @@ end
 #     return DescriptorStateSpace{T}(A, E, B, C, D, Ts)
 # end
 
-function vcat(SYS1::DescriptorStateSpace{T1}, SYS2::DescriptorStateSpace{T2}) where {T1<:Number, T2<:Number}
+function vcat(SYS1::DSTYPE{T1}, SYS2::DSTYPE{T2}) where {T1<:Number, T2<:Number}
 #function vcat(SYS1 :: DescriptorStateSpace, SYS2 :: DescriptorStateSpace)
     nu = SYS1.nu
     nu == size(SYS2, 2) ||  error("The systems must have the same input dimension")
@@ -263,18 +310,22 @@ function vcat(SYS1::DescriptorStateSpace{T1}, SYS2::DescriptorStateSpace{T2}) wh
     C = blockdiag(T.(SYS1.C), T.(SYS2.C))
     B = [ T.(SYS1.B); T.(SYS2.B)]
     D = [ T.(SYS1.D); T.(SYS2.D)]
-    return DescriptorStateSpace{T}(A, E, B, C, D, Ts)
+    if issparse(A)
+       return SparseDescriptorStateSpace{T}(A, E, B, C, D, Ts)
+    else
+       return DescriptorStateSpace{T}(A, E, B, C, D, Ts)
+    end
 end
 
-vcat(SYS :: DescriptorStateSpace{T}, MAT :: Union{Number, AbstractVecOrMat{<:Number}}) where {T} = vcat(SYS,dss(promote_type(T,eltype(MAT)).(MAT),Ts=SYS.Ts))
-vcat(MAT :: Union{Number, AbstractVecOrMat{<:Number}}, SYS :: DescriptorStateSpace{T}) where {T} = vcat(dss(promote_type(T,eltype(MAT)).(MAT),Ts=SYS.Ts),SYS)
-vcat(SYS :: DescriptorStateSpace, MAT :: UniformScaling) = vcat(SYS,dss(Matrix{promote_type(eltype(SYS),eltype(MAT))}(MAT,SYS.nu,SYS.nu),Ts=SYS.Ts))
-vcat(MAT :: UniformScaling, SYS :: DescriptorStateSpace) = vcat(dss(Matrix{promote_type(eltype(SYS),eltype(MAT))}(MAT,SYS.nu,SYS.nu),Ts=SYS.Ts),SYS)
+vcat(SYS :: DSTYPE{T}, MAT :: Union{Number, AbstractVecOrMat{<:Number}}) where {T} = vcat(SYS,dss(promote_type(T,eltype(MAT)).(MAT),Ts=SYS.Ts))
+vcat(MAT :: Union{Number, AbstractVecOrMat{<:Number}}, SYS :: DSTYPE{T}) where {T} = vcat(dss(promote_type(T,eltype(MAT)).(MAT),Ts=SYS.Ts),SYS)
+vcat(SYS :: DSTYPE, MAT :: UniformScaling) = vcat(SYS,dss(Matrix{promote_type(eltype(SYS),eltype(MAT))}(MAT,SYS.nu,SYS.nu),Ts=SYS.Ts))
+vcat(MAT :: UniformScaling, SYS :: DSTYPE) = vcat(dss(Matrix{promote_type(eltype(SYS),eltype(MAT))}(MAT,SYS.nu,SYS.nu),Ts=SYS.Ts),SYS)
 
 for (f, _f, dim, name) in ((:hcat, :_hcat, 1, "rows"), (:vcat, :_vcat, 2, "cols"))
     @eval begin
-        @inline $f(A::Union{DescriptorStateSpace, AbstractVecOrMat,UniformScaling,Number}...) = $_f(A...)
-        function $_f(A::Union{DescriptorStateSpace, AbstractVecOrMat,UniformScaling,Number}...)
+        @inline $f(A::Union{DSTYPE, AbstractVecOrMat,UniformScaling,Number}...) = $_f(A...)
+        function $_f(A::Union{DSTYPE, AbstractVecOrMat,UniformScaling,Number}...)
             n = -1
             for a in A
                 if !isa(a, UniformScaling) 
@@ -287,7 +338,7 @@ for (f, _f, dim, name) in ((:hcat, :_hcat, 1, "rows"), (:vcat, :_vcat, 2, "cols"
                 end
             end
             n == -1 && throw(ArgumentError($("$f of only UniformScaling objects cannot determine the matrix size")))
-            if isnothing(findfirst(a -> isa(a, DescriptorStateSpace), A)) 
+            if isnothing(findfirst(a -> isa(a, DSTYPE), A)) 
                 # @warn "Type piracy in $(string($f)): to be fixed in Julia 1.8 (make an issue otherwise)"
                 # alleviate type piracy problematic
                 n == 1 && (A = promote_to_arrays(A...))  # convert all scalars to vectors
@@ -300,7 +351,7 @@ for (f, _f, dim, name) in ((:hcat, :_hcat, 1, "rows"), (:vcat, :_vcat, 2, "cols"
     end
 end
 
-function Base.hvcat(rows :: Tuple{Vararg{Int}}, DST :: DescriptorStateSpace...)
+function Base.hvcat(rows :: Tuple{Vararg{Int}}, DST :: DSTYPE...)
     j2 = rows[1]
     sys = hcat(DST[1:j2]...)
     for i = 2:length(rows)
@@ -313,8 +364,8 @@ end
 
 
 #function Base.hvcat(rows::Tuple{Vararg{Int}}, A::Union{DescriptorStateSpace, AbstractVecOrMat{<:Number}, Number, UniformScaling}...)
-Base.hvcat(rows::Tuple{Vararg{Int}}, A::Union{DescriptorStateSpace, AbstractVecOrMat, UniformScaling, Number}...) = _hvcat(rows, A...)
-function _hvcat(rows::Tuple{Vararg{Int}}, A::Union{DescriptorStateSpace, AbstractVecOrMat, UniformScaling, Number}...)
+Base.hvcat(rows::Tuple{Vararg{Int}}, A::Union{DSTYPE, AbstractVecOrMat, UniformScaling, Number}...) = _hvcat(rows, A...)
+function _hvcat(rows::Tuple{Vararg{Int}}, A::Union{DSTYPE, AbstractVecOrMat, UniformScaling, Number}...)
     require_one_based_indexing(A...)
     nr = length(rows)
     sum(rows) == length(A) || throw(ArgumentError("mismatch between row sizes and number of arguments"))
@@ -368,7 +419,7 @@ function _hvcat(rows::Tuple{Vararg{Int}}, A::Union{DescriptorStateSpace, Abstrac
             j += rows[i]
         end
     end
-    if isnothing(findfirst(a -> isa(a, DescriptorStateSpace), A)) 
+    if isnothing(findfirst(a -> isa(a, DSTYPE), A)) 
         # alleviate type piracy problematic
         # convert all scalars to vectors: not needed in Julia 1.8         
         # @warn "Type piracy in hvcat: to be fixed in Julia 1.8 (make an issue otherwise)"
@@ -384,7 +435,8 @@ end
 # promotion to systems of constant matrices, vectors, scalars and UniformScalings
 promote_to_system_(n::Int, ::Type{T}, J::UniformScaling, Ts::Real) where {T} = dss(copyto!(Matrix{T}(undef, n,n), J), Ts = Ts)
 promote_to_system_(n::Int, ::Type{T}, A::AbstractNumOrArray, Ts::Real) where {T} = dss(to_matrix(T,A), Ts = Ts)
-promote_to_system_(n::Int, ::Type{T}, A::DescriptorStateSpace, Ts::Real) where {T} = T == eltype(A) ? A : dss(dssdata(T,A)..., Ts = Ts)
+#promote_to_system_(n::Int, ::Type{T}, A::DescriptorStateSpace, Ts::Real) where {T} = T == eltype(A) ? A : dss(dssdata(T,A)..., Ts = Ts)
+promote_to_system_(n::Int, ::Type{T}, A::DSTYPE, Ts::Real) where {T} = T == eltype(A) ? A : dss(dssdata(T,A)..., Ts = Ts)
 promote_to_systems(Ts::Real, n, k, ::Type) = ()
 promote_to_systems(Ts::Real, n, k, ::Type{T}, A) where {T} = (promote_to_system_(n[k], T, A, Ts),)
 promote_to_systems(Ts::Real, n, k, ::Type{T}, A, B) where {T} =
@@ -407,11 +459,11 @@ function promote_to_arrays(A...)
 end
 
 
-function promote_system_SamplingTime(A::Union{DescriptorStateSpace,AbstractNumOrArray,UniformScaling}...)
+function promote_system_SamplingTime(A::Union{DSTYPE,AbstractNumOrArray,UniformScaling}...)
     # pick and check the common sampling time  
     Ts = nothing
     for a in A
-        typeof(a) <: DescriptorStateSpace  && (isnothing(Ts) ? Ts = a.Ts : Ts = promote_Ts(Ts,a.Ts))
+        typeof(a) <: DSTYPE  && (isnothing(Ts) ? Ts = a.Ts : Ts = promote_Ts(Ts,a.Ts))
     end
     return isnothing(Ts) ? (return 0) : (return Ts) # for systems use Ts = 0 as defualt
 end
