@@ -4,6 +4,7 @@
 [![DocBuild](https://github.com/andreasvarga/DescriptorSystems.jl/workflows/CI/badge.svg)](https://github.com/andreasvarga/DescriptorSystems.jl/actions)
 [![codecov.io](https://codecov.io/gh/andreasvarga/DescriptorSystems.jl/coverage.svg?branch=main)](https://codecov.io/gh/andreasvarga/DescriptorSystems.jl?branch=main)
 [![Latest](https://img.shields.io/badge/docs-latest-blue.svg)](https://andreasvarga.github.io/DescriptorSystems.jl/dev/)
+[![LinkedIn Badge](https://img.shields.io/badge/LinkedIn-Article-informational?style=flat&logo=linkedin&logoColor=white&color=0D76A8)](https://www.linkedin.com/pulse/descriptorsystems-julias-descriptor-system-tools-andreas-varga-sfdge/?trackingId=XCVEKcqKSjmk9GjGcGL1kA%3D%3D)
 [![The MIT License](https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat-square)](https://github.com/andreasvarga/DescriptorSystems.jl/blob/main/LICENSE.md)
 
 ## Manipulation of generalized state-space (descriptor) system representations
