@@ -618,7 +618,7 @@ To assess the presence of poles in `Cs`, a boundary offset  `β`
 can be specified via the keyword parameter `offset = β`. 
 Accordingly, for a continuous-time system, the stable poles in  
 `Cs` have real parts less than or equal to `β`, 
-while for a discrete-time system, they have moduli less than or equal to 1+β`. 
+while for a discrete-time system, they have moduli less than or equal to `1+β`. 
 The default value used for `β` is `sqrt(ϵ)`, where `ϵ` is the working machine precision. 
 For a negative values of `β` (e.g., `β = -sqrt(ϵ)`), an extended stability domain corresponding to the closure of `Cs` 
 is used instead of `Cs`. 
