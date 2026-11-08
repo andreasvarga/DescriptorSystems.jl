@@ -1173,6 +1173,8 @@ function grcfid(sys::DescriptorStateSpace{T}; offset::Real = sqrt(eps(float(real
    ZERO = zero(T1)
    ZEROR = zero(real(T1))
    ONE = one(T1)
+   Mα = Matrix{T1}(undef,2,2)
+   Mβ = Matrix{T1}(undef,2,2)
 
    #  # check for zero rows in the leading positions
    #  ilob = n+1
@@ -1310,7 +1312,7 @@ function grcfid(sys::DescriptorStateSpace{T}; offset::Real = sqrt(eps(float(real
             end
             if disc
                # solve a2*y*a2'-e2*y*e2'-b2*b2' = 0 for y=S*S'
-               S = plyapas2!(a2,e2,copy(b2),disc = true) 
+               S = plyapas2!(a2,e2,copy(b2),Mβ,Mα,disc = true) 
                y = S*S'  
                f2 = -(S'\(S\(a2\b2)))' # f2 = -b2.'/(y*a2.');
                # update At <- At + Bt*[0 f2]
@@ -1319,7 +1321,7 @@ function grcfid(sys::DescriptorStateSpace{T}; offset::Real = sqrt(eps(float(real
                W = inv(UpperTriangular(qrupdate!(Matrix{T1}(I,m,m),x)))
             else
                # solve a2*y*e2'+e2*y*a2'-b2*b2' = 0 for y=S*S'
-               S = plyapas2!(a2, e2, copy(b2), disc = false) 
+               S = plyapas2!(a2, e2, copy(b2), Mβ, Mα,disc = false) 
                y = S*S'  
                f2 = -(S'\(S\(e2\b2)))'; # f2 = -b2.'/(y*e2.');
                mul!(view(At,kk,kk),view(Bt,kk,:),f2,ONE,ONE) 
@@ -1397,7 +1399,7 @@ function grcfid(sys::DescriptorStateSpace{T}; offset::Real = sqrt(eps(float(real
 
 # end GRCFID
 end
-function plyapas2!(A::AbstractMatrix{T1}, E::AbstractMatrix{T1}, B::AbstractMatrix{T1}; disc = false) where T1 <: BlasFloat
+function plyapas2!(A::AbstractMatrix{T1}, E::AbstractMatrix{T1}, B::AbstractMatrix{T1}, Mβ::AbstractMatrix{T1}, Mα::AbstractMatrix{T1}; disc = false) where T1 <: BlasFloat
    n, m = size(B)
    TR = real(T1)
    ONE = one(TR)
@@ -1414,7 +1416,6 @@ function plyapas2!(A::AbstractMatrix{T1}, E::AbstractMatrix{T1}, B::AbstractMatr
    else
       U = UpperTriangular(B[1:n,m-n+1:m])
    end
-
    if disc
       if n == 1
          abs(E[1,1]) >= abs(A[1,1]) && error("A-λE must have only eigenvalues with moduli greater than one")
@@ -1426,8 +1427,10 @@ function plyapas2!(A::AbstractMatrix{T1}, E::AbstractMatrix{T1}, B::AbstractMatr
          iszero(DR) || (TEMP = sign(U[1,1])*TEMP)
          U[1,1] = U[1,1]/TEMP
       else
-         MatrixEquations.pglyap2!(E, A, U, adj = false, disc = true)
+         MatrixEquations.pglyap2!(E, A, U, Mβ, Mα, adj = false, disc = true)
       end
+   Mα = Matrix{T1}(undef,2,2)
+   Mβ = Matrix{T1}(undef,2,2)
    else
       if n == 1
          δ = TWO*real(E[1,1]'*A[1,1])
@@ -1439,7 +1442,7 @@ function plyapas2!(A::AbstractMatrix{T1}, E::AbstractMatrix{T1}, B::AbstractMatr
          iszero(DR) || (TEMP = sign(U[1,1])*TEMP)
          U[1,1] = U[1,1]/TEMP
       else
-         MatrixEquations.pglyap2!(-A, E, U, adj = false, disc = false)
+         MatrixEquations.pglyap2!(-A, E, U, Mβ, Mα, adj = false, disc = false)
       end
    end
    return U

@@ -771,8 +771,10 @@ function gl2norm(sys::DescriptorStateSpace{T}; h2norm::Bool = false, fast::Bool 
             return disc ? norm([R*(SF.Z'*sys.B); sys.D]) : norm(R*(SF.Z'*sys.B))
         else
             # compute the L2-norm
+            sys = grcfid(sys, offset = offset, atol1 = atol1, atol3 = atol3, rtol = rtol)[1]
             try
               sys = grcfid(sys, offset = offset, atol1 = atol1, atol3 = atol3, rtol = rtol)[1]
+              @show sys
               R = plyaps(sys.A', sys.C'; disc = disc)
               return disc ? norm([R*sys.B; sys.D]) : norm(R*sys.B)
             catch
