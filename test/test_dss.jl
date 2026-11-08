@@ -181,9 +181,9 @@ sysd = dss(A, E, B, C, D, Ts = -1)
 
 A = sparse([-1.0 -2.0; 0.0 -1.0])
 E = sparse([1.0 2.0; 0.0 1.0])
-B = sparse([0.0; -2.0])
+B = sparse([0.0; -2.0;;])
 C = sparse([1.0 1.0])
-D = sparse([1.0])
+D = sparse([1.0;;])
 ssys = dss(A, E, B, C, D)
 ssysd = dss(A, E, B, C, D, Ts = -1)
 

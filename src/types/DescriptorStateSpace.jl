@@ -72,7 +72,7 @@ struct SparseDescriptorStateSpace{T, SM <: SparseMatrixCSC{T}} <: AbstractDescri
         new{T,SM}(A, E, B, C, D, Float64(Ts))
     end
 end
-
+ 
 const DSTYPE{T} = Union{DescriptorStateSpace{T},DescriptorStateSpaceExt{T},SparseDescriptorStateSpace{T}}
 const DSTYPEX{T} = Union{DescriptorStateSpace{T},DescriptorStateSpaceExt{T}}
 
@@ -300,7 +300,7 @@ function +(sys::DSTYPE{T1}, n::Number) where T1
     T = promote_type(T1, eltype(n))
     return DS(sys){T}(copy_oftype(sys.A,T), sys.E == I ? I : copy_oftype(sys.E,T),
                                    copy_oftype(sys.B,T), copy_oftype(sys.C,T), 
-                                   copy_oftype(sys.D,T) .+ n, sys.Ts)
+                                   copy_oftype(sys.D .+ n,T), sys.Ts)
 end
 
 +(n::Number, sys::DSTYPE{T1}) where T1 = +(sys, n)
