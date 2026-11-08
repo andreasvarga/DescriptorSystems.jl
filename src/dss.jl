@@ -93,6 +93,7 @@ function dss(A::SparseMatrixCSC, E::Union{SparseMatrixCSC,UniformScaling}, B::Un
     else
        ds = p <=1 ? to_matrixA(T,D,m > p) : to_matrixA(T,D)
     end
+    @show ds
     return SparseDescriptorStateSpace{T}(to_matrixA(T,A), E == I ? I : to_matrixA(T,E), to_matrixA(T,B), to_matrixA(T,C,p <=1), ds, Ts)
 end
 
