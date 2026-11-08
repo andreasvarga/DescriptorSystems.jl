@@ -18,7 +18,8 @@ the state values at time `tout[i]`. By default, the state history is not compute
 
 For continuous-time models, the input values are interpolated between samples. By default, 
 zero-order hold based interpolation is used. The linear interpolation method can be selected using 
-the keyword parameter `interpolation = "foh"`.
+the keyword parameter `interpolation = "foh"`, and the Tustin transformation based 
+method can be selected with `interpolation = "Tustin".
 
 By default, the uncontrollable infinite eigenvalues and simple infinite eigenvalues of the pair `(A,E)` 
 are eliminated. 
@@ -123,6 +124,9 @@ the resulting time histories of the state vector and
 the `i`-th row `x[i,:,j]` contains the state values at time `tout[i]` of the `j`-th step response.  
 By default, the state history is not computed and `x = nothing`.
 
+For continuous-time models, the discretization method can be selected using the keyword argument `meth`. By default, 
+zero-order hold based discretization is used. The Tustin transformation based method can be selected with `meth = "Tustin".
+
 By default, the uncontrollable infinite eigenvalues and simple infinite eigenvalues of the pair `(A,E)` 
 are eliminated. 
 The underlying pencil manipulation algorithms employ rank determinations based on either the use of 
@@ -136,7 +140,7 @@ and the relative tolerance for the nonzero elements of `A`, `B`, `C`, `D` and `E
 The default relative tolerance is `n*ϵ`, where `n` is the order of the square matrices `A` and `E`, and  `ϵ` is the working machine epsilon. 
 The keyword argument `atol` can be used to simultaneously set `atol1 = atol` and `atol2 = atol`. 
 """
-function stepresp(sys::DescriptorStateSpace{T}, tfinal::Real = 0;  
+function stepresp(sys::DescriptorStateSpace{T}, tfinal::Real = 0; meth::String = "zoh",
                   x0::AbstractVector{<:Number} = zeros(T,sys.nx), ustep::AbstractVector{<:Number} = ones(T,sys.nu), 
                   state_history::Bool = false, timesteps::Int = 100, fast::Bool = true, 
                   atol::Real = zero(float(real(T))), atol1::Real = atol, atol2::Real = atol, 
@@ -187,7 +191,7 @@ function stepresp(sys::DescriptorStateSpace{T}, tfinal::Real = 0;
           end
        end
     else
-       sysd, xt0, Mx, Mu = c2d(sys, dt; x0, 
+       sysd, xt0, Mx, Mu = c2d(sys, dt, meth; x0, 
                                state_mapping = state_history, simple_infeigs = false, atol1, atol2, rtol, fast)
        A, _, B, C, D = dssdata(sysd) 
        idmap = state_history && Mx == I && iszero(Mu)

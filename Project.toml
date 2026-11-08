@@ -1,10 +1,9 @@
 name = "DescriptorSystems"
 uuid = "a81e2ce2-54d1-11eb-2c75-db236b00f339"
 authors = ["Andreas Varga <varga.andreas@gmail.com>"]
-version = "1.5.0"
+version = "1.5.1"
 
 [deps]
-BandedMatrices = "aae01518-5342-5314-be14-df237901396f"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 MatrixEquations = "99c1a7ee-ab34-5fd5-8076-27c950a045f4"
 MatrixPencils = "48965c70-4690-11ea-1f13-43a2532b2fa8"
@@ -14,16 +13,20 @@ SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 
 [extras]
 BandedMatrices = "aae01518-5342-5314-be14-df237901396f"
+GenericLinearAlgebra = "14197337-ba66-59df-a3e3-ca00e7dcff7a"
+GenericSchur = "c145ed77-6b09-5dd9-b285-bf645a82121e"
 JLD2 = "033835bb-8acc-5ee8-8aae-3f567f8a3819"
 Measurements = "eff96d63-e80a-5855-80a2-b1b0885c5ab7"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [compat]
 BandedMatrices = "1.9"
+GenericLinearAlgebra = "0.3"
+GenericSchur = "0.5"
 JLD2 = "0.5"
 LinearAlgebra = "1"
-MatrixEquations = "2.5"
-MatrixPencils = "1.9"
+MatrixEquations = "2.5, 3.0"
+MatrixPencils = "1.9, 2.0"
 Measurements = "2.11"
 Polynomials = "4"
 Random = "1"
@@ -32,5 +35,5 @@ Test = "1"
 julia = "1.10"
 
 [targets]
-test = ["BandedMatrices", "JLD2", "Measurements", "Test"]
+test = ["BandedMatrices", "GenericSchur", "GenericLinearAlgebra", "JLD2", "Measurements", "Test"]
 

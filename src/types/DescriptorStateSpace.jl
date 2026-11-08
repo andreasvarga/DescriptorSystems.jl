@@ -459,6 +459,8 @@ function Base.show(io::IO, mime::MIME{Symbol("text/plain")}, sys::DSTYPE)
        println(io, "\nFeedthrough matrix D:")
        show(io, mime, sys.D)
        println(io, "\n\nStatic gain.") 
+       sys.Ts < 0 && println(io, "\n\nSample time: unspecified.")
+       sys.Ts > 0 && println(io, "\n\nSample time: $(sys.Ts) second(s).")
     else
        println(io, "\nEmpty state-space model.")
     end

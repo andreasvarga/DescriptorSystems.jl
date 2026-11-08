@@ -1,5 +1,9 @@
 # Release Notes
 
+## Version 1.5.1
+
+Version bump to `MatrixEquations` v3.0 and `MatrixPencils` v 2.0.
+
 ## Version 1.5.0
 
 Minor release which provides extended functionality covering sparse matrix models and models with structured matrices. Most of the basic operations are supported for the new descriptor system types. Several functions such as `dss`, `gbalmr`, `gh2norm`, `ghanorm`, `glinfnorm`, `evalfr`, `freqresp`, `dcgain`, `gnrank`, have been extended to handle large scale sparse matrix models. The `SparseArrays` package has been included among the standard dependencies.
