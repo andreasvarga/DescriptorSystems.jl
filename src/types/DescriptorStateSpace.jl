@@ -298,13 +298,9 @@ end
 # sys ± n and n ± sys
 function +(sys::DSTYPE{T1}, n::Number) where T1 
     T = promote_type(T1, eltype(n))
-    @show typeof(copy_oftype(sys.D .+ n,T)), typeof(copy_oftype(sys.D,T) .+ n)
-    @show sys.D
-    @show n
-    @show sys.D .+ n
     return DS(sys){T}(copy_oftype(sys.A,T), sys.E == I ? I : copy_oftype(sys.E,T),
                                    copy_oftype(sys.B,T), copy_oftype(sys.C,T), 
-                                   copy_oftype(sys.D .+ n,T), sys.Ts)
+                                   issparse(sys) ? sparse(copy_oftype(sys.D .+ n,T)) : copy_oftype(sys.D .+ n,T), sys.Ts)
 end
 
 +(n::Number, sys::DSTYPE{T1}) where T1 = +(sys, n)
