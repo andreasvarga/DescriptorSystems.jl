@@ -635,6 +635,7 @@ function grnull(sys::DescriptorStateSpace{T}, p2::Int = 0; polynomial::Bool = fa
             if stabilize 
                # make poles stable
                if nr > 0
+                  @show ar, er, br, poles, sdeg, disc, fast, atol1, atol2
                   f, SF, = saloc(ar, er, br; evals = poles, sdeg = sdeg, disc = disc, fast = fast, atol1 = atol1, atol2 = atol2, atol3 = atol1)
                   sysrnull = dss(SF.S, SF.T, SF.Q'*br, (cr+dr*f)*SF.Z, dr, Ts = Ts)
                   # mul!(ar, br, f, ONE, ONE)

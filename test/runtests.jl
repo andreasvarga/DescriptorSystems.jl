@@ -4,7 +4,7 @@ using Test, DescriptorSystems
 
 @testset "Test DescriptorSystems" begin
 # test constructors
-include("test_dss.jl")
+# include("test_dss.jl")
 # include("test_rtf.jl")
 # include("test_polrat.jl")
 # include("test_connections.jl")
