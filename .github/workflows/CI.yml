@@ -30,8 +30,8 @@ jobs:
       fail-fast: false
       matrix:
         version:
-        #  - '1.10' # Current Julia LTS release
-        #  - '1'    # Latest stable Julia 1.x release
+          - '1.10' # Current Julia LTS release
+          - '1'    # Latest stable Julia 1.x release
           - 'pre'  # Release candidates / pre-releases
          # - 'nightly' 
         os:  

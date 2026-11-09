@@ -1040,6 +1040,8 @@ sys = dss(G,Ts = 1);
       all(abs.(gpole(nl,atol=1.e-7)).< 0.001) &&
       info.nrank == 2 && info.degs == [1, 2, 3] && info.stdim == [3, 2, 1]
 
+if VERSION < v"1.14"
+# prevent LAPACK error in version V1.14            
 z = Polynomial([0, 1],'z'); 
 p = 5; m1 = 2; m2 = 0; 
 G = [ 1 2; -2 z; 2 2*z; -2*z^2 z^3; -2+z^3 z+z^3];
@@ -1051,6 +1053,7 @@ sys = dss(G,Ts = 1);
       gnrank(nl[:,1:p]*sys[:,m1+1:m1+m2]-nl[:,p+1:p+m2],atol= 1.e-7) == 0 &&
       all(abs.(gpole(nl,atol=1.e-7)).< 0.01) &&
       info.nrank == 2 && info.degs == [1, 2, 3] && info.stdim == [1, 2, 3]
+end
 
 # Kailath 1980, pag. 459, rank 2 matrix with both left and right nullspaces
 s = Polynomial([0, 1],'s'); 
