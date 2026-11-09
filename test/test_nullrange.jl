@@ -1040,7 +1040,7 @@ sys = dss(G,Ts = 1);
       all(abs.(gpole(nl,atol=1.e-7)).< 0.001) &&
       info.nrank == 2 && info.degs == [1, 2, 3] && info.stdim == [3, 2, 1]
 
-if VERSION < v"1.14"
+if VERSION < v"1.14.0-alpha1"
 # prevent LAPACK error in version V1.14            
 z = Polynomial([0, 1],'z'); 
 p = 5; m1 = 2; m2 = 0; 
