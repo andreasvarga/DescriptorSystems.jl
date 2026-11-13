@@ -934,7 +934,7 @@ function glinfnorm(sys::DescriptorStateSpace{T}; hinfnorm::Bool = false, rtolinf
     disc || E == I || rcond(E) >= n*eps(float(real(T1))) || (return Inf, Inf)
     
     # check for poles on the boundary of the stability domain
-    E == I ? ft = eigvals(A) : ft = eigvals(A,E); ft = ft[isfinite.(ft)]
+    E == I ? ft = eigvals(A) : (ft = T <: BlasFloat ? eigvals(A,E) : schur(A,E).values; ft = ft[isfinite.(ft)])
     if disc
         hinfnorm && any(abs.(ft) .> 1-β) && (return Inf, NaN)
         for i = 1:length(ft)
@@ -1021,7 +1021,7 @@ function norminfc(a, e, b, c, d, ft0, tol)
          lmul!(F.Q',h2)
          lmul!(F.Q',j2)
          #heigs = schur(view(h2,i2,:),view(j2,i2,:)).values
-         heigs = eigvals(view(h2,i2,:),view(j2,i2,:))
+         heigs = schur(view(h2,i2,:),view(j2,i2,:)).values
       end
  
       mag = abs.(heigs);
@@ -1141,7 +1141,7 @@ function norminfd(a, e, b, c, d, ft0, Ts, tol)
          reverse!(j1,dims=2)
          rmul!(j1,RQ.Q)
          reverse!(j1,dims=2)
-         heigs = eigvals(view(h1,:,i1),view(j1,:,i1))
+         heigs = schur(view(h1,:,i1),view(j1,:,i1)).values
       end
       heigs =  heigs[abs.(heigs) .< 1/toluc2]
 
@@ -1325,6 +1325,6 @@ function gnugap(sys1::DescriptorStateSpace{T1},sys2::DescriptorStateSpace{T2}; f
    end
    return nugapdist, fpeak 
 end
-LinearAlgebra.eigvals(A::AbstractMatrix{T},B::AbstractMatrix{T}; kws...) where {T} = LinearAlgebra.schur(A,B).values
+# LinearAlgebra.eigvals(A::AbstractMatrix{T},B::AbstractMatrix{T}; kws...) where {T} = LinearAlgebra.schur(A,B).values
    
    
