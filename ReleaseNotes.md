@@ -2,6 +2,10 @@
 
 ## Version 1.5.1
 
+Generic versions for analysis and some factorization functions. 
+
+## Version 1.5.1
+
 Version bump to `MatrixEquations` v3.0 and `MatrixPencils` v 2.0.
 
 ## Version 1.5.0

@@ -134,7 +134,7 @@ n = 5; p = 3; m = 2;
 
 for fast in (true, false)
 # random examples
-for Ty in (Float64, Complex{Float64})
+for Ty in (Float64, Complex{Float64},BigFloat, Complex{BigFloat})
 
 # continuous, standard
 sys = rss(n,p,m,T = Ty,disc=false);
@@ -316,7 +316,7 @@ fast = true; Ty = Complex{Float64}; #Ty = Float64
 n = 5; p = 3; m = 2; 
 for fast in (true, false)
 # random examples
-for Ty in (Float64, Complex{Float64})
+for Ty in (Float64, Complex{Float64},BigFloat, Complex{BigFloat})
 
 # continuous, standard
 sys = rss(n,p,m,T = Ty,disc=false);

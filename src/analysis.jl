@@ -1009,12 +1009,20 @@ function norminfc(a, e, b, c, d, ft0, tol)
       h1 = [g*I d; d' g*I; zeros(T,nx,ny) b ; c' zeros(T,nx,nu)]
       h2 = [c zeros(T,ny,nx) ; zeros(T,nu,nx) -b'; a zeros(T,nx,nx) ; zeros(T,nx,nx) -a']
       j2 = [zeros(T,ny+nu,2*nx); e zeros(T,nx,nx) ; zeros(T,nx,nx) e']
-      _, tau = LinearAlgebra.LAPACK.geqrf!(h1)
-      compl ? tran = 'C' : tran = 'T'
-      LinearAlgebra.LAPACK.ormqr!('L',tran,h1,tau,h2)
-      LinearAlgebra.LAPACK.ormqr!('L',tran,h1,tau,j2)
       i2 = ny+nu+1:ny+nu+2*nx
-      heigs = eigvals!(view(h2,i2,:),view(j2,i2,:))
+      if T <: BlasFloat
+         _, tau = LinearAlgebra.LAPACK.geqrf!(h1)
+         compl ? tran = 'C' : tran = 'T'
+         LinearAlgebra.LAPACK.ormqr!('L',tran,h1,tau,h2)
+         LinearAlgebra.LAPACK.ormqr!('L',tran,h1,tau,j2)
+         heigs = eigvals!(view(h2,i2,:),view(j2,i2,:))
+      else
+         F = qr!(h1)
+         lmul!(F.Q',h2)
+         lmul!(F.Q',j2)
+         #heigs = schur(view(h2,i2,:),view(j2,i2,:)).values
+         heigs = eigvals(view(h2,i2,:),view(j2,i2,:))
+      end
  
       mag = abs.(heigs);
       # Detect jw-axis modes.  Test is based on a round-off level of
@@ -1118,12 +1126,23 @@ function norminfd(a, e, b, c, d, ft0, Ts, tol)
       h1 = [a zeros(T,nx,nx+ny) b; zeros(T,nx,nx) e' zeros(nx,ny+nu)]
       h2 = [c zeros(T,ny,nx) g*I d; zeros(T,nu,nx) b' d' g*I]
       j1 = [e zeros(T,nx,nx+ny+nu); zeros(T,nx,nx) a' c' zeros(T,nx,nu) ]
-      _, tau = LinearAlgebra.LAPACK.gerqf!(h2)
-      compl ? tran = 'C' : tran = 'T'
-      LinearAlgebra.LAPACK.ormrq!('R',tran,h2,tau,h1)
-      LinearAlgebra.LAPACK.ormrq!('R',tran,h2,tau,j1)
       i1 = 1:(2*nx)
-      heigs = eigvals!(view(h1,:,i1),view(j1,:,i1))
+      if T <: BlasFloat
+         _, tau = LinearAlgebra.LAPACK.gerqf!(h2)
+         compl ? tran = 'C' : tran = 'T'
+         LinearAlgebra.LAPACK.ormrq!('R',tran,h2,tau,h1)
+         LinearAlgebra.LAPACK.ormrq!('R',tran,h2,tau,j1)
+         heigs = eigvals!(view(h1,:,i1),view(j1,:,i1))
+      else
+         RQ = qr(reverse(reverse(h2',dims=1),dims=2))
+         reverse!(h1,dims=2)
+         rmul!(h1,RQ.Q)
+         reverse!(h1,dims=2)
+         reverse!(j1,dims=2)
+         rmul!(j1,RQ.Q)
+         reverse!(j1,dims=2)
+         heigs = eigvals(view(h1,:,i1),view(j1,:,i1))
+      end
       heigs =  heigs[abs.(heigs) .< 1/toluc2]
 
       # Detect unit-circle eigenvalues
@@ -1306,5 +1325,6 @@ function gnugap(sys1::DescriptorStateSpace{T1},sys2::DescriptorStateSpace{T2}; f
    end
    return nugapdist, fpeak 
 end
+LinearAlgebra.eigvals(A::AbstractMatrix{T},B::AbstractMatrix{T}; kws...) where {T} = LinearAlgebra.schur(A,B).values
    
    

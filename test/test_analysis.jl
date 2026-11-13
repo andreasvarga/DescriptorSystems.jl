@@ -6,6 +6,8 @@ using Polynomials
 using Test
 using SparseArrays
 using JLD2
+using GenericLinearAlgebra
+using GenericSchur
 
 println("Test_analysis")
 @testset "Frequency response" begin
@@ -31,7 +33,30 @@ sys = rdss(50,4,3,disc=true);
 @time begin for i = 1:1000 H[:,:,i] -= evalfr(sys,fval=w[i]); end end
 @test norm(H,Inf) < 1.e-6
 
+# BigFloat computations
+w = collect(LinRange(.1,100,100));
+sys = rss(10,4,3,T = BigFloat);
+@time H = freqresp(sys,w);
+@time begin for i = 1:100 H[:,:,i] -= evalfr(sys,fval=w[i]); end end
+@test norm(H,Inf) < 1.e-70
+
+sys = rss(10,4,3,disc=true,T = BigFloat);
+@time H = freqresp(sys,w);
+@time begin for i = 1:100 H[:,:,i] -= evalfr(sys,fval=w[i]); end end
+@test norm(H,Inf) < 1.e-70
+
+sys = rdss(10,4,3,T = BigFloat);
+@time H = freqresp(sys,w);
+@time begin for i = 1:100 H[:,:,i] -= evalfr(sys,fval=w[i]); end end
+@test norm(H,Inf) < 1.e-70
+
+sys = rdss(10,4,3,disc=true,T = BigFloat);
+@time H = freqresp(sys,w);
+@time begin for i = 1:100 H[:,:,i] -= evalfr(sys,fval=w[i]); end end
+@test norm(H,Inf) < 1.e-70
+
 # sparse models
+w = collect(LinRange(.1,100,1000));
 syss = dss(sprand(50,50,0.7),sprand(50,3,.4),sprand(4,50,0.5),sprand(4,3,0.1));
 @time H = freqresp(syss,w);
 @time begin for i = 1:1000 H[:,:,i] -= evalfr(syss,fval=w[i]); end end
@@ -83,10 +108,15 @@ D = [
    0.0   0.0
    0.0   0.0]; 
 sys = dss(A,E,B,C,D);
+sysb = dss(dssdata(BigFloat,sys)...)
 
 # zeros 
 @time val  = gzero(sys)
 @test sort(real(val)) ≈ [-1, 2, Inf,Inf] 
+
+@time val  = gzero(sysb)
+@test sort(real(val)) ≈ [-1, 2, Inf,Inf] 
+
 
 @time val  = gzero(sys[:,1])
 @test sort(real(val)) ≈ [-1, 2, Inf] 
@@ -105,23 +135,40 @@ sys = dss(A,E,B,C,D);
       info.nrank == 8 && info.miev == [2, 2] && info.miz == [1, 1] && 
       info.rki == Int64[] && info.lki == [2] && !info.regular && !info.stable
 
+@time val, info  = gzeroinfo(sysb)
+@test sort(real(val)) ≈ [-1, 2, Inf,Inf]  && 
+      info.nfz == 2 && info.niev == 4 && info.nisev == 2 && info.niz == 2 && 
+      info.nfsz == 1 && info.nfsbz == 0 && info.nfuz == 1 && 
+      info.nrank == 8 && info.miev == [2, 2] && info.miz == [1, 1] && 
+      info.rki == Int64[] && info.lki == [2] && !info.regular && !info.stable
+
 
 # poles
 @time val  = gpole(sys)
 @test sort(real(val)) ≈ sort([1.0, 1.0, 3.0, -4.0, -1.0, 3.0])
 
+@time val  = gpole(sysb)
+@test sort(real(val)) ≈ sort([1.0, 1.0, 3.0, -4.0, -1.0, 3.0])
+
 @time val  = gzero(dss(A = sys.A, E = sys.E))
 @test sort(real(val)) ≈ sort([1.0, 1.0, 3.0, -4.0, -1.0, 3.0])
 
-@test !isstable(sys)
-@test isstable(dss(A = sys.A-5I))
+@test !isstable(sys) && !isstable(sysb) 
+@test isstable(dss(A = sys.A-5I)) && isstable(dss(A = sysb.A-5I))
 
 @time val, info  = gpoleinfo(sys)
 @test sort(real(val)) ≈ sort([1.0, 1.0, 3.0, -4.0, -1.0, 3.0]) && 
       info.nfev == 6 && info.nfsev == 2 && info.nfuev == 4
 
+@time val, info  = gpoleinfo(sysb)
+@test sort(real(val)) ≈ sort([1.0, 1.0, 3.0, -4.0, -1.0, 3.0]) && 
+      info.nfev == 6 && info.nfsev == 2 && info.nfuev == 4
+
+
 # rank
 @test gnrank(sys, fastrank = true) == 2 && gnrank(sys, fastrank = false) == 2
+
+@test gnrank(sysb, fastrank = true) == 2 && gnrank(sysb, fastrank = false) == 2
 
 @test gnrank(sys[:,1], fastrank = true) == 1 && gnrank(sys[:,1], fastrank = false) == 1
 
@@ -258,10 +305,6 @@ As, Es, = schur(A,E)
       info.nip == 0 && info.miev == [] && info.mip == [] &&
       info.regular && info.proper  
 
-
-
-
-
 end
 
 
@@ -283,23 +326,31 @@ a = [-1 2;-3 -2]; b = [2 3 4; 1 2 3]; c = [1 4; 2 2; 1 3]; d = zeros(3,3);
 sys = dss(a,b,c,d);
 @time l2norm = gh2norm(sys)
 @test l2norm ≈ 1.419727086450068e+01 
+@time l2norm = gh2norm(dss(dssdata(BigFloat,sys)...))
+@test l2norm ≈ 1.419727086450068e+01 
 
 a = [-1 2;-3 -2]; b = [2 3 4; 1 2 3]; c = [1 4; 2 2; 1 3]; d = zeros(3,3);
 e = rand(2,2);
 sys = dss(e*a,e,e*b,c,d);
 @time l2norm = gh2norm(sys)
 @test l2norm ≈ 1.419727086450068e+01 
+@time l2norm = gh2norm(dss(dssdata(BigFloat,sys)...))
+@test l2norm ≈ 1.419727086450068e+01 
 
 
 a = [-1 2;-3 -2]; b = [2 3 4; 1 2 3]; c = [1 4; 2 2; 1 3]; d = zeros(3,3);
 sys = dss(a,b,c,d);
 @time l2norm = gl2norm(sys)
+@test l2norm ≈ 1.419727086450068e+01 
+@time l2norm = gl2norm(dss(dssdata(BigFloat,sys)...))
 @test l2norm ≈ 1.419727086450068e+01 
 
 a = [-1 2;-3 -2]; b = [2 3 4; 1 2 3]; c = [1 4; 2 2; 1 3]; d = zeros(3,3);
 sys = dss(a,b,c,d);
 @time l2norm = opnorm(sys,2)
 @test l2norm ≈ 1.419727086450068e+01 
+@time l2norm = opnorm(dss(dssdata(BigFloat,sys)...),2)
+@test l2norm ≈ 1.419727086450068e+01 
 
 
 a = [-1 2;-3 -2]; b = [2 3 4; 1 2 3]; c = [1 4; 2 2; 1 3]; d = zeros(3,3);
@@ -307,16 +358,22 @@ e = rand(2,2)
 sys = dss(e*a,e,e*b,c,d);
 @time l2norm = gl2norm(sys)
 @test l2norm ≈ 1.419727086450068e+01 
+@time l2norm = gl2norm(dss(dssdata(BigFloat,sys)...))
+@test l2norm ≈ 1.419727086450068e+01 
 
 a = [-1 2;-3 -2]; b = [2 3 4; 1 2 3]; c = [1 4; 2 2; 1 3]; d = zeros(3,3);
 sys = dss(a,b,c,d);
 @time l2norm = gl2norm(sys')
+@test l2norm ≈ 1.419727086450068e+01 
+@time l2norm = gl2norm(dss(dssdata(BigFloat,sys)...)')
 @test l2norm ≈ 1.419727086450068e+01 
 
 a = [-1 2;-3 -2]; b = [2 3 4; 1 2 3]; c = [1 4; 2 2; 1 3]; d = zeros(3,3);
 e = rand(2,2)
 sys = dss(e*a,e,e*b,c,d);
 @time l2norm = gl2norm(sys')
+@test l2norm ≈ 1.419727086450068e+01 
+@time l2norm = gl2norm(dss(dssdata(BigFloat,sys)...)')
 @test l2norm ≈ 1.419727086450068e+01 
 
 
@@ -325,33 +382,46 @@ a = [-1 2;-3 -2]/10; b = [2 3 4; 1 2 3]; c = [1 4; 2 2; 1 3]; d = ones(3,3);
 sys = dss(a,b,c,d,Ts = 1);
 @time l2norm = gh2norm(sys)
 @test l2norm ≈ 3.438689619923066e+01
+@time l2norm = gh2norm(dss(dssdata(BigFloat,sys)...,Ts = sys.Ts))
+@test l2norm ≈ 3.438689619923066e+01 
+
 
 a = [-1 2;-3 -2]/10; b = [2 3 4; 1 2 3]; c = [1 4; 2 2; 1 3]; d = ones(3,3);
 e = rand(2,2)
 sys = dss(e*a,e,e*b,c,d,Ts = 1);
 @time l2norm = gh2norm(sys)
 @test l2norm ≈ 3.438689619923066e+01
+@time l2norm = gh2norm(dss(dssdata(BigFloat,sys)...,Ts = sys.Ts))
+@test l2norm ≈ 3.438689619923066e+01 
 
 a = [-1 2;-3 -2]/10; b = [2 3 4; 1 2 3]; c = [1 4; 2 2; 1 3]; d = ones(3,3);
 sys = dss(a,b,c,d,Ts = 1);
 @time l2norm = gl2norm(sys)
 @test l2norm ≈ 3.438689619923066e+01
+@time l2norm = gl2norm(dss(dssdata(BigFloat,sys)...,Ts = sys.Ts))
+@test l2norm ≈ 3.438689619923066e+01 
 
 a = [-1 2;-3 -2]/10; b = [2 3 4; 1 2 3]; c = [1 4; 2 2; 1 3]; d = ones(3,3);
 e = rand(2,2)
 sys = dss(e*a,e,e*b,c,d,Ts = 1);
 @time l2norm = gl2norm(sys)
 @test l2norm ≈ 3.438689619923066e+01
+@time l2norm = gl2norm(dss(dssdata(BigFloat,sys)...,Ts = sys.Ts))
+@test l2norm ≈ 3.438689619923066e+01 
 
 a = [-1 2;0 0]; b = [2 3 4; 1 2 3]; c = [1 4; 2 2; 1 3]; d = ones(3,3);
 sys = dss(a,b,c,d);
 @time l2norm = gl2norm(sys)
+@test l2norm ≈ Inf
+@time l2norm = gl2norm(dss(dssdata(BigFloat,sys)...,Ts = sys.Ts))
 @test l2norm ≈ Inf
 
 a = [-1 2;0 0]; e = [1 0; 0 2]; b = [2 3 4; 1 2 3]; c = [1 4; 2 2; 1 3]; d = ones(3,3);
 sys = dss(a,e,b,c,d);
 @time l2norm = gl2norm(sys)
 @test l2norm ≈ Inf
+@time l2norm = gl2norm(dss(dssdata(BigFloat,sys)...,Ts = sys.Ts))
+@test l2norm ≈ Inf
 
 
 
@@ -359,12 +429,17 @@ a = [-1 2;-3 -2]/10; b = [2 3 4; 1 2 3]; c = [1 4; 2 2; 1 3]; d = ones(3,3);
 sys = dss(a,b,c,d,Ts = 1);
 @time l2norm = gl2norm(sys')
 @test l2norm ≈ 3.438689619923066e+01
+@time l2norm = gl2norm(dss(dssdata(BigFloat,sys)...,Ts = sys.Ts)')
+@test l2norm ≈ 3.438689619923066e+01 
+
 
 a = [-1 2;-3 -2]/10; b = [2 3 4; 1 2 3]; c = [1 4; 2 2; 1 3]; d = ones(3,3);
 e = rand(2,2)
 sys = dss(e*a,e,e*b,c,d,Ts = 1);
 @time l2norm = gl2norm(sys')
 @test l2norm ≈ 3.438689619923066e+01
+@time l2norm = gl2norm(dss(dssdata(BigFloat,sys)...,Ts = sys.Ts)')
+@test l2norm ≈ 3.438689619923066e+01 
 
 z = Polynomial([0, 1],'z')
 g = [z^2+z+1 4*z^2+3*z+2 2*z^2-2;
@@ -375,10 +450,21 @@ sys = dss(g,minimal = true, atol = 1.e-7,Ts = 1)
 @time l2norm = gl2norm(sys, atol = 1.e-7)
 @test l2norm ≈ gl2norm(sys', atol = 1.e-7)
 
+
+z = Polynomial(BigFloat[0, 1],'z')
+g = [z^2+z+1 4*z^2+3*z+2 2*z^2-2;
+    z 4*z-1 2*z-2;
+    z^2 4*z^2-z 2*z^2-2*z];
+
+sysb = dss(g,minimal = true, atol = 1.e-7,Ts = 1)
+@time l2norm = gl2norm(sysb, atol = 1.e-7)
+@test l2norm ≈ gl2norm(sysb', atol = 1.e-7)
+
+
 n = 5; m = 3; p = 2;
 
 Ty = Float64; fast = true; 
-for Ty in (Float64, Complex{Float64})
+for Ty in (Float64, Complex{Float64}, BigFloat, Complex{BigFloat})
 
 for fast in (true, false)
 
@@ -391,7 +477,6 @@ sys = rss(n,p,m,T = Ty, stable = true);
 
 sys = rss(n,p,m,T = Ty, stable = true, disc = true); 
 @test gh2norm(sys) ≈ gl2norm(sys')
-
 
 sys = rdss(n,p,m,T = Ty, stable = true); 
 sys.D[:,:] = zeros(Ty,p,m);
@@ -420,7 +505,7 @@ sys = rdss(0,0,0);
 n = 5; m = 3; p = 2;
 
 Ty = Float64; fast = true; 
-for Ty in (Float64, Complex{Float64})
+for Ty in (Float64, Complex{Float64},BigFloat, Complex{BigFloat})
 
 for fast in (true, false)
 
@@ -548,15 +633,21 @@ a = [0 1;-1 0]; b = [2 3 4; 1 2 3]; c = [1 4; 2 2; 1 3]; d = zeros(3,3);
 sys = dss(a,b,c,d);
 @time hinfnorm, fpeak = ghinfnorm(sys)
 @test isinf(hinfnorm) && isnan(fpeak)
+@time hinfnorm, fpeak = ghinfnorm(dss(dssdata(BigFloat,sys)...))
+@test isinf(hinfnorm) && isnan(fpeak)
 
 a = [0 1;-1 0]; b = [2 3 4; 1 2 3]; c = [1 4; 2 2; 1 3]; d = zeros(3,3);
 sys = dss(a,b,c,d);
 @time linfnorm, fpeak = glinfnorm(sys)
 @test isinf(linfnorm) && fpeak ≈ 1
+@time hinfnorm, fpeak = glinfnorm(dss(dssdata(BigFloat,sys)...))
+@test isinf(linfnorm) && fpeak ≈ 1
 
 a = [0 1;-1 0]; b = [2 3 4; 1 2 3]; c = [1 4; 2 2; 1 3]; d = zeros(3,3); 
 sys = dss(a,b,c,d, Ts = 2);
 @time linfnorm, fpeak = glinfnorm(sys)
+@test isinf(linfnorm) && fpeak ≈ pi/4
+@time hinfnorm, fpeak = glinfnorm(dss(dssdata(BigFloat,sys)...,Ts = 2))
 @test isinf(linfnorm) && fpeak ≈ pi/4
 
 
@@ -564,27 +655,46 @@ a = [-1 2;0 -2]; e = [0 1;0 0]; b = [2 3 4; 1 2 3]; c = [1 4; 2 2; 1 3]; d = zer
 sys = dss(a,e,b,c,d);
 @time linfnorm, fpeak = glinfnorm(sys)
 @test isinf(linfnorm) && isinf(fpeak)
+@time hinfnorm, fpeak = glinfnorm(dss(dssdata(BigFloat,sys)...))
+@test isinf(linfnorm) && isinf(fpeak)
 
+# first discrepancy
 a = [-1 2;-3 -2]; b = [2 3 4; 1 2 3]; c = [1 4; 2 2; 1 3]; d = zeros(3,3);
 sys = dss(a,b,c,d);
+sysb = dss(dssdata(BigFloat,sys)...); 
 @time hinfnorm, fpeak = ghinfnorm(sys,rtolinf = 0.0000001)
 @test opnorm(evalfr(sys,im*fpeak)) ≈ hinfnorm &&
       round(hinfnorm, digits=6) ≈ round(1.163398400218353e+01,digits=6) && 
       round(fpeak,digits = 3) ≈ round(2.695926597795647,digits=3)
+@time hinfnorm, fpeak = ghinfnorm(sysb,rtolinf = 0.0000001)
+@test opnorm(evalfr(sysb,im*fpeak)) ≈ hinfnorm &&
+      round(hinfnorm, digits=20) ≈ round(BigFloat("11.633984002182949443636255649"),digits=20) && 
+      round(fpeak,digits = 20) ≈ round(BigFloat("2.6959271186413044301711"),digits=20)
 
 sys = dss(a+im*a,b+im*b,c+im*c,d+im*d);
+sysb = dss(dssdata(Complex{BigFloat},sys)...); 
 @time hinfnorm, fpeak = glinfnorm(sys,rtolinf = 0.0000001)
 @test opnorm(evalfr(sys,im*fpeak)) ≈ hinfnorm &&
       abs(hinfnorm - 56.237554184492573) < 1.e-6 &&  # compare with Matlab results
       abs(fpeak+3.952242830041314) < 0.001
+@time hinfnorm, fpeak = glinfnorm(sysb,rtolinf = 0.0000001)
+@test opnorm(evalfr(sysb,im*fpeak)) ≈ hinfnorm &&
+      abs(hinfnorm - 56.237554184492573) < 1.e-6 &&  # compare with Matlab results
+      abs(fpeak+3.952242830041314) < 0.001
+
 
 a = [-1 2;-3 -2]; b = [2 3 4; 1 2 3]; c = [1 4; 2 2; 1 3]; d = zeros(3,3);
 e = rand(2,2);
 sys = dss(e*a,e,e*b,c,d);
+sysb = dss(dssdata(BigFloat,sys)...); 
 @time hinfnorm, fpeak = ghinfnorm(sys,rtolinf = 0.0000001)
 @test opnorm(evalfr(sys,im*fpeak)) ≈ hinfnorm &&
       round(hinfnorm, digits=6) ≈ round(1.163398400218353e+01,digits=6) && 
       round(fpeak,digits = 3) ≈ round(2.695926597795647,digits=3)
+@time hinfnorm, fpeak = ghinfnorm(sysb,rtolinf = 0.0000001)
+@test opnorm(evalfr(sysb,im*fpeak)) ≈ hinfnorm &&
+      round(hinfnorm, digits=10) ≈ round(BigFloat("11.633984002182949443636255649"),digits=10) && 
+      round(fpeak,digits = 10) ≈ round(BigFloat("2.6959271186413044301711"),digits=10)
 
 a = [-1 2;-3 -2]; b = [2 3 4; 1 2 3]; c = [1 4; 2 2; 1 3]; d = zeros(3,3);
 e = rand(Complex{Float64},2,2);
@@ -633,16 +743,27 @@ sys = dss(e*a,e,e*b,c,d);
 # discrete standard & descriptor
 a = [-1 2;-3 -2]/10; b = [2 3 4; 1 2 3]; c = [1 4; 2 2; 1 3]; d = ones(3,3);
 sys = dss(a,b,c,d,Ts = 1);
+sysb = dss(dssdata(BigFloat,sys)...,Ts = 1); 
 @time hinfnorm, fpeak = ghinfnorm(sys,rtolinf = 0.0000001) 
 @test opnorm(evalfr(sys,exp(im*fpeak))) ≈ hinfnorm &&
       round(hinfnorm, digits=6) ≈ round(4.133509781281479e+01,digits=6) && 
       round(fpeak,digits = 3) ≈ round(2.753904640692288,digits=3)
+@time hinfnorm, fpeak = ghinfnorm(sysb,rtolinf = 0.0000001) 
+@test opnorm(evalfr(sysb,exp(im*fpeak))) ≈ hinfnorm &&
+      round(hinfnorm, digits=6) ≈ round(4.133509781281479e+01,digits=6) && 
+      round(fpeak,digits = 3) ≈ round(2.753904640692288,digits=3)
+
 
 a = [-1 2;-3 -2]/10; b = [2 3 4; 1 2 3]; c = [1 4; 2 2; 1 3]; d = ones(3,3);
 e = rand(2,2)
 sys = dss(e*a,e,e*b,c,d,Ts = 1);
+sysb = dss(dssdata(BigFloat,sys)...,Ts = 1); 
 @time hinfnorm, fpeak = ghinfnorm(sys,rtolinf = 0.0000001)
 @test opnorm(evalfr(sys,exp(im*fpeak))) ≈ hinfnorm &&
+      round(hinfnorm, digits=6) ≈ round(4.133509781281479e+01,digits=6) && 
+      round(fpeak,digits = 3) ≈ round(2.753904640692288,digits=3)
+@time hinfnorm, fpeak = ghinfnorm(sysb,rtolinf = 0.0000001) 
+@test opnorm(evalfr(sysb,exp(im*fpeak))) ≈ hinfnorm &&
       round(hinfnorm, digits=6) ≈ round(4.133509781281479e+01,digits=6) && 
       round(fpeak,digits = 3) ≈ round(2.753904640692288,digits=3)
 
@@ -689,6 +810,17 @@ sys = dss(g,minimal = true, atol = 1.e-7,Ts = 1)
       round(linfnorm, digits=6) ≈ round(1.048808848170152e+01,digits=6) && 
       fpeak == 0 
 
+z = Polynomial(BigFloat[0, 1],'z')
+g = [z^2+z+1 4*z^2+3*z+2 2*z^2-2;
+    z 4*z-1 2*z-2;
+    z^2 4*z^2-z 2*z^2-2*z];
+
+sysb = dss(g,minimal = true, atol = 1.e-7,Ts = 1)
+@time linfnorm, fpeak = glinfnorm(sysb, atol = 1.e-7)
+@test glinfnorm(sysb, atol = 1.e-7)[1] ≈ glinfnorm(sysb', atol = 1.e-7)[1] &&
+      opnorm(evalfr(sysb,exp(im*fpeak))) ≈ linfnorm &&
+      round(linfnorm, digits=6) ≈ round(1.048808848170152e+01,digits=6) && 
+      fpeak == 0 
 
 n = 50; m = 30; p = 20;
 
@@ -753,7 +885,7 @@ n = 5; m = 3; p = 2;
 Ty = Float64; fast = true; 
 Ty = Complex{Float64}; fast = true; 
 rtolinf = 0.000001
-for Ty in (Float64, Complex{Float64})
+for Ty in (Float64, Complex{Float64}, BigFloat, Complex{BigFloat})
 
 for fast in (true, false)
 
@@ -810,6 +942,15 @@ for j = 1:N
     distgap[j], = gnugap(sys[1],sys[j],atol=1.e-7);
 end
 @test norm(distgap-[0,0.02,0.8988]) <0.001
+
+sysb = (dss(BigFloat(100)/(2*s+1)), dss(big(100)/(2*s-1)), dss(big(100)/(s+1)^2))
+distgap = zeros(BigFloat,N); 
+for j = 1:N
+    distgap[j], = gnugap(sysb[1],sysb[j],atol=1.e-7);
+end
+@test norm(distgap-[0,0.02,0.8988]) <0.001
+
+
 
 ## Examples from the Vinnicombe's book, p. 125
 s = rtf('s'); 

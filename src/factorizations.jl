@@ -1215,8 +1215,14 @@ function grcfid(sys::DescriptorStateSpace{T}; offset::Real = sqrt(eps(float(real
       #                [  0  Ab ]
       #
       # where Ag has eigenvalues within the stability degree region
-      # and Ab has eigenvalues outside the stability degree region.   
-      _, Z, α = LAPACK.gees!('V', At)
+      # and Ab has eigenvalues outside the stability degree region. 
+      if T <: BlasFloat  
+         _, Z, α = LAPACK.gees!('V', At)
+      else
+         SF = schur!(At)
+         Z = SF.Z
+         α = SF.values
+      end
       if disc
          select = Int.(abs.(α) .<= smarg)
       else
@@ -1225,8 +1231,15 @@ function grcfid(sys::DescriptorStateSpace{T}; offset::Real = sqrt(eps(float(real
       nsinf = 0; nb = length(select[select .== 0]); ng = n-nb; nb = n-ng; nbi = 0;
       nb == 0 && (Bt = Z'*Bt; return dss(At,I,Bt,CN*Z,DN,Ts=sys.Ts), mindeg ? dss(DM,Ts = sys.Ts) : dss(At,I,Bt,zeros(T1,m,n),DM,Ts=sys.Ts)  )      
    
-       _, _, α = LAPACK.trsen!(select, At, Z) 
-       Bt = Z'*Bt; CN = CN*Z 
+      if T <: BlasFloat  
+         _, _, α = LAPACK.trsen!(select, At, Z) 
+      else   
+         select = Bool.(select)
+         ordschur!(SF,select)
+         At = view(SF.T,:,:)
+         Z = SF.Z
+      end
+      Bt = Z'*Bt; CN = CN*Z 
     else
       # reduce the pair (A,E) to the specially ordered generalized real Schur
       # form (At,Et) = (Q'*A*Z,Q'*E*Z), with
@@ -1237,7 +1250,7 @@ function grcfid(sys::DescriptorStateSpace{T}; offset::Real = sqrt(eps(float(real
       #             [  0  0   0  Abi ]          [ 0  0    0  Ebi ]
       # 
       # where
-      #    (Ai,0)    contains the firt order inifinite eigenvalues
+      #    (Ai,0)    contains the firt order infinite eigenvalues
       #    (Ag,Eg)   contains the "good" finite eigenvalues
       #    (Abf,Ebf) contains the "bad" finite eigenvalues
       #    (Abi,Ebi) contains the "bad" (higher order) infinite eigenvalues
@@ -1251,6 +1264,14 @@ function grcfid(sys::DescriptorStateSpace{T}; offset::Real = sqrt(eps(float(real
       Bt = Q'*Bt; CN = CN*Z; 
       (nbf+nsinf == 0 || (nbf+nbi == 0 && !mininf)) && (return dss(At,Et,Bt,CN,DN,Ts=sys.Ts), mindeg ? dss(DM,Ts = sys.Ts) : dss(At,Et,Bt,zeros(T1,m,n),DM,Ts=sys.Ts) )
       nb = nbf+nbi
+      if !(T1 <: BlasFloat)
+         ind = nsinf+1:nsinf+ng+nbf
+         _, α1, β1 = ordeigvals(view(At,ind,ind),view(Et,ind,ind))
+         (α, β) = ([α1; ones(T,nbi)],[β1; ones(T,nbi)])
+         FS = GeneralizedSchur(At, Et, [ones(T,nsinf); α], [zeros(T,nsinf); β], Q, Z)
+         At = view(FS.S,:,:)
+         Et = view(FS.T,:,:)
+      end
    end
 
    # initialization of the recursive factorization CN, DN and DM already initialized
@@ -1297,8 +1318,18 @@ function grcfid(sys::DescriptorStateSpace{T}; offset::Real = sqrt(eps(float(real
             DN = DN*W; DM = DM*W;
             i2 = n-nb+1:n; i1 = 1:n-nb;
             if nb > 1
-               Q3 = Matrix{T1}(I,nb,nb); Z3 = Matrix{T1}(I,nb,nb)
-               MatrixPencils.tgexc!(true, true, nb, 1, view(At,i2,i2), view(Et,i2,i2), Q3, Z3) 
+               if T1 <: BlasFloat
+                  Q3 = Matrix{T1}(I,nb,nb); Z3 = Matrix{T1}(I,nb,nb)
+                  MatrixPencils.tgexc!(true, true, nb, 1, view(At,i2,i2), view(Et,i2,i2), Q3, Z3) 
+               else
+                  #FSb = GeneralizedSchur(view(At,i2,i2), view(Et,i2,i2),[α[1:nb-1]; At[nb,nb]],[β[1:nb-1]; Et[nb,nb]],Matrix{T1}(I,nb,nb),Matrix{T1}(I,nb,nb))
+                  FSb = GeneralizedSchur(At[i2,i2], Et[i2,i2],[α[1:nb-1]; At[nb,nb]],[β[1:nb-1]; Et[nb,nb]],Matrix{T1}(I,nb,nb),Matrix{T1}(I,nb,nb))
+                  selectw = [falses(nb-1); true]
+                  ordschur!(FSb,selectw)
+                  copyto!(view(At,i2,i2),FSb.S)
+                  copyto!(view(Et,i2,i2),FSb.T)
+                  Q3 = FSb.Q; Z3 = FSb.Z
+               end
                At[i1,i2] = view(At,i1,i2)*Z3; Et[i1,i2] = view(Et,i1,i2)*Z3;
                Bt[i2,:] = Q3'*view(Bt,i2,:); 
                CN[:,i2] = view(CN,:,i2)*Z3; CM[:,i2] = view(CM,:,i2)*Z3;
@@ -1339,7 +1370,11 @@ function grcfid(sys::DescriptorStateSpace{T}; offset::Real = sqrt(eps(float(real
                if k == 2 
                   # standardization step is necessary to use trsen 
                   k1 = kk[1]; k2 = kk[2]
-                  RT1R, RT1I, RT2R, RT2I, CS, SN = lanv2(At[k1,k1], At[k1,k2], At[k2,k1], At[k2,k2]) 
+                  if T1 <: BlasFloat
+                     RT1R, RT1I, RT2R, RT2I, CS, SN = lanv2(At[k1,k1], At[k1,k2], At[k2,k1], At[k2,k2]) 
+                  else
+                     RT1R, RT1I, RT2R, RT2I, CS, SN = MatrixEquations._lanv2!(At[kk,kk]) 
+                  end
                   Z2 = LinearAlgebra.Givens(1, 2, CS, -SN)
                   rmul!(view(At,1:n,kk),Z2)
                   lmul!(Z2',view(At,kk,kk)); 
@@ -1349,17 +1384,33 @@ function grcfid(sys::DescriptorStateSpace{T}; offset::Real = sqrt(eps(float(real
                   lmul!(Z2',view(Bt,kk,:))
                end
                if nb > k
-                  Z3 = view(Z,i2,i2)
-                  Z3 = Matrix{T1}(I,nb,nb)
-                  LAPACK.trexc!('V', nb-k+1, 1, view(At,i2,i2), Z3) 
+                  #Z3 = view(Z,i2,i2)
+                  if T1 <: BlasFloat
+                     Z3 = Matrix{T1}(I,nb,nb)
+                     LAPACK.trexc!('V', nb-k+1, 1, view(At,i2,i2), Z3) 
+                  else
+                     FSb = Schur(At[i2,i2], Matrix{T1}(I,nb,nb), α[1:nb])
+                     selectw = [falses(nb-k); trues(k)]
+                     ordschur!(FSb,selectw)
+                     copyto!(view(At,i2,i2),FSb.T)
+                     Z3 = FSb.Z
+                  end
                   At[i1,i2] = view(At,i1,i2)*Z3; Bt[i2,:] = Z3'*view(Bt,i2,:); 
                   CN[:,i2] = view(CN,:,i2)*Z3; CM[:,i2] = view(CM,:,i2)*Z3;
                end
             else 
                if nb > k
-                  Q3 = view(Q,i2,i2); Z3 = view(Z,i2,i2)
-                  Q3 = Matrix{T1}(I,nb,nb); Z3 = Matrix{T1}(I,nb,nb)
-                  MatrixPencils.tgexc!(true, true, nb-k+1, 1, view(At,i2,i2), view(Et,i2,i2), Q3, Z3) 
+                  if T1 <: BlasFloat
+                     Q3 = Matrix{T1}(I,nb,nb); Z3 = Matrix{T1}(I,nb,nb)
+                     MatrixPencils.tgexc!(true, true, nb-k+1, 1, view(At,i2,i2), view(Et,i2,i2), Q3, Z3) 
+                  else
+                     FSb = GeneralizedSchur(At[i2,i2], Et[i2,i2],α[1:nb],β[1:nb],Matrix{T1}(I,nb,nb),Matrix{T1}(I,nb,nb))
+                     selectw = [falses(nb-k); trues(k)]
+                     ordschur!(FSb,selectw)
+                     copyto!(view(At,i2,i2),FSb.S)
+                     copyto!(view(Et,i2,i2),FSb.T)
+                     Q3 = FSb.Q; Z3 = FSb.Z
+                  end
                   At[i1,i2] = view(At,i1,i2)*Z3; Et[i1,i2] = view(Et,i1,i2)*Z3;
                   Bt[i2,:] = Q3'*view(Bt,i2,:); 
                   CN[:,i2] = view(CN,:,i2)*Z3; CM[:,i2] = view(CM,:,i2)*Z3;
@@ -1399,7 +1450,8 @@ function grcfid(sys::DescriptorStateSpace{T}; offset::Real = sqrt(eps(float(real
 
 # end GRCFID
 end
-function plyapas2!(A::AbstractMatrix{T1}, E::AbstractMatrix{T1}, B::AbstractMatrix{T1}, Mβ::AbstractMatrix{T1}, Mα::AbstractMatrix{T1}; disc = false) where T1 <: BlasFloat
+function plyapas2!(A::AbstractMatrix{T1}, E::AbstractMatrix{T1}, B::AbstractMatrix{T1}, Mβ::AbstractMatrix{T1}, Mα::AbstractMatrix{T1}; disc = false) where T1 #<: BlasFloat
+   rev(t) = reverse(reverse(t,dims=1),dims=2)
    n, m = size(B)
    TR = real(T1)
    ONE = one(TR)
@@ -1409,12 +1461,23 @@ function plyapas2!(A::AbstractMatrix{T1}, E::AbstractMatrix{T1}, B::AbstractMatr
    BIGNUM = ONE / small
    SMIN = eps(max(maximum(abs.(A)),maximum(abs.(E))))
 
-   tau = similar(B,min(n,m))
-   B, tau = LinearAlgebra.LAPACK.gerqf!(B,tau)
-   if m < n
-      U = UpperTriangular([zeros(T1,n,n-m) B])
-   else
-      U = UpperTriangular(B[1:n,m-n+1:m])
+   if T1 <: BlasFloat
+      tau = similar(B,min(n,m))
+      B, tau = LinearAlgebra.LAPACK.gerqf!(B,tau)
+      if m < n
+         U = UpperTriangular([zeros(T1,n,n-m) B])
+      else
+         U = UpperTriangular(B[1:n,m-n+1:m])
+      end
+    else
+      RQ = qr(rev(B'));
+      #B = [zeros(T1,n,n-m) rev(RQ.R')];
+      B = rev(RQ.R')
+      if m < n
+         U = UpperTriangular([zeros(T1,n,n-m) B])
+      else
+         U = UpperTriangular(B)
+      end
    end
    if disc
       if n == 1
@@ -1429,8 +1492,6 @@ function plyapas2!(A::AbstractMatrix{T1}, E::AbstractMatrix{T1}, B::AbstractMatr
       else
          MatrixEquations.pglyap2!(E, A, U, Mβ, Mα, adj = false, disc = true)
       end
-   Mα = Matrix{T1}(undef,2,2)
-   Mβ = Matrix{T1}(undef,2,2)
    else
       if n == 1
          δ = TWO*real(E[1,1]'*A[1,1])

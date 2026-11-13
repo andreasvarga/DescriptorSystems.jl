@@ -20,7 +20,7 @@ _Reference:_
 [1] Laub, A.J., "Efficient Multivariable Frequency Response Computations",
     IEEE Transactions on Automatic Control, AC-26 (1981), pp. 407-408.
 """
-function freqresp(sys::DescriptorStateSpace{T}, ω::Union{AbstractVector{<:Real},Real}) where T
+function freqresp(sys::DescriptorStateSpace{T}, ω::Union{AbstractVector{<:Real},Real}) where {T}
     T1 = T <: BlasFloat ? T : promote_type(Float64,T) 
     ONE = one(T1)
     typeof(ω) <: Real && (ω = [ω])
@@ -97,6 +97,76 @@ function chess(a::MT, e::Union{MT,UniformScaling}, b::MT, c::MT, d::MT) where {T
     end
     return ac, ec, bc, cc, dc
 end
+function chess(a::MT, e::Union{MT,UniformScaling}, b::MT, c::MT, d::MT) where {T, MT<: AbstractMatrix{T}}
+    # reduce the descriptor system (A-λE,B,C,D) to an equivalent complex descriptor system 
+    # (Ac-λEc,Bc,Cc,Dc) such that Ac-λEc is in an upper Hessenberg form 
+    # Note: This function is only used in the context of efficient frequency response computations. 
+    isempty(a) && (return complex(a), e == I ? e : complex(e), complex(b), complex(c), complex(d))
+    desc = !(e == I)
+    if desc
+        # Reduce (A,E) to (generalized) upper-Hessenberg form for
+        # fast frequency response computation 
+        n = size(a,1)
+        at = copy(a)
+        et = copy(e)
+        bt = copy(b)
+        # first reduce E to upper triangular form 
+        eqr = qr!(et)
+        lmul!(eqr.Q', at)
+        Q = Matrix(eqr.Q)
+        Z = Matrix{T}(I, n, n)
+        Q = eqr.Q*Z
+        # reduce A to Hessenberg form and keep E upper triangular
+        at, et, Q, Z = _ghessenberg!(at, eqr.R, Q, Z)
+        if T <: Complex 
+           bc = Q'*bt; cc = c*Z; ac = at; ec = et; dc = d;
+        else
+           bc = complex(Q'*bt); cc = complex(c*Z); ac = complex(at); ec = complex(et); dc = complex(d);
+        end
+    else
+        # Reduce A to upper Hessenberg form for
+        # fast frequency response computation 
+        Ha = hessenberg(a)
+        ac = Ha.H
+        if T <: Complex 
+           bc = Ha.Q'*b; cc = c*Ha.Q; dc = d; 
+        else
+           bc = complex(Ha.Q'*b); cc = complex(c*Ha.Q); dc = complex(d);
+        end
+        ec = e
+    end
+    return ac, ec, bc, cc, dc
+end
+function _ghessenberg!(A::StridedMatrix{T}, B::StridedMatrix{T}, Q, Z; ilo = 1, ihi = size(A, 1)) where {T}
+    # This is the _hessenberg! function from the GenericSchur.jl package
+    # implemented by R. Smith  
+    wantQ = !isempty(Q)
+    wantZ = !isempty(Z)
+
+    triu!(B)
+
+    for jc in ilo:(ihi - 2)
+        for jr in ihi:-1:(jc + 2)
+            # rotate rows jr-1,jr to null A[jr,jc]
+            Gq, _ = givens(A, jr - 1, jr, jc)
+            lmul!(Gq, A)
+            lmul!(Gq, B)
+            if wantQ
+                rmul!(Q, Gq')
+            end
+            # rotate cols jr,jr-1 to null B[jr,jr-1]
+            Gz, _ = givens(B', jr, jr - 1, jr)
+            rmul!(A, Gz')
+            rmul!(B, Gz')
+            if wantZ
+                rmul!(Z, Gz')
+            end
+        end
+    end
+
+    return triu!(A, -1), triu!(B), Q, Z
+end
+
 """
 
      H = freqresp(sys::SparseDescriptorStateSpace, ω)
@@ -117,6 +187,7 @@ or by using the `JULIA_NUM_THREADS` environment variable.
 """
 
 function freqresp(sys::Union{SparseDescriptorStateSpace{T},DescriptorStateSpaceExt{T}}, ω::Union{AbstractVector{<:Real},Real}) where T
+#function freqresp(sys::DSTYPE{T}, ω::Union{AbstractVector{<:Real},Real}) where {T}
     T1 = T <: BlasFloat ? T : promote_type(Float64,T) 
     ONE = one(T1)
     typeof(ω) <: Real && (ω = [ω])
