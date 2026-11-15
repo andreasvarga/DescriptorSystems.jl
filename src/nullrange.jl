@@ -209,22 +209,23 @@ function grange(sys::DescriptorStateSpace{T}; zeros = "none", inner::Bool = fals
    # A = At[il,jal]; E = Et[il,jal]; B = At[il,jbl]; C = At[icl,jal]; D = At[icl,jbl];
    A = view(At,il,jal); E = view(Et,il,jal); B = view(At,il,jbl); C = view(At,icl,jal); D = view(At,icl,jbl)
 
+   complx = T <: Complex
    if inner && (zeros == "none" || zeros == "unstable")
       # move unstable zeros to stable positions and compress the reduced system to one
       # with full row rank transfer function matrix
       if disc
          # X, _,F, = gared(A,E,B,D'*D,C'*C,C'*D); 
          X, _,F, = try 
-            gared(A,E,B,D'*D,C'*C,C'*D) 
+            gared(A,E,B,hermitianpart!(D'*D),hermitianpart!(C'*C),C'*D) 
          catch err
             findfirst("dichotomic",string(err)) === nothing ? error("$err") : 
                error("Solution of the DARE failed: Symplectic pencil has eigenvalues on the unit circle")            
          end
-         H = cholesky(Hermitian(D'*D+B'*X*B)).U 
+         H = cholesky(hermitianpart!(D'*D+B'*X*B)).U 
       else
-         # X, _, F, = garec(A,E,B,D'*D,C'*C,C'*D); 
+         #X, _, F, = garec(A,E,B,D'*D,C'*C,C'*D); 
          X, _, F, = try 
-            garec(A,E,B,D'*D,C'*C,C'*D) 
+            garec(A,E,B,hermitianpart!(D'*D),hermitianpart!(C'*C),C'*D);  
          catch err
             findfirst("dichotomic",string(err)) === nothing ? error("$err") :
                error("Solution of the CARE failed: Hamiltonian pencil has jw-axis eigenvalues") 
@@ -613,15 +614,15 @@ function grnull(sys::DescriptorStateSpace{T}, p2::Int = 0; polynomial::Bool = fa
             C = cr[1:m,:]; D = dr[1:m,:]; 
             if disc
                X, _,f, = try 
-                  gared(ar,er,br,D'*D,C'*C,C'*D) 
+                  gared(ar,er,br,hermitianpart!(D'*D),hermitianpart!(C'*C),C'*D) 
                catch err
                   findfirst("dichotomic",string(err)) === nothing ? error("$err") : 
                      error("Solution of the DARE failed: Symplectic pencil has eigenvalues on the unit circle")            
                end
-               H = cholesky(Hermitian(D'*D+br'*X*br)).U 
+               H = cholesky(hermitianpart!(D'*D+br'*X*br)).U 
             else
                X, _, f, = try 
-                  garec(ar,er,br,D'*D,C'*C,C'*D) 
+                  garec(ar,er,br,hermitianpart!(D'*D),hermitianpart!(C'*C),C'*D) 
                catch err
                   findfirst("dichotomic",string(err)) === nothing ? error("$err") :
                      error("Solution of the CARE failed: Hamiltonian pencil has jw-axis eigenvalues") 
@@ -681,15 +682,15 @@ function grnull(sys::DescriptorStateSpace{T}, p2::Int = 0; polynomial::Bool = fa
                 C = cr[1:m,:]; D = dr[1:m,:]; 
                 if disc
                    X, _,f, = try 
-                     gared(ar,er,br,D'*D,C'*C,C'*D) 
+                     gared(ar,er,br,hermitianpart!(D'*D),hermitianpart!(C'*C),C'*D) 
                    catch err
                      findfirst("dichotomic",string(err)) === nothing ? error("$err") : 
                         error("Solution of the DARE failed: Symplectic pencil has eigenvalues on the unit circle")            
                    end
-                   H = cholesky(Hermitian(D'*D+br'*X*br)).U 
+                   H = cholesky(hermitianpart!(D'*D+br'*X*br)).U 
                 else
                    X, _, f, = try 
-                     garec(ar,er,br,D'*D,C'*C,C'*D) 
+                     garec(ar,er,br,hermitianpart!(D'*D),hermitianpart!(C'*C),C'*D) 
                    catch err
                      findfirst("dichotomic",string(err)) === nothing ? error("$err") :
                         error("Solution of the CARE failed: Hamiltonian pencil has jw-axis eigenvalues") 

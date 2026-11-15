@@ -2,7 +2,11 @@
 
 ## Version 1.5.1
 
-Generic versions for analysis and some factorization functions. 
+Generic versions of functions for:
+- analysis
+- coprime factorizationa with inner denominatoras
+- range and nullspace
+- covers 
 
 ## Version 1.5.1
 

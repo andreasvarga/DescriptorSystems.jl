@@ -5,6 +5,8 @@ using MatrixPencils
 using LinearAlgebra
 using Polynomials
 using Test
+using GenericLinearAlgebra
+using GenericSchur
 
 println("Test_polrat")
 @testset "Polynomial and rational matrix realizations" begin
@@ -45,6 +47,16 @@ P[:,:,3] = [1. 0; 0 0];
 @test P ≈ ls2pm(dssdata(dss(P))...)
 sys1 = pm2lps(P)  # build pencil realization
 @test P ≈ ls2pm(dssdata(dss(sys1...))...)
+
+P = zeros(BigFloat,2,2,3);
+P[:,:,1] = [0 0; 0 1.];
+P[:,:,2] = [0 1.; 1. 0];
+P[:,:,3] = [1. 0; 0 0]; 
+@test P ≈ ls2pm(dssdata(dss(P))...)
+sys1 = pm2lps(P)  # build pencil realization
+@test P ≈ ls2pm(dssdata(dss(sys1...))...)
+
+
 
 
 # Strong reductions
@@ -96,8 +108,12 @@ C2 = [
 D2 = zeros(Int,3,3);
 
 sys = dss(A2, E2, B2, C2, D2, Ts = -1)
+sysb = dss(dssdata(BigFloat,sys)...,Ts=-1)
 @time P = ls2pm(dssdata(sys)...)
 @test pmeval(P,1) ≈ dcgain(sys) ≈ dcgain(dss2sparse(sys))
+@time Pb = ls2pm(dssdata(sysb)...)
+@test pmeval(Pb,1) ≈ dcgain(sysb) 
+
 
 # Example 3 - (Varga, Kybernetika, 1990) 
 A2 = [
@@ -156,7 +172,6 @@ r = rtf(num,den)
 @test dcgain(sys)  == dcgain([r]) == evalfr(sys)
 @test dcgain(sys)[1]  == dcgain(r) == evalfr(sys)[1]
 
-
 sys = dss(num,den,contr=true); 
 @test rmeval(num,den,0) ≈ dcgain(sys)
 
@@ -175,6 +190,14 @@ sys = dss(num,den,minimal = true);
 num1, den1 = ls2rm(dssdata(sys)...);
 @test num*pm2poly(den1,:s)[1,1] ≈ pm2poly(num1,:s)[1,1]*den
 
+s = Polynomial(BigFloat[0, 1],:s)
+num = Polynomial(BigFloat[4:-1:1...],:s)
+den = Polynomial(BigFloat[7:-1:4...,1],:s)
+sys = dss(num,den)
+r = rtf(num,den)
+@test rmeval(num,den,0) ≈ dcgain(sys)
+@test dcgain(sys)  == dcgain([r]) == evalfr(sys)
+@test dcgain(sys)[1]  == dcgain(r) == evalfr(sys)[1]
 
 
 num = rand(2,3,4);
@@ -390,6 +413,17 @@ sys_poles = eigvals(sys.A,sys.E)
 @test sort(sys_poles) ≈ [-2., -1., 1.]
 sys_zeros = spzeros(dssdata(sys)...)[1] 
 @test coeffs(fromroots(sys_zeros)) ≈ [-1,1,0,1]
+
+D = reshape(BigFloat[-2,-1,2,1],1,1,4);
+N = reshape([-1,1,0,1],1,1,4);
+V = reshape([1],1,1,1);
+W = reshape([0.],1,1,1);
+@time sys = dss(D,N,V,W,atol = 1.e-7, minimal=true); 
+sys_poles =schur(sys.A,sys.E).values
+@test sort(sys_poles,by=real) ≈ [-2., -1., 1.]
+sys_zeros = spzeros(dssdata(sys)...)[1] 
+@test coeffs(fromroots(sys_zeros)) ≈ [-1,1,0,1]
+
 
 
 D1 = Polynomial([-2,-1,2,1]);

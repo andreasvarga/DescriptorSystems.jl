@@ -275,7 +275,8 @@ function grmcover1(sys::DescriptorStateSpace{T}, m1::Int; atol::Real = zero(real
 
 
    # handle improper case 
-   if !sstype && LinearAlgebra.LAPACK.trcon!('1','U','N',triu(Et))  < n*eps(real(T1)) 
+   #if !sstype && LinearAlgebra.LAPACK.trcon!('1','U','N',triu(Et))  < n*eps(real(T1)) 
+   if !sstype && real(one(T1))  < cond(UpperTriangular(Et),1)*n*eps(real(T1)) 
       isproper(sys[:,isys2], atol1 = atol1, atol2 = atol2, rtol = rtol) || 
              error("The system sys2 must be proper")
       At, Et, Bt, Ct, _, _, _, blkdims = fiblkdiag(At, Et, Bt, Ct; fast = fast, finite_infinite = true, 
@@ -505,7 +506,8 @@ function grmcover2(sys::DescriptorStateSpace{T},m1::Int; atol::Real = zero(real(
    sstype || istriu(Et) || MatrixPencils._qrE!(At, Et, nothing, Bt; withQ = false) 
 
    # handle improper case 
-   if !sstype && LinearAlgebra.LAPACK.trcon!('1','U','N',triu(Et))  < n*eps(real(T1)) 
+   #if !sstype && LinearAlgebra.LAPACK.trcon!('1','U','N',triu(Et))  < n*eps(real(T1)) 
+   if !sstype && real(one(T1))  < cond(UpperTriangular(Et),1)*n*eps(real(T1)) 
       isproper(sys[:,m1+1:m], atol1 = atol1, atol2 = atol2, rtol = rtol) || 
              error("The system sys2 must be proper")
       # sysf, sysi = gsdec(sys, job = "finite", fast = fast, atol1 = atol1, atol2 = atol2, rtol = rtol) 

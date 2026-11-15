@@ -5,6 +5,8 @@ using MatrixPencils
 using LinearAlgebra
 using Polynomials
 using Test
+using GenericLinearAlgebra
+using GenericSchur
 
 
 println("Test_nullrange")
@@ -329,6 +331,25 @@ zer = gzero(gminreal(sysx),atol1=1.e-7)
       count(t -> (abs.(t) .<= 1), zer) >= count(t -> (abs.(t) .>= 1), zeref) &&
       info.nrank == r && info.nfuz == 1 && info.niuz == 0
 
+z = Polynomial(BigFloat[0, 1],'z')
+g = [z^2+z+1 4*z^2+3*z+2 2*z^2-2;
+    z 4*z-1 2*z-2;
+    z^2 4*z^2-z 2*z^2-2*z];
+
+sys = dss(g,minimal = true, atol = 1.e-7,Ts = 1)
+@time sysr, sysx, info = grange(sys, zeros = "unstable", inner = true, atol = 1.e-7)  
+zeref = gzero(sys,atol1=1.e-7)
+r = size(sysx,1)
+zer = gzero(gminreal(sysx),atol1=1.e-7)
+@test gnrank(sys-sysr*sysx,atol1=1.e-7) == 0   &&   #  G(z) - Gi(z)*Go(z) = 0
+      gnrank(sysr'*sysr-I,atol1=1.e-7) == 0  && # conj(Gi(z))*Gi(z)-I = 0
+      isproper(sysr) && (isproper(sys) ? isproper(sysx) : true) && # checking properness of factors
+      isstable(sysr) && (isstable(sys) ? isstable(sysx) : true) &&
+      count(t -> isinf(t), zer) == info.niuz &&
+      count(t -> (abs.(t) .<= 1), zer) >= count(t -> (abs.(t) .>= 1), zeref) &&
+      info.nrank == r && info.nfuz == 1 && info.niuz == 0
+
+      
 z = Polynomial([0, 1],'z')
 # Eigenvalue(s) on the unit circle 
 gn = 1
@@ -365,7 +386,7 @@ n = 5; p = 4; m = 2;
 
 for fast in (true, false)
 # random examples
-for Ty in (Float64, Complex{Float64})
+for Ty in (Float64, Complex{Float64}, BigFloat, Complex{BigFloat})
 
 # continuous, standard
 sys = rss(n,p,m,T = Ty,disc=false,stable=true);sys.D[:,:] = 0*sys.D;
@@ -772,7 +793,7 @@ sys = dss(gn,gd,minimal = true, atol = 1.e-7);
 m = 5; p1 = 2; p2 = 2; p = p1+p2; n = 5;  
 
 Ty = Float64; fast = true; simple = false; polynomial = false;
-for Ty in (Float64, Complex{Float64})
+for Ty in (Float64, Complex{Float64}, BigFloat, Complex{BigFloat})
 
 #sysgf = rss(n,p,mgf,T = Ty,disc=false);
 
@@ -1091,7 +1112,7 @@ sys = dss(gn,gd,minimal = true, atol = 1.e-7);
 p = 5; m1 = 2; m2 = 2; m = m1+m2; n = 5;  
 
 Ty = Float64; fast = true; simple = false; polynomial = true;
-for Ty in (Float64, Complex{Float64})
+for Ty in (Float64, Complex{Float64}, BigFloat, Complex{BigFloat})
 
 #sysgf = rss(n,p,mgf,T = Ty,disc=false);
 

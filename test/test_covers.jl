@@ -5,6 +5,8 @@ using LinearAlgebra
 using Polynomials
 using Random
 using Test
+using GenericLinearAlgebra
+using GenericSchur
 
 println("Test_covers")
 @testset "covers " begin
@@ -85,14 +87,15 @@ fast = true; Ty = Complex{Float64}; Ty = Float64
 m = 6; n = 10; p = 3; 
 m = 6; n = 5; p = 3; 
 
+ii = 1
 for fast in (true, false)
 # random examples
-for Ty in (Float64, Complex{Float64})
+for Ty in (Complex{BigFloat},Float64, Complex{Float64}, BigFloat)
 
 # continuous, standard
 sys = rss(n,p,m,T = Ty,disc=false);
 for m1 = 0:m
-    @time sysx, sysy, info = grmcover1(sys, m1)
+    @time sysx, sysy, info = grmcover1(sys, m1; fast)
     isys1 = 1:m1; isys2 = m1+1:size(sys,2);
     @test gnrank(sysx-sys[:,isys1]-sys[:,isys2]*sysy,atol1=1.e-7) == 0  
 end
@@ -100,7 +103,7 @@ end
 # discrete, standard
 sys = rss(n,p,m,T = Ty,disc=true);
 for m1 = 0:m
-    @time sysx, sysy, info = grmcover1(sys, m1)
+    @time sysx, sysy, info = grmcover1(sys, m1; fast)
     isys1 = 1:m1; isys2 = m1+1:size(sys,2);
     @test gnrank(sysx-sys[:,isys1]-sys[:,isys2]*sysy,atol1=1.e-7) == 0  
 end
@@ -109,7 +112,7 @@ end
 # continuous, descriptor, no infinite eigenvalues
 sys = rdss(n,p,m,T = Ty,disc=false);
 for m1 = 0:m
-    @time sysx, sysy, info = grmcover1(sys, m1)
+    @time sysx, sysy, info = grmcover1(sys, m1; fast)
     isys1 = 1:m1; isys2 = m1+1:size(sys,2);
     @test gnrank(sysx-sys[:,isys1]-sys[:,isys2]*sysy,atol1=1.e-7,atol2=1.e-7) == 0  
 end
@@ -118,7 +121,7 @@ end
 # discrete, descriptor, no infinite eigenvalues
 sys = rdss(n,p,m,T = Ty, disc=true);
 for m1 = 0:m
-    @time sysx, sysy, info = grmcover1(sys, m1)
+    @time sysx, sysy, info = grmcover1(sys, m1; fast)
     isys1 = 1:m1; isys2 = m1+1:size(sys,2);
     @test gnrank(sysx-sys[:,isys1]-sys[:,isys2]*sysy,atol1=1.e-7) == 0  
 end
@@ -126,7 +129,7 @@ end
 # continuous, descriptor, proper
 sys = rdss(n,p,m,T = Ty,disc=false,id=ones(Int,3)); 
 for m1 = 0:m
-    @time sysx, sysy, info = grmcover1(sys, m1, atol = 1.e-7,atol2=1.e-7)
+    @time sysx, sysy, info = grmcover1(sys, m1; fast, atol = 1.e-7,atol2=1.e-7)
     isys1 = 1:m1; isys2 = m1+1:size(sys,2);
     @test gnrank(sysx-sys[:,isys1]-sys[:,isys2]*sysy,atol1=1.e-7,atol2=1.e-7) == 0  
 end
@@ -134,7 +137,7 @@ end
 # discrete, descriptor, proper
 sys = rdss(n,p,m,T = Ty, disc=true,id=ones(Int,3));
 for m1 = 0:m
-    @time sysx, sysy, info = grmcover1(sys, m1, atol = 1.e-7)
+    @time sysx, sysy, info = grmcover1(sys, m1; fast, atol = 1.e-7)
     isys1 = 1:m1; isys2 = m1+1:size(sys,2);
     @test gnrank(sysx-sys[:,isys1]-sys[:,isys2]*sysy,atol1=1.e-7) == 0  
 end
@@ -142,7 +145,7 @@ end
 # continuous, descriptor, infinite poles
 for m1 = 0:m
     sys = [ rdss(n,p,m1,T = Ty,disc=false,id=[3*ones(Int,1);2*ones(Int,1)])  rdss(n,p,m-m1,T = Ty,disc=false,id = ones(Int,3)) ] ;
-    @time sysx, sysy, info = grmcover1(sys, m1, atol = 1.e-7)
+    @time sysx, sysy, info = grmcover1(sys, m1; fast, atol = 1.e-7)
     isys1 = 1:m1; isys2 = m1+1:size(sys,2);
     @test gnrank(sysx-sys[:,isys1]-sys[:,isys2]*sysy,atol1=1.e-7,atol2 = 1.e-7) == 0  
 end
@@ -151,7 +154,7 @@ end
 # discrete, descriptor, uncontrollable poles
 sys = rdss(n,p,m,T = Ty, disc=true,nfuc = 4);
 for m1 = 0:m
-    @time sysx, sysy, info = grmcover1(sys, m1, atol = 1.e-7)
+    @time sysx, sysy, info = grmcover1(sys, m1; fast, atol = 1.e-7)
     isys1 = 1:m1; isys2 = m1+1:size(sys,2);
     @test gnrank(sysx-sys[:,isys1]-sys[:,isys2]*sysy,atol1=1.e-7) == 0  
 end
@@ -159,7 +162,7 @@ end
 # continuous, descriptor, proper, uncontrollable infinite eigenvalues
 sys = rdss(n,p,m,T = Ty,disc=false,iduc=[3*ones(Int,1);2*ones(Int,1)]);
 for m1 = 0:m
-    @time sysx, sysy, info = grmcover1(sys, m1, atol = 1.e-7)
+    @time sysx, sysy, info = grmcover1(sys, m1; fast, atol = 1.e-7)
     isys1 = 1:m1; isys2 = m1+1:size(sys,2);
     @test gnrank(sysx-sys[:,isys1]-sys[:,isys2]*sysy,atol1=1.e-7) == 0  
 end
@@ -167,13 +170,11 @@ end
 # discrete, descriptor, proper, uncontrollable infinite eigenvalues
 sys = rdss(n,p,m,T = Ty,disc=true,iduc=[3*ones(Int,1);2*ones(Int,1)]);
 for m1 = 0:m
-    @time sysx, sysy, info = grmcover1(sys, m1, atol = 1.e-7)
+    @time sysx, sysy, info = grmcover1(sys, m1; fast, atol = 1.e-7)
     isys1 = 1:m1; isys2 = m1+1:size(sys,2);
     @test gnrank(sysx-sys[:,isys1]-sys[:,isys2]*sysy,atol1=1.e-7) == 0  
 end
-
-
-
+println("finish $Ty fast = $fast")
 end
 end
 
@@ -254,8 +255,7 @@ p = 6; n = 10; m = 3;
 
 for fast in (true, false)
 # random examples
-for Ty in (Float64, Complex{Float64})
-
+for Ty in (Float64, Complex{Float64}, BigFloat, Complex{BigFloat})
 # continuous, standard
 sys = rss(n,p,m,T = Ty,disc=false);
 for p1 = 0:p
@@ -397,7 +397,7 @@ m = 6; n = 10; p = 3;
 
 for fast in (true, false)
 # random examples
-for Ty in (Float64, Complex{Float64})
+for Ty in (Float64, Complex{Float64}, BigFloat, Complex{BigFloat})
 
 # continuous, standard
 sys = rss(n,p,m,T = Ty,disc=false);
@@ -565,7 +565,8 @@ p = 6; n = 10; m = 3;
 
 for fast in (true, false)
 # random examples
-for Ty in (Float64, Complex{Float64})
+for Ty in (Float64, Complex{Float64}, BigFloat, Complex{BigFloat})
+#for Ty in (Float64, Complex{Float64})
 
 # continuous, standard
 sys = rss(n,p,m,T = Ty,disc=false);
