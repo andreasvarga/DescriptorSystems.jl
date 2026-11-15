@@ -4,6 +4,8 @@ using DescriptorSystems
 using LinearAlgebra
 using Polynomials
 using Test
+using GenericLinearAlgebra
+using GenericSchur
 
 
 println("Test_gsdec")
@@ -21,7 +23,7 @@ m = 2; n = 5; p = 3;
 
 for fast in (true, false)
 # random examples
-for Ty in (Float64, Complex{Float64})
+for Ty in (Float64,Complex{Float64},BigFloat,Complex{BigFloat})
 
 # continuous, standard
 sys = rss(n,p,m,T = Ty,disc=false);

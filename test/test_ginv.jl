@@ -5,6 +5,8 @@ using LinearAlgebra
 using Polynomials
 using Random
 using Test
+using GenericLinearAlgebra
+using GenericSchur
 
 println("Test_ginv")
 Random.seed!(2173)
@@ -14,7 +16,7 @@ fast = true; Ty = Complex{Float64}; #Ty = Float64
 disc = true;   
 
 # random examples
-for Ty in (Float64, Complex{Float64})
+for Ty in (Float64,Complex{Float64},BigFloat,Complex{BigFloat})
       # for fast in (true, false)
       for disc in (false, true)
 

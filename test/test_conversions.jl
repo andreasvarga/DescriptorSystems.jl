@@ -6,6 +6,8 @@ using Polynomials
 using Test
 using SparseArrays
 using JLD2
+using GenericLinearAlgebra
+using GenericSchur
 
 
 println("Test_conversions")
@@ -32,7 +34,7 @@ Gd = [z^2 z/(z-2); 0 1/z]     # define the 2-by-2 improper Gd(z)
 
 @test ghinfnorm(gminreal(dss(Gd)-sysi,atol=1.e-7))[1] < 1.e-7
 
-for Ty in (Float64,Complex{Float64})
+for Ty in (Float64,Complex{Float64},BigFloat,Complex{BigFloat})
 
 type = "c2d"; 
 sys = rss(T = Ty, 3,2,3); 
@@ -341,11 +343,19 @@ B = [0.004019511633336128; 0.004019511633336128; 0.0; 0.0; 297809.51426114445; 2
 C = [0.0 0.0 0.0 1.0 0.0 0.0]
 
 sys = dss(A,B,C,0)
+sysb = dss(dssdata(BigFloat,sys)...)
 @time sys_scaled, D1, D2 = gprescale(sys);
 ev = gpole(sys); evs = gpole(sys_scaled); 
 @test iszero(sys_scaled-sys) && sort(real(ev)) ≈ sort(real(evs)) && sort(imag(ev)) ≈ sort(imag(evs)) 
 @test sys_scaled.A == D1*sys.A*D2 && sys_scaled.B == D1*sys.B && sys_scaled.C == sys.C*D2
 @test gbalqual(sys) > 100000*gbalqual(sys_scaled)
+
+@time sysb_scaled, D1, D2 = gprescale(sysb);
+ev = gpole(sysb); evs = gpole(sysb_scaled); 
+@test iszero(sysb_scaled-sysb) && sort(real(ev)) ≈ sort(real(evs)) && sort(imag(ev)) ≈ sort(imag(evs)) 
+@test sysb_scaled.A == D1*sysb.A*D2 && sysb_scaled.B == D1*sysb.B && sysb_scaled.C == sysb.C*D2
+@test gbalqual(sysb) > 100000*gbalqual(sysb_scaled)
+
 
 @time sys_scaled, D1, D2 = gprescale(sys,withB = false, withC = false);
 evs = gpole(sys_scaled); 
@@ -353,23 +363,42 @@ evs = gpole(sys_scaled);
 @test sys_scaled.A == D1*sys.A*D2 && sys_scaled.B == D1*sys.B && sys_scaled.C == sys.C*D2
 @test gbalqual(sys) > 100000*gbalqual(sys_scaled)
 
+@time sysb_scaled, D1, D2 = gprescale(sysb,withB = false, withC = false);
+evs = gpole(sysb_scaled); 
+@test iszero(sysb_scaled-sysb) && sort(real(ev)) ≈ sort(real(evs)) && sort(imag(ev)) ≈ sort(imag(evs)) 
+@test sysb_scaled.A == D1*sysb.A*D2 && sysb_scaled.B == D1*sysb.B && sysb_scaled.C == sys.C*D2
+@test gbalqual(sysb) > 100000*gbalqual(sysb_scaled)
+
+
 
 sys1, sys2 = gsdec(sys_scaled,job="stable"); 
 @test iszero(sys-sys1-sys2,atol=1.e-7) && iszero(sys2,atol=1.e-7)
+sysb1, sysb2 = gsdec(sysb_scaled,job="stable"); 
+@test iszero(sysb-sysb1-sysb2,atol=1.e-7) && iszero(sysb2,atol=1.e-7)
 
 sys1, sys2 = gsdec(sys,prescale = true, job="stable"); 
 @test iszero(sys-sys1-sys2,atol=1.e-7) && iszero(sys2,atol=1.e-7)
+sysb1, sysb2 = gsdec(sysb,prescale = true, job="stable"); 
+@test iszero(sysb-sysb1-sysb2,atol=1.e-7) && iszero(sysb2,atol=1.e-7)
 
 sys1, sys2 = gsdec(sys,job="stable"); 
 @test iszero(sys-sys1-sys2,atol=1.e-7) && iszero(sys2,atol=1.e-7)
+sysb1, sysb2 = gsdec(sysb,job="stable"); 
+@test iszero(sysb-sysb1-sysb2,atol=1.e-7) && iszero(sysb2,atol=1.e-7)
 
 
 
 sysr = gminreal(sys_scaled)
 @test iszero(sys-sysr) && iszero(sys1-sysr)
+sysrb = gminreal(sysb_scaled)
+@test iszero(sysb-sysrb) && iszero(sysb1-sysrb)
+
 
 sysr = gminreal(sys; prescale = true)
 @test iszero(sys-sysr) && iszero(sys1-sysr)
+sysrb = gminreal(sysb; prescale = true)
+@test iszero(sysb-sysrb) && iszero(sysb1-sysrb)
+
 
 sysr = gminreal(sys)
 @test iszero(sys-sysr) && iszero(sys1-sysr)

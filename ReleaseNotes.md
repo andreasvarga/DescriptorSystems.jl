@@ -7,6 +7,10 @@ Generic versions of functions for:
 - coprime factorizationa with inner denominatoras
 - range and nullspace
 - covers 
+- system conversions
+- generalized inverses
+- additive decompositions
+- spectral and inner-outer factorizations
 
 ## Version 1.5.1
 

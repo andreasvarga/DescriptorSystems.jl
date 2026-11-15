@@ -4,9 +4,11 @@ using DescriptorSystems
 using LinearAlgebra
 using Polynomials
 using Test
+using GenericLinearAlgebra
+using GenericSchur
 
 println("Test_iofac")
-@testset "grsfg and grsfg" begin
+@testset "grsfg and glsfg" begin
 
 sys = rss(0,2,3); 
 g = glinfnorm(sys)[1]*1.001
@@ -65,6 +67,14 @@ sysf = grsfg(sys,g,atol=1.e-7)
 @test iszero(sysf'*sysf+sys'*sys-g*g*I,atol=1.e-7)
 @time sysf = glsfg(sys,g,atol=1.e-7)
 @test iszero(sysf*sysf'+sys*sys'-g*g*I,atol=1.e-7)
+
+sysb = rdss(5,4,3,id = ones(Int,2),T = BigFloat)
+g = glinfnorm(sysb)[1]*1.001
+sysfb = grsfg(sysb,g,atol=1.e-7)
+@test iszero(sysfb'*sysfb+sysb'*sysb-g*g*I,atol=1.e-7)
+@time sysfb = glsfg(sysb,g,atol=1.e-7)
+@test iszero(sysfb*sysfb'+sysb*sysb'-g*g*I,atol=1.e-7)
+
 
 end # grsfg & glsfg
 
@@ -326,7 +336,7 @@ n = 5; p = 4; m = 2;
 
 for fast in (true, false)
 # random examples
-for Ty in (Float64, Complex{Float64})
+for Ty in (Float64,Complex{Float64},BigFloat,Complex{BigFloat})
 
 # continuous, standard
 sys = rss(n,p,m,T = Ty,disc=false,stable=true);
@@ -508,7 +518,7 @@ fast = true; Ty = Complex{Float64}; Ty = Float64
 n = 5; p = 2; m = 4; 
 for fast in (true, false)
 # random examples
-for Ty in (Float64, Complex{Float64})
+for Ty in (Float64,Complex{Float64},BigFloat,Complex{BigFloat})
 
 # continuous, standard
 sys = rss(n,p,m,T = Ty,disc=false);
