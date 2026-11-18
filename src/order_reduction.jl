@@ -563,12 +563,22 @@ function gbalmr(sys::DescriptorStateSpace{T}; balance::Bool = false, matchdc::Bo
         R = plyaps(SF.T', view(cs,1:p,:)'; disc = disc)
         SV = svd!(R*S); hs = SV.S
     else
-        # eliminate uncontrollable infinite eigenvalues and non-dynamic modes if possible
-        if LinearAlgebra.LAPACK.gecon!('1', LinearAlgebra.LAPACK.getrf!(copy(sys.E))[1],opnorm(sys.E,1)) < s2eps
-           sys = gir(sys, finite = false, noseig = true, fast = fast, atol1 = atol1, atol2 = atol2, rtol = rtol)
-           # the resulting sys may still be improper
-           LinearAlgebra.LAPACK.gecon!('1', LinearAlgebra.LAPACK.getrf!(copy(sys.E))[1],opnorm(sys.E,1)) < s2eps &&
-               error("The system sys is not proper")
+        if T <: BlasFloat        
+           if LinearAlgebra.LAPACK.gecon!('1', LinearAlgebra.LAPACK.getrf!(copy(sys.E))[1],opnorm(sys.E,1)) < s2eps
+              # eliminate uncontrollable infinite eigenvalues and non-dynamic modes if possible
+              sys = gir(sys, finite = false, noseig = true, fast = fast, atol1 = atol1, atol2 = atol2, rtol = rtol)
+              # the resulting sys may still be improper
+              LinearAlgebra.LAPACK.gecon!('1', LinearAlgebra.LAPACK.getrf!(copy(sys.E))[1],opnorm(sys.E,1)) < s2eps &&
+                  error("The system sys is not proper")
+           end
+        else
+           if rcond(sys.E) < s2eps   
+              # eliminate uncontrollable infinite eigenvalues and non-dynamic modes if possible
+              sys = gir(sys, finite = false, noseig = true, fast = fast, atol1 = atol1, atol2 = atol2, rtol = rtol)
+              # the resulting sys may still be improper
+              rcond(UpperTriangular(sys.E)) < s2eps &&
+                  error("The system sys is not proper")
+           end
         end
         n = order(sys)
         # for a non-dynamic system, we set the Hankel norm to zero,

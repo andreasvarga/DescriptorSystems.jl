@@ -33,7 +33,7 @@ function rcond(A::DenseMatrix{T},tola::Real = 0) where {T <: Union{BlasInt,BlasF
         (return LinearAlgebra.LAPACK.gecon!('1', LinearAlgebra.LAPACK.getrf!(copy_oftype(A,T1))[1],real(T1)(nrmA)) ) 
 end
 rcond(A::DenseMatrix{T},tola::Real = 0) where {T} = 1/cond(A,1)
-rcond(A::UpperTriangular{T}) where {T} = 1/cond(A,1)
+rcond(A::UpperTriangular{T},tola::Real = 0) where {T} = 1/cond(A,1)
 rcond(A::SparseMatrixCSC,tola::Real = 0) = 1/cond(A,1)
 function rcond(A::UpperTriangular{T}, tola::Real = 0) where {T <: Union{BlasInt,BlasFloat}}
     T1 = promote_type(T,Float64)

@@ -8,6 +8,8 @@ using BandedMatrices
 using JLD2
 using Random
 using Test
+using GenericLinearAlgebra
+using GenericSchur
 
 
 println("Test_ordred")
@@ -80,7 +82,7 @@ sys1, r = gss2ss(sysc)
 @test iszero(sysc-sys1,atol=1.e-7) && r == 1
 
 Ty = Float64
-for Ty in (Float64,Complex{Float64})
+for Ty in (Float64,Complex{Float64},BigFloat,Complex{BigFloat})
 sys = rdss(T = Ty,7,2,3);
 sys1, r = gss2ss(sys);
 @test iszero(sys-sys1,atol=1.e-7) && r == 7 && sys1.E == I
@@ -445,7 +447,7 @@ L = Q[:,1:sys1.nx]'; R = Z[:,1:sys1.nx];
       L*sys.A*R ≈ sys1.A && L*sys.E*R ≈ sys1.E && L*sys.B ≈ sys1.B && sys.C*R ≈ sys1.C && Q*Q' ≈ I && Z*Z' ≈ I 
 
 
-for Ty in (Float64, Complex{Float64})
+for Ty in (Float64,Complex{Float64},BigFloat,Complex{BigFloat})
 
 #fast = true; Ty = Complex{Float64}    
 n = 10; m = 5; p = 6;
@@ -524,7 +526,7 @@ sys = rdss(0,0,0);
 n = 5; m = 3; p = 2;
 
 Ty = Float64; fast = true; 
-for Ty in (Float64, Complex{Float64})
+for Ty in (Float64,Complex{Float64},BigFloat,Complex{BigFloat})
 
 for fast in (true, false)
 

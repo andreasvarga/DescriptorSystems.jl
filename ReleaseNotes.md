@@ -11,6 +11,7 @@ Generic versions of functions for:
 - generalized inverses
 - additive decompositions
 - spectral and inner-outer factorizations
+- solving rational systems and order reduction
 
 ## Version 1.5.1
 

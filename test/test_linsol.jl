@@ -4,7 +4,8 @@ using DescriptorSystems
 using LinearAlgebra
 using Polynomials
 using Test
-
+using GenericLinearAlgebra
+using GenericSchur
 
 println("Test_linsol")
 @testset "linsol " begin
@@ -173,7 +174,7 @@ m = 3; mf = 2;
 mindeg = false;
 
 # random examples
-for Ty in (Float64, Complex{Float64})
+for Ty in (Float64,Complex{Float64},BigFloat,Complex{BigFloat})
 
 #sysgf = rss(n,p,mgf,T = Ty,disc=false);
 

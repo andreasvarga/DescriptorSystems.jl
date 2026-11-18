@@ -5,6 +5,8 @@ using LinearAlgebra
 using Polynomials
 using Random
 using Test
+using GenericLinearAlgebra
+using GenericSchur
 
 
 println("Test_model_matching")
@@ -15,9 +17,12 @@ Random.seed!(2135)
 
 @testset "grasol" begin
 
+for Ty in (Float64,Complex{Float64},BigFloat,Complex{BigFloat})
+
+
 # continuous-time, both G and F unstable
 n1 = 3; n2 = 2; m = 2; p = 3; mf = 1; 
-G = rss(n1,p,m); F = rss(n2,p,mf);  
+G = rss(n1,p,m,T = Ty); F = rss(n2,p,mf,T = Ty);  
 @time X, info = grasol(G, F; reltol=0.0001, atol = 1.e-7); info
 @test abs(glinfnorm(G*X-F,offset=1.e-13)[1] - info.mindist) < 0.01 &&  (!info.nonstandard && isstable(X,offset=1.e-13)) 
 
@@ -26,13 +31,38 @@ G = rss(n1,p,m); F = rss(n2,p,mf);
 
 # discrete-time, both G and F unstable 
 n1 = 3; n2 = 2; m = 2; p = 3; mf = 1; 
-G = rss(n1,p,m,disc=true); F = rss(n2,p,mf,disc=true);  
+G = rss(n1,p,m,disc=true,T = Ty); F = rss(n2,p,mf,disc=true,T = Ty);  
 @time X, info = grasol(G, F; reltol=0.0001, atol = 1.e-7); info
 @test abs(glinfnorm(G*X-F,offset=1.e-13)[1] - info.mindist) < 0.01 &&  (!info.nonstandard && isstable(X,offset=1.e-13)) 
 
 @time X, info = grasol(G, F; nehari = true, atol = 1.e-7); info
 @test abs(glinfnorm(G*X-F)[1] - info.mindist) < 0.01 &&  (!info.nonstandard && isstable(X)) 
 
+# both G and F stable
+n1 = 3; n2 = 2; m = 2; p = 3; mf = 1; 
+G = rss(n1,p,m,stable=true,T = Ty); F = rss(n2,p,mf,stable=true,T = Ty);  
+@time X, info = grasol(G, F; atol = 1.e-8); info
+@test abs(glinfnorm(G*X-F,offset=1.e-13)[1] - info.mindist) < 0.01 &&  (!info.nonstandard && isstable(X,offset=1.e-13)) 
+
+@time X, info = grasol(G, F; nehari = true, atol = 1.e-7); info
+@test abs(glinfnorm(G*X-F)[1] - info.mindist) < 0.01 &&  (!info.nonstandard && isstable(X)) 
+
+# exact stable solution exists, no free poles  
+n1 = 3; n2 = 2; m = 2; p = 3; mf = 1; 
+#G = rss(n1,p,m,stable=true); X0 = rss(n2,pf,p,stable=true);  F = X0*G;
+G = rss(n1,p,m,T = Ty); X0 = rss(n2,m,mf,stable=true,T = Ty);  F = G*X0; 
+@time X, info = grasol(G, F, offset = 1.e-13, atol = 1.e-7); info  
+@test abs(glinfnorm(G*X-F)[1] - info.mindist) < 1.e-5*max(1,info.mindist)  &&  (!info.nonstandard && isstable(X)) 
+
+# exact stable solution exists, free poles exist 
+n1 = 3; n2 = 2; m = 2; p = 3; mf = 1; 
+G = rss(n1,p,m,stable=true,T = Ty); X0 = rss(n2,m,mf,stable=true,T = Ty);  F = G*X0; 
+@time X, info = grasol(G, F, atol = 1.e-7, poles = [-2, -3], sdeg = -1, mindeg = true); info
+@test abs(glinfnorm(G*X-F)[1] - info.mindist) < 1.e-5*max(1,info.mindist) &&  (!info.nonstandard && isstable(X)) &&
+      order(X) == order(X0)
+
+
+end
 
 # continuous-time, both G and F unstable and complex
 n1 = 3; n2 = 2; m = 2; p = 3; mf = 1; 
@@ -64,28 +94,28 @@ G = dss(A,B,C,D,Ts=1); F = dss(A1,B1,C1,D1,Ts=1)
 @test glinfnorm(G*X-F,offset=1.e-13)[1] ≈ info.mindist &&  (!info.nonstandard && isstable(X,offset=1.e-13)) 
 
 
-# both G and F stable
-n1 = 3; n2 = 2; m = 2; p = 3; mf = 1; 
-G = rss(n1,p,m,stable=true); F = rss(n2,p,mf,stable=true);  
-@time X, info = grasol(G, F; atol = 1.e-8); info
-@test abs(glinfnorm(G*X-F,offset=1.e-13)[1] - info.mindist) < 0.01 &&  (!info.nonstandard && isstable(X,offset=1.e-13)) 
+# # both G and F stable
+# n1 = 3; n2 = 2; m = 2; p = 3; mf = 1; 
+# G = rss(n1,p,m,stable=true); F = rss(n2,p,mf,stable=true);  
+# @time X, info = grasol(G, F; atol = 1.e-8); info
+# @test abs(glinfnorm(G*X-F,offset=1.e-13)[1] - info.mindist) < 0.01 &&  (!info.nonstandard && isstable(X,offset=1.e-13)) 
 
-@time X, info = grasol(G, F; nehari = true, atol = 1.e-7); info
-@test abs(glinfnorm(G*X-F)[1] - info.mindist) < 0.01 &&  (!info.nonstandard && isstable(X)) 
+# @time X, info = grasol(G, F; nehari = true, atol = 1.e-7); info
+# @test abs(glinfnorm(G*X-F)[1] - info.mindist) < 0.01 &&  (!info.nonstandard && isstable(X)) 
 
-# exact stable solution exists, no free poles  
-n1 = 3; n2 = 2; m = 2; p = 3; mf = 1; 
-#G = rss(n1,p,m,stable=true); X0 = rss(n2,pf,p,stable=true);  F = X0*G;
-G = rss(n1,p,m); X0 = rss(n2,m,mf,stable=true);  F = G*X0; 
-@time X, info = grasol(G, F, offset = 1.e-13, atol = 1.e-7); info  
-@test abs(glinfnorm(G*X-F)[1] - info.mindist) < 1.e-5*max(1,info.mindist)  &&  (!info.nonstandard && isstable(X)) 
+# # exact stable solution exists, no free poles  
+# n1 = 3; n2 = 2; m = 2; p = 3; mf = 1; 
+# #G = rss(n1,p,m,stable=true); X0 = rss(n2,pf,p,stable=true);  F = X0*G;
+# G = rss(n1,p,m); X0 = rss(n2,m,mf,stable=true);  F = G*X0; 
+# @time X, info = grasol(G, F, offset = 1.e-13, atol = 1.e-7); info  
+# @test abs(glinfnorm(G*X-F)[1] - info.mindist) < 1.e-5*max(1,info.mindist)  &&  (!info.nonstandard && isstable(X)) 
 
-# exact stable solution exists, free poles exist 
-n1 = 3; n2 = 2; m = 2; p = 3; mf = 1; 
-G = rss(n1,p,m,stable=true); X0 = rss(n2,m,mf,stable=true);  F = G*X0; 
-@time X, info = grasol(G, F, atol = 1.e-7, poles = [-2, -3], sdeg = -1, mindeg = true); info
-@test abs(glinfnorm(G*X-F)[1] - info.mindist) < 1.e-5*max(1,info.mindist) &&  (!info.nonstandard && isstable(X)) &&
-      order(X) == order(X0)
+# # exact stable solution exists, free poles exist 
+# n1 = 3; n2 = 2; m = 2; p = 3; mf = 1; 
+# G = rss(n1,p,m,stable=true); X0 = rss(n2,m,mf,stable=true);  F = G*X0; 
+# @time X, info = grasol(G, F, atol = 1.e-7, poles = [-2, -3], sdeg = -1, mindeg = true); info
+# @test abs(glinfnorm(G*X-F)[1] - info.mindist) < 1.e-5*max(1,info.mindist) &&  (!info.nonstandard && isstable(X)) &&
+#       order(X) == order(X0)
 
 ## Glover & Packard (SCL,2017)
 s = rtf('s');
@@ -146,8 +176,10 @@ G = rss(3,3,2,stable=true);
 @time X, info = grasol(G, G, atol = 1.e-7, L2sol = true); info
 @test gl2norm(G*X-G,atolinf=1.e-7) < 1.e-7 && X.D ≈ eye(2)
 
+for Ty in (Float64,BigFloat)
+
 ##  Francis (1987) Example 1, p. 112 
-s = rtf('s'); # define the complex variable s
+s = rtf(Ty,'s'); # define the complex variable s
 # enter W(s), G(s) and F(s)
 W = (s+1)/(10*s+1); # weighting function
 #G = W.*[ -(s-1)/(s^2+s+1); (s^2-2*s)/(s^2+s+1)];  # erroneous
@@ -160,7 +192,7 @@ X, info = grasol(sysg,sysf,atol=1.e-7,mindeg = true); info
 # compute the suboptimal solution for gamma = 0.2729
 Xsub, info = grasol(sysg,sysf,0.2729,atol=1.e-7,mindeg = true); info
 @test glinfnorm(sysg*Xsub-sysf)[1] ≈ info.mindist 
-
+end
 
 # Wang and Davison Example (1973)
 s = Polynomial([0, 1],'s'); 
@@ -194,9 +226,11 @@ end #grasol
 
 @testset "glasol" begin
 
+for Ty in (Float64,Complex{Float64},BigFloat,Complex{BigFloat})
+
 # continuous-time, both G and F unstable
 n1 = 3; n2 = 2; m = 3; p = 2; pf = 1; 
-G = rss(n1,p,m); F = rss(n2,pf,m);  
+G = rss(n1,p,m,T = Ty); F = rss(n2,pf,m,T = Ty);  
 @time X, info = glasol(G, F; reltol=0.001, atol = 1.e-7); info
 @test abs(glinfnorm(X*G-F,offset=1.e-13)[1] - info.mindist) < 0.01 &&  (!info.nonstandard && isstable(X,offset=1.e-13)) 
 
@@ -205,13 +239,41 @@ G = rss(n1,p,m); F = rss(n2,pf,m);
 
 # discrete-time, both G and F unstable 
 n1 = 3; n2 = 2; m = 3; p = 2; pf = 1; 
-G = rss(n1,p,m,disc=true); F = rss(n2,pf,m,disc=true);  
+G = rss(n1,p,m,disc=true,T = Ty); F = rss(n2,pf,m,disc=true,T = Ty);  
 @time X, info = glasol(G, F; reltol=0.0001, atol = 1.e-9); info
 @test abs(glinfnorm(X*G-F,offset=1.e-13)[1] - info.mindist) < 0.01 &&  (!info.nonstandard && isstable(X,offset=1.e-13)) 
 
 @time X, info = glasol(G, F; nehari = true, atol = 1.e-7); info
 @test abs(glinfnorm(X*G-F)[1] - info.mindist) < 0.01 &&  (!info.nonstandard && isstable(X)) 
 
+# both G and F stable  
+n1 = 3; n2 = 2; m = 3; p = 2; pf = 1; 
+G = rss(n1,p,m,stable=true,T = Ty); F = rss(n2,pf,m,stable=true,T = Ty);  
+@time X, info = glasol(G, F; atol = 1.e-8); info
+@test abs(glinfnorm(X*G-F,offset=1.e-13)[1] - info.mindist) < 0.01 &&  (!info.nonstandard && isstable(X,offset=1.e-13)) 
+
+@time X, info = glasol(G, F; nehari = true, atol = 1.e-7); info
+@test abs(glinfnorm(X*G-F)[1] - info.mindist) < 0.01 &&  (!info.nonstandard && isstable(X)) 
+
+# exact solution exists, free poles exist 
+n1 = 3; n2 = 2; m = 2; p = 3; pf = 1; 
+G = rss(n1,p,m,stable=true,T = Ty); X0 = rss(n2,pf,p,stable=true,T = Ty);  F = X0*G;
+@time X, info = glasol(G, F, atol = 1.e-7, poles = [-2, -3], sdeg = -1); info
+@test abs(glinfnorm(X*G-F)[1] - info.mindist) < 1.e-7 &&  (!info.nonstandard && isstable(X)) 
+
+# exact solution exists, no free poles 
+n1 = 3; n2 = 2; m = 3; p = 2; pf = 1; 
+G = rss(n1,p,m); X0 = rss(n2,pf,p,stable=true,T = Ty);  F = X0*G; 
+@time X, info = glasol(G, F, offset = 1.e-13, atol = 1.e-7); info  
+@test abs(glinfnorm(X*G-F)[1] - info.mindist) < 1.e-5 &&  (!info.nonstandard && isstable(X)) 
+
+n1 = 3; n2 = 2; m = 2; p = 3; pf = 1; 
+G = rss(n1,p,m,stable=true,T = Ty); X0 = rss(n2,pf,p,stable=true,T = Ty);  F = X0*G;
+@time X, info = glasol(G, F, atol = 1.e-7, poles = [-2, -3], sdeg = -1, mindeg = true); info
+@test abs(glinfnorm(X*G-F)[1] - info.mindist) < 1.e-7 &&  (!info.nonstandard && isstable(X)) &&
+      order(X) == order(X0)
+
+end
 
 # continuous-time, both G and F unstable and complex
 n1 = 3; n2 = 2; m = 3; p = 2; pf = 1; 
@@ -232,32 +294,32 @@ G = rss(n1,p,m,T = Complex{Float64}); F = rss(n2,pf,m,T = Complex{Float64});
 # @test abs(glinfnorm(X*G-F)[1] - info.mindist) < 0.01 &&  (!info.nonstandard && isstable(X)) 
 
 
-# both G and F stable  
-n1 = 3; n2 = 2; m = 3; p = 2; pf = 1; 
-G = rss(n1,p,m,stable=true); F = rss(n2,pf,m,stable=true);  
-@time X, info = glasol(G, F; atol = 1.e-8); info
-@test abs(glinfnorm(X*G-F,offset=1.e-13)[1] - info.mindist) < 0.01 &&  (!info.nonstandard && isstable(X,offset=1.e-13)) 
+# # both G and F stable  
+# n1 = 3; n2 = 2; m = 3; p = 2; pf = 1; 
+# G = rss(n1,p,m,stable=true); F = rss(n2,pf,m,stable=true);  
+# @time X, info = glasol(G, F; atol = 1.e-8); info
+# @test abs(glinfnorm(X*G-F,offset=1.e-13)[1] - info.mindist) < 0.01 &&  (!info.nonstandard && isstable(X,offset=1.e-13)) 
 
-@time X, info = glasol(G, F; nehari = true, atol = 1.e-7); info
-@test abs(glinfnorm(X*G-F)[1] - info.mindist) < 0.01 &&  (!info.nonstandard && isstable(X)) 
+# @time X, info = glasol(G, F; nehari = true, atol = 1.e-7); info
+# @test abs(glinfnorm(X*G-F)[1] - info.mindist) < 0.01 &&  (!info.nonstandard && isstable(X)) 
 
-# exact solution exists, free poles exist 
-n1 = 3; n2 = 2; m = 2; p = 3; pf = 1; 
-G = rss(n1,p,m,stable=true); X0 = rss(n2,pf,p,stable=true);  F = X0*G;
-@time X, info = glasol(G, F, atol = 1.e-7, poles = [-2, -3], sdeg = -1); info
-@test abs(glinfnorm(X*G-F)[1] - info.mindist) < 1.e-7 &&  (!info.nonstandard && isstable(X)) 
+# # exact solution exists, free poles exist 
+# n1 = 3; n2 = 2; m = 2; p = 3; pf = 1; 
+# G = rss(n1,p,m,stable=true); X0 = rss(n2,pf,p,stable=true);  F = X0*G;
+# @time X, info = glasol(G, F, atol = 1.e-7, poles = [-2, -3], sdeg = -1); info
+# @test abs(glinfnorm(X*G-F)[1] - info.mindist) < 1.e-7 &&  (!info.nonstandard && isstable(X)) 
 
-# exact solution exists, no free poles 
-n1 = 3; n2 = 2; m = 3; p = 2; pf = 1; 
-G = rss(n1,p,m); X0 = rss(n2,pf,p,stable=true);  F = X0*G; 
-@time X, info = glasol(G, F, offset = 1.e-13, atol = 1.e-7); info  
-@test abs(glinfnorm(X*G-F)[1] - info.mindist) < 1.e-5 &&  (!info.nonstandard && isstable(X)) 
+# # exact solution exists, no free poles 
+# n1 = 3; n2 = 2; m = 3; p = 2; pf = 1; 
+# G = rss(n1,p,m); X0 = rss(n2,pf,p,stable=true);  F = X0*G; 
+# @time X, info = glasol(G, F, offset = 1.e-13, atol = 1.e-7); info  
+# @test abs(glinfnorm(X*G-F)[1] - info.mindist) < 1.e-5 &&  (!info.nonstandard && isstable(X)) 
 
-n1 = 3; n2 = 2; m = 2; p = 3; pf = 1; 
-G = rss(n1,p,m,stable=true); X0 = rss(n2,pf,p,stable=true);  F = X0*G;
-@time X, info = glasol(G, F, atol = 1.e-7, poles = [-2, -3], sdeg = -1, mindeg = true); info
-@test abs(glinfnorm(X*G-F)[1] - info.mindist) < 1.e-7 &&  (!info.nonstandard && isstable(X)) &&
-      order(X) == order(X0)
+# n1 = 3; n2 = 2; m = 2; p = 3; pf = 1; 
+# G = rss(n1,p,m,stable=true); X0 = rss(n2,pf,p,stable=true);  F = X0*G;
+# @time X, info = glasol(G, F, atol = 1.e-7, poles = [-2, -3], sdeg = -1, mindeg = true); info
+# @test abs(glinfnorm(X*G-F)[1] - info.mindist) < 1.e-7 &&  (!info.nonstandard && isstable(X)) &&
+#       order(X) == order(X0)
 
 
 # n = 3;
