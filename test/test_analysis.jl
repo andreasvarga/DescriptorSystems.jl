@@ -1082,7 +1082,7 @@ sys = rdss(n,p,m,T = Ty, disc=true);
 sys1 = rss(n,p,m,T = Ty); sys1d = sys1*0.001/glinfnorm(sys1)[1]; sys2 = sys1+sys1d;
 @time nugap, fpeak = gnugap(sys2,sys1,fast = fast, atol = 1.e-7)
 @time nugap1, fpeak1 = gnugap(sys2,sys1,fast = fast, atol = 1.e-7,freq=fpeak)
-@test nugap ≈ nugap1[1] &&  nugap < 0.01
+@test abs(nugap - nugap1[1]) < 1.e-5 &&  nugap < 0.01
 
 sys1 = rss(n,p,m,T = Ty); sys1d = rss(3,2,3,stable=true,T = Ty); sys2 = sys1+sys1d*0.001/glinfnorm(sys1d)[1];
 @time nugap, fpeak = gnugap(sys2,sys1,fast = fast, atol = 1.e-7)
