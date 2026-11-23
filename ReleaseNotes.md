@@ -1,6 +1,6 @@
 # Release Notes
 
-## Version 1.5.1
+## Version 1.5.2
 
 Generic versions of functions for:
 - analysis
@@ -12,6 +12,8 @@ Generic versions of functions for:
 - additive decompositions
 - spectral and inner-outer factorizations
 - solving rational systems and order reduction
+
+Bug fix [#22](https://github.com/andreasvarga/DescriptorSystems.jl/issues/22)
 
 ## Version 1.5.1
 

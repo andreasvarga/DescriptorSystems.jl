@@ -658,7 +658,6 @@ sys = dss(a,e,b,c,d);
 @time hinfnorm, fpeak = glinfnorm(dss(dssdata(BigFloat,sys)...))
 @test isinf(linfnorm) && isinf(fpeak)
 
-# first discrepancy
 a = [-1 2;-3 -2]; b = [2 3 4; 1 2 3]; c = [1 4; 2 2; 1 3]; d = zeros(3,3);
 sys = dss(a,b,c,d);
 sysb = dss(dssdata(BigFloat,sys)...); 
@@ -781,6 +780,13 @@ sys = dss(e*a,e,e*b,c,d,Ts = 1);
 @test opnorm(evalfr(sys,exp(im*fpeak))) ≈ linfnorm &&
       round(linfnorm, digits=6) ≈ round(4.133509781281479e+01,digits=6) && 
       round(fpeak,digits = 3) ≈ round(2.753904640692288,digits=3)
+
+# example for which Matlab's function norm(sys,Inf) fails - courtesy of F. Bagge
+A = [0.0 0; 1 0]; B = [1.0; 0;;]; C = [0.0 -1]; D = [1.0;;];
+Ts = 0.125; 
+sys = dss(A,B,C,D;Ts)
+@time hinfnorm, fpeak = ghinfnorm(sys);
+@test opnorm(evalfr(sys,exp(im*fpeak*Ts))) ≈ hinfnorm && hinfnorm ≈ 2 && fpeak ≈ pi/2/Ts
 
 
 a = [-1 2;-3 -2]/10; b = [2 3 4; 1 2 3]; c = [1 4; 2 2; 1 3]; d = ones(3,3);
@@ -1036,7 +1042,7 @@ n = 5; m = 3; p = 2;
 Ty = Float64; fast = true; 
 Ty = Complex{Float64}; fast = true; 
 rtolinf = 0.000001
-for Ty in (Float64, Complex{Float64})
+for Ty in (Float64, Complex{Float64},BigFloat, Complex{BigFloat})
 
 for fast in (true, false)
 

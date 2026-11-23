@@ -347,7 +347,7 @@ function gpoleinfo(SYS::DescriptorStateSpace{T}; smarg::Real = SYS.Ts == 0 ? 0 :
           elseif istriu(E) && rcond(UpperTriangular(E)) >= n*epsm  
              val = MatrixPencils.eigvalsnosort(A,E)
           elseif rcond(E) >= n*epsm 
-             val = MatrixPencils.eigvalsnosort(A,E)
+             val = MatrixPencils.eigvalsnosort!(A,E)
           else
              # singular E
              val, mip, krinfo = pzeros(A, E; fast = fast, atol1 = atol1, atol2 = atol2, rtol = rtol )
@@ -939,7 +939,7 @@ function glinfnorm(sys::DescriptorStateSpace{T}; hinfnorm::Bool = false, rtolinf
         hinfnorm && any(abs.(ft) .> 1-β) && (return Inf, NaN)
         for i = 1:length(ft)
             abs(ft[i]) >= 1-β && abs(ft[i]) <= 1+β && (return Inf, complx ? imag(log(complex(ft[i]))/Ts) : abs(log(complex(ft[i]))/Ts))
-        end
+        end 
     else
         hinfnorm && any(real.(ft) .> -β) && (return Inf, NaN)
         for i = 1:length(ft)
@@ -1088,6 +1088,7 @@ function norminfd(a, e, b, c, d, ft0, Ts, tol)
    desc = e != I
    # reduce to complex Hessenberg form
    ac, ec, bc, cc, dc = chess(a, e, b, c, d)
+   ft0 = [ft0; rand()*pi/Ts]
    
    # Build a new vector TESTFRQ of test frequencies containing the peaking
    # frequency for each mode (or an approximation thereof for non-resonant modes).
@@ -1102,7 +1103,7 @@ function norminfd(a, e, b, c, d, ft0, Ts, tol)
    
    # Back to unit circle, and add z = exp(0) and z = exp(pi)
    testz = [exp.(im*testfrq); [-1] ]
-  
+   
    gmin = 0
    fpeak = 0
    
